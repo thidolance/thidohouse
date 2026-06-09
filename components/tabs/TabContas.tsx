@@ -452,8 +452,9 @@ export default function TabContas({ mes, ano }: Props) {
   }
 
   async function handleTogglePago(id: string, status: 'pago' | 'pendente') {
-    await updateContaStatus(id, status === 'pago' ? 'pendente' : 'pago');
-    load();
+    const newStatus = status === 'pago' ? 'pendente' : 'pago';
+    setContas((prev) => prev.map((c) => c.id === id ? { ...c, status: newStatus } : c));
+    await updateContaStatus(id, newStatus);
   }
 
   async function handleToggleFixa(c: Conta) {
@@ -481,14 +482,15 @@ export default function TabContas({ mes, ano }: Props) {
   }
 
   async function handleToggleCartao(cartaoId: string, status: 'pago' | 'pendente') {
-    await setFaturaCartaoStatus(cartaoId, mes, ano, status === 'pago' ? 'pendente' : 'pago');
-    load();
+    const newStatus = status === 'pago' ? 'pendente' : 'pago';
+    setItensCartao((prev) => prev.map((c) => c.cartaoId === cartaoId ? { ...c, status: newStatus } : c));
+    await setFaturaCartaoStatus(cartaoId, mes, ano, newStatus);
   }
 
   async function handleToggleEmpresaAll() {
     const newStatus = empresaStatus === 'pago' ? 'pendente' : 'pago';
+    setItensEmpresa((prev) => prev.map((c) => ({ ...c, status: newStatus })));
     await Promise.all(itensEmpresa.map((c) => setFaturaEmpresaStatus(c.categoriaId, mes, ano, newStatus)));
-    load();
   }
 
   async function handleSaveCat(e: React.SubmitEvent<HTMLFormElement>) {
@@ -532,9 +534,6 @@ export default function TabContas({ mes, ano }: Props) {
           <div className="flex items-center gap-1.5 flex-wrap">
             <p className={`font-semibold text-sm leading-tight ${pago ? 'line-through text-slate-400' : 'text-slate-800'}`}>{c.descricao}</p>
             {c.fixa && <span className="text-[10px] bg-amber-100 text-amber-600 px-1.5 py-0.5 rounded-md font-bold uppercase tracking-wide">fixa</span>}
-            {c.totalParcelas && c.parcelaAtual && (
-              <span className="text-[10px] bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded-md font-semibold">{c.parcelaAtual}/{c.totalParcelas}x</span>
-            )}
           </div>
           <div className="flex items-center gap-2 mt-0.5 flex-wrap">
             <span className="text-[11px] px-1.5 py-0.5 rounded-md font-semibold" style={{ backgroundColor: `${cor}18`, color: cor }}>{c.categoria}</span>
@@ -552,9 +551,9 @@ export default function TabContas({ mes, ano }: Props) {
             </div>
           )}
         </div>
-        <div className="flex items-center gap-0.5 flex-shrink-0">
-          <span className={`font-bold text-sm tabular-nums mr-1.5 ${pago ? 'text-emerald-600' : 'text-slate-800'}`}>{fmt(c.valor)}</span>
-          <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+        <div className="flex items-center gap-2 flex-shrink-0">
+          <span className={`font-bold text-sm tabular-nums ${pago ? 'text-emerald-600' : 'text-slate-800'}`}>{fmt(c.valor)}</span>
+          <div className="w-[5.5rem] flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
             {!c.parcelaAtual && (
               <button onClick={() => handleToggleFixa(c)} title={c.fixa ? 'Remover recorrência' : 'Marcar como fixa'}
                 className={`p-1.5 rounded-lg transition-colors ${c.fixa ? 'text-amber-500 bg-amber-50' : 'text-slate-400 hover:text-amber-500 hover:bg-amber-50'}`}>
@@ -783,7 +782,10 @@ export default function TabContas({ mes, ano }: Props) {
                       <p className={`font-semibold text-sm ${c.status === 'pago' ? 'line-through text-slate-400' : 'text-slate-800'}`}>Fatura {c.cartaoNome}</p>
                       <span className="text-[11px] px-1.5 py-0.5 rounded-md font-semibold mt-0.5 inline-block" style={{ backgroundColor: `${c.cartaoCor}18`, color: c.cartaoCor }}>{c.cartaoNome}</span>
                     </div>
-                    <span className={`font-bold text-sm tabular-nums ${c.status === 'pago' ? 'text-emerald-600' : 'text-slate-800'}`}>{fmt(c.valor)}</span>
+                    <div className="flex items-center gap-2 flex-shrink-0">
+                      <span className={`font-bold text-sm tabular-nums ${c.status === 'pago' ? 'text-emerald-600' : 'text-slate-800'}`}>{fmt(c.valor)}</span>
+                      <div className="w-[5.5rem]" />
+                    </div>
                   </div>
                 ))}
               </div>
@@ -808,7 +810,10 @@ export default function TabContas({ mes, ano }: Props) {
                       <span className="text-[11px] text-slate-400">custos do mês</span>
                     </div>
                   </div>
-                  <span className={`font-bold text-sm tabular-nums ${empresaStatus === 'pago' ? 'text-emerald-600' : 'text-slate-800'}`}>{fmt(empresaSum)}</span>
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    <span className={`font-bold text-sm tabular-nums ${empresaStatus === 'pago' ? 'text-emerald-600' : 'text-slate-800'}`}>{fmt(empresaSum)}</span>
+                    <div className="w-[5.5rem]" />
+                  </div>
                 </div>
               </div>
             )}
