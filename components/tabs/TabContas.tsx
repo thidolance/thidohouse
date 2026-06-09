@@ -540,6 +540,17 @@ export default function TabContas({ mes, ano }: Props) {
             <span className="text-[11px] px-1.5 py-0.5 rounded-md font-semibold" style={{ backgroundColor: `${cor}18`, color: cor }}>{c.categoria}</span>
             <span className="text-[11px] text-slate-400">dia {c.vencimento}</span>
           </div>
+          {c.totalParcelas && c.parcelaAtual && (
+            <div className="mt-1.5 flex items-center gap-2">
+              <div className="flex-1 max-w-[100px] bg-slate-100 rounded-full h-1.5">
+                <div
+                  className="h-1.5 rounded-full transition-all"
+                  style={{ width: `${(c.parcelaAtual / c.totalParcelas) * 100}%`, backgroundColor: pago ? '#10b981' : cor, opacity: pago ? 0.6 : 0.75 }}
+                />
+              </div>
+              <span className="text-[10px] text-slate-400 tabular-nums">{c.parcelaAtual}/{c.totalParcelas}</span>
+            </div>
+          )}
         </div>
         <div className="flex items-center gap-0.5 flex-shrink-0">
           <span className={`font-bold text-sm tabular-nums mr-1.5 ${pago ? 'text-emerald-600' : 'text-slate-800'}`}>{fmt(c.valor)}</span>

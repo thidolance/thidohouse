@@ -40,12 +40,24 @@ function GearIcon() {
 
 const MESES_CURTOS = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
 
-const DIST_LABELS = [
-  { key: 'contas',        label: 'Contas',        color: '#6366f1' },
-  { key: 'ferias',        label: 'Férias',         color: '#22d3ee' },
-  { key: 'investimento',  label: 'Investimento',   color: '#a78bfa' },
-  { key: 'planosFuturos', label: 'Planos Futuros', color: '#34d399' },
-] as const;
+type DistKey = 'contas' | 'ferias' | 'investimento' | 'planosFuturos';
+type DistColors = Record<DistKey, string>;
+
+const DEFAULT_DIST_COLORS: DistColors = {
+  contas: '#6366f1',
+  ferias: '#22d3ee',
+  investimento: '#a78bfa',
+  planosFuturos: '#34d399',
+};
+
+const DIST_LABELS: { key: DistKey; label: string }[] = [
+  { key: 'contas',        label: 'Contas' },
+  { key: 'ferias',        label: 'Férias' },
+  { key: 'investimento',  label: 'Investimento' },
+  { key: 'planosFuturos', label: 'Planos Futuros' },
+];
+
+const LS_COLORS_KEY = 'thidohouse-dist-colors';
 
 const fmt = (v: number) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 const INPUT = 'w-full border border-slate-200 rounded-xl px-3 py-2 text-sm text-slate-900 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-300';
@@ -63,6 +75,15 @@ export default function TabEntradas({ mes, ano }: Props) {
   const [loading, setLoading]           = useState(false);
   const [form, setForm]                 = useState({ descricao: '', valor: '', data: '' });
   const [distForm, setDistForm]         = useState({ contas: 50, ferias: 10, investimento: 20, planosFuturos: 20 });
+  const [distColors, setDistColors]     = useState<DistColors>(DEFAULT_DIST_COLORS);
+  const [distColorForm, setDistColorForm] = useState<DistColors>(DEFAULT_DIST_COLORS);
+
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem(LS_COLORS_KEY);
+      if (stored) { const c = JSON.parse(stored) as DistColors; setDistColors(c); setDistColorForm(c); }
+    } catch { /* noop */ }
+  }, []);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -124,17 +145,19 @@ export default function TabEntradas({ mes, ano }: Props) {
     const soma = distForm.contas + distForm.ferias + distForm.investimento + distForm.planosFuturos;
     if (soma !== 100) return alert('Os percentuais devem somar 100%');
     await saveDistribuicao({ ...distForm, mes, ano }, distribuicao.id);
+    setDistColors(distColorForm);
+    localStorage.setItem(LS_COLORS_KEY, JSON.stringify(distColorForm));
     setShowDistModal(false);
     load();
   }
 
   // ── dados derivados ───────────────────────────────────────────────────────
 
-  const distPieData = DIST_LABELS.map(({ key, label, color }) => ({
+  const distPieData = DIST_LABELS.map(({ key, label }) => ({
     name: label,
     value: distribuicao[key],
     valor: totalMes * (distribuicao[key] / 100),
-    fill: color,
+    fill: distColors[key],
   }));
 
   const distSoma = distForm.contas + distForm.ferias + distForm.investimento + distForm.planosFuturos;
@@ -175,7 +198,7 @@ export default function TabEntradas({ mes, ano }: Props) {
     },
   }), [historico]);
 
-  const distSpec = useMemo(() => ({
+  const distSpec = useMemo(() => ({  // eslint-disable-line react-hooks/exhaustive-deps
     type: 'pie',
     autoFit: true,
     background: 'transparent',
@@ -207,7 +230,7 @@ export default function TabEntradas({ mes, ano }: Props) {
         }],
       },
     },
-  }), [distPieData]);
+  }), [distPieData, distColors]);
 
   // ── render ────────────────────────────────────────────────────────────────
 
@@ -272,14 +295,14 @@ export default function TabEntradas({ mes, ano }: Props) {
         <Card>
           <div className="flex items-center justify-between mb-3">
             <p className="font-semibold text-slate-700 text-sm">Distribuição</p>
-            <button onClick={() => setShowDistModal(true)}
+            <button onClick={() => { setDistColorForm(distColors); setShowDistModal(true); }}
               className="inline-flex items-center gap-1 px-2.5 py-1.5 border border-slate-200 rounded-lg text-xs font-medium text-slate-500 hover:bg-slate-50 hover:text-slate-700 transition-colors">
               <GearIcon /> Editar %
             </button>
           </div>
           {totalMes > 0 ? (
             <div style={{ height: 220 }}>
-              <VChart key={`dist-${totalMes.toFixed(0)}`} spec={distSpec as any} />
+              <VChart key={`dist-${totalMes.toFixed(0)}-${Object.values(distColors).join('')}`} spec={distSpec as any} />
             </div>
           ) : (
             <div className="h-[220px] flex flex-col items-center justify-center text-slate-400 gap-2">
@@ -290,10 +313,10 @@ export default function TabEntradas({ mes, ano }: Props) {
           {/* Legenda com valores */}
           {totalMes > 0 && (
             <div className="mt-3 grid grid-cols-2 gap-x-4 gap-y-1.5">
-              {DIST_LABELS.map(({ key, label, color }) => (
+              {DIST_LABELS.map(({ key, label }) => (
                 <div key={key} className="flex items-center justify-between gap-2">
                   <div className="flex items-center gap-1.5 min-w-0">
-                    <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: color }} />
+                    <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: distColors[key] }} />
                     <span className="text-[11px] text-slate-500 truncate">{label} {distribuicao[key]}%</span>
                   </div>
                   <span className="text-[11px] font-semibold text-slate-700 tabular-nums flex-shrink-0">{fmt(totalMes * distribuicao[key] / 100)}</span>
@@ -377,10 +400,15 @@ export default function TabEntradas({ mes, ano }: Props) {
         <Modal title="Editar Distribuição" onClose={() => setShowDistModal(false)}>
           <form onSubmit={handleSaveDistribuicao} className="space-y-4">
             <p className="text-xs text-slate-400 bg-slate-50 rounded-lg p-2">Os percentuais devem somar exatamente 100%.</p>
-            {DIST_LABELS.map(({ key, label, color }) => (
+            {DIST_LABELS.map(({ key, label }) => (
               <div key={key}>
-                <label className="flex items-center gap-2 text-sm font-medium text-slate-700 mb-1">
-                  <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: color }} />
+                <label className="flex items-center gap-2 text-sm font-medium text-slate-700 mb-1.5">
+                  <input
+                    type="color"
+                    value={distColorForm[key]}
+                    onChange={(e) => setDistColorForm({ ...distColorForm, [key]: e.target.value })}
+                    className="w-7 h-7 rounded-lg border border-slate-200 cursor-pointer p-0.5 bg-white flex-shrink-0"
+                  />
                   {label} (%)
                 </label>
                 <input type="number" min={0} max={100}

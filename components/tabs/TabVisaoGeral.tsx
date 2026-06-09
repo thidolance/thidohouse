@@ -311,7 +311,7 @@ export default function TabVisaoGeral({ mes, ano }: Props) {
       {/* ── Evolução Ganhos vs Gastos ── */}
       <Card>
         <div className="mb-3">
-          <p className="font-semibold text-slate-700 text-sm">Evolução — Ganhos vs Gastos</p>
+          <p className="font-semibold text-slate-700 text-sm">Evolução: Ganhos vs Gastos</p>
           <p className="text-xs text-slate-400">Últimos 12 meses · mês atual destacado</p>
         </div>
         <div style={{ height: 240 }}>
@@ -384,7 +384,7 @@ export default function TabVisaoGeral({ mes, ano }: Props) {
       {/* ── Quanto está sendo guardado ── */}
       <Card>
         <div className="mb-3">
-          <p className="font-semibold text-slate-700 text-sm">Quanto está sendo guardado — por categoria</p>
+          <p className="font-semibold text-slate-700 text-sm">Investimentos por categoria</p>
           <p className="text-xs text-slate-400">Com base na distribuição configurada · Últimos 12 meses</p>
         </div>
 
