@@ -1,7 +1,12 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { useState, useEffect, useCallback, useMemo } from 'react';
+import dynamic from 'next/dynamic';
+
+const VChart = dynamic(
+  () => import('@visactor/react-vchart').then((m) => m.VChart),
+  { ssr: false, loading: () => <div className="animate-pulse bg-slate-100 rounded-xl h-full w-full" /> },
+);
 import Modal from '../ui/Modal';
 import Card from '../ui/Card';
 import { Plus, Trash, Pencil } from '../ui/Icons';
@@ -226,67 +231,161 @@ export default function TabCartoes({ mes, ano }: Props) {
     count: compras.filter((p) => p.cartaoId === c.id).length,
   }));
 
+  const totalPorCategoria = categorias.map((cat) => ({
+    ...cat,
+    fill: cat.cor,
+    total: compras.filter((p) => p.tipo === cat.nome).reduce((s, p) => s + p.valorParcela, 0),
+  })).filter((c) => c.total > 0);
+
   const comprasDoCartao = cartaoSelecionado
     ? compras.filter((c) => c.cartaoId === cartaoSelecionado)
     : [];
 
   const cartaoAtivo = cartoes.find((c) => c.id === cartaoSelecionado);
 
+  // ── specs VChart ──────────────────────────────────────────────────────────
+
+  const cartaoBarSpec = useMemo(() => ({
+    type: 'bar',
+    autoFit: true,
+    background: 'transparent',
+    data: [{ id: 'bar', values: totalPorCartao.filter((c) => c.total > 0) }],
+    xField: 'nome',
+    yField: 'total',
+    bar: {
+      style: {
+        cornerRadius: [8, 8, 0, 0],
+        fill: (d: Record<string, unknown>) => String(d['fill']),
+      },
+    },
+    axes: [
+      { orient: 'bottom', domainLine: { visible: false }, tick: { visible: false }, label: { style: { fontSize: 12, fill: '#64748b' } } },
+      {
+        orient: 'left',
+        grid: { style: { stroke: '#f1f5f9', lineDash: [3, 3] } },
+        domainLine: { visible: false },
+        tick: { visible: false },
+        label: {
+          style: { fontSize: 11, fill: '#94a3b8' },
+          formatMethod: (v: number) => v === 0 ? 'R$0' : `R$${(v / 1000).toFixed(0)}k`,
+        },
+      },
+    ],
+    tooltip: {
+      mark: {
+        title: { visible: false },
+        content: [{ key: (d: Record<string, unknown>) => String(d['nome']), value: (d: Record<string, unknown>) => fmt(Number(d['total'])) }],
+      },
+    },
+  }), [totalPorCartao]);
+
+  const catDonutSpec = useMemo(() => ({
+    type: 'pie',
+    autoFit: true,
+    background: 'transparent',
+    data: [{ id: 'cat', values: totalPorCategoria }],
+    valueField: 'total',
+    categoryField: 'nome',
+    outerRadius: 0.75,
+    innerRadius: 0.52,
+    padAngle: 0.8,
+    color: totalPorCategoria.map((d) => d.fill),
+    pie: { style: { cornerRadius: 4 } },
+    label: { visible: false },
+    legends: [{
+      visible: true,
+      orient: 'bottom',
+      padding: { top: 8 },
+      maxRow: 3,
+      item: {
+        label: { style: { fontSize: 11, fill: '#64748b' } },
+        value: { visible: false },
+      },
+    }],
+    tooltip: {
+      mark: {
+        title: { visible: false },
+        content: [{ key: (d: Record<string, unknown>) => String(d['nome']), value: (d: Record<string, unknown>) => fmt(Number(d['total'])) }],
+      },
+    },
+  }), [totalPorCategoria]);
+
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex justify-end gap-2">
-        <button
-          onClick={() => { setShowConfigModal(true); setConfigTab('cartoes'); }}
-          className="inline-flex items-center gap-2 px-4 py-2 border border-slate-200 text-slate-600 rounded-xl text-sm font-medium hover:bg-slate-50 transition-colors"
-        >
-          <GearIcon /> Configurações
-        </button>
-        <button
-          onClick={() => abrirNovaCompra()}
-          className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-xl text-sm font-medium hover:bg-indigo-700 transition-colors"
-        >
-          <Plus /> Nova Compra
-        </button>
+    <div className="space-y-5">
+      {/* ── Header ── */}
+      <div className="flex items-center justify-between gap-2">
+        <div>
+          <h2 className="text-lg font-bold text-slate-800">Cartões</h2>
+          <p className="text-xs text-slate-400">{compras.length} compra(s) · {fmt(totalGeral)}</p>
+        </div>
+        <div className="flex gap-2">
+          <button
+            onClick={() => { setShowConfigModal(true); setConfigTab('cartoes'); }}
+            className="inline-flex items-center gap-1.5 px-3 py-2 border border-slate-200 text-slate-500 rounded-xl text-sm font-medium hover:bg-slate-50 hover:text-slate-700 transition-colors"
+          >
+            <GearIcon /><span className="hidden sm:inline">Configurações</span>
+          </button>
+          <button
+            onClick={() => abrirNovaCompra()}
+            className="inline-flex items-center gap-1.5 px-3 py-2 bg-indigo-600 text-white rounded-xl text-sm font-medium hover:bg-indigo-700 transition-colors shadow-sm"
+          >
+            <Plus /><span className="hidden sm:inline">Nova Compra</span>
+          </button>
+        </div>
       </div>
 
-      {/* Resumo */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <div className="col-span-2 sm:col-span-1 bg-gradient-to-br from-slate-700 to-slate-800 rounded-2xl p-4 text-white">
-          <p className="text-slate-300 text-xs">Total do Mês</p>
-          <p className="text-xl font-bold mt-1">{fmt(totalGeral)}</p>
-          <p className="text-slate-400 text-xs mt-1">{compras.length} compra(s)</p>
+      {/* ── Cards resumo ── */}
+      <div className="grid grid-cols-3 gap-3">
+        <div className="relative overflow-hidden bg-gradient-to-br from-indigo-600 to-violet-700 rounded-2xl p-4 text-white shadow-md shadow-indigo-200">
+          <div className="absolute -top-4 -right-4 w-20 h-20 bg-white/10 rounded-full" />
+          <p className="text-indigo-200 text-xs font-medium uppercase tracking-wide relative">Total do Mês</p>
+          <p className="text-xl font-bold mt-1 tabular-nums relative">{fmt(totalGeral)}</p>
+          <p className="text-indigo-200 text-[11px] mt-1 relative">{compras.length} compra(s)</p>
         </div>
-        {cartoes.map((c) => {
+        {cartoes.slice(0, 2).map((c) => {
           const dado = totalPorCartao.find((t) => t.id === c.id)!;
           return (
-            <div key={c.id} className="relative overflow-hidden rounded-2xl p-3 text-white" style={{ backgroundColor: c.cor }}>
-              <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-black/20 pointer-events-none" />
-              <p className="relative text-white/70 text-xs">{c.nome}</p>
-              <p className="relative text-base font-bold mt-1">{fmt(dado?.total ?? 0)}</p>
-              <p className="relative text-white/50 text-xs">{dado?.count ?? 0} compra(s)</p>
+            <div key={c.id} className="relative overflow-hidden rounded-2xl p-4 text-white shadow-sm" style={{ backgroundColor: c.cor }}>
+              <div className="absolute inset-0 bg-gradient-to-br from-white/15 to-black/25 pointer-events-none" />
+              <p className="relative text-white/70 text-[11px] font-medium uppercase tracking-wide">{c.nome}</p>
+              <p className="relative text-lg font-bold mt-1 tabular-nums">{fmt(dado?.total ?? 0)}</p>
+              <p className="relative text-white/50 text-[11px]">{dado?.count ?? 0} compra(s)</p>
             </div>
           );
         })}
       </div>
 
-      {/* Gráfico */}
-      {totalGeral > 0 && (
+      {/* ── Gráficos ── */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <Card>
-          <h3 className="font-semibold text-slate-700 mb-4">Gasto por Cartão</h3>
-          <ResponsiveContainer width="100%" height={200}>
-            <BarChart data={totalPorCartao.filter((c) => c.total > 0)}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-              <XAxis dataKey="nome" tick={{ fontSize: 12 }} />
-              <YAxis tick={{ fontSize: 12 }} tickFormatter={(v) => `R$${(v / 1000).toFixed(1)}k`} />
-              <Tooltip formatter={(v) => v != null ? fmt(Number(v)) : ''} />
-              <Bar dataKey="total" radius={[6, 6, 0, 0]} name="Total" />
-            </BarChart>
-          </ResponsiveContainer>
+          <p className="font-semibold text-slate-700 text-sm mb-3">Gasto por Cartão</p>
+          {totalGeral > 0 ? (
+            <div style={{ height: 220 }}>
+              <VChart key={`cartao-bar-${totalGeral.toFixed(0)}`} spec={cartaoBarSpec as any} />
+            </div>
+          ) : (
+            <div className="h-[220px] flex flex-col items-center justify-center text-slate-400 gap-2">
+              <span className="text-3xl">💳</span>
+              <p className="text-sm">Sem compras neste mês</p>
+            </div>
+          )}
         </Card>
-      )}
+        <Card>
+          <p className="font-semibold text-slate-700 text-sm mb-3">Por Categoria</p>
+          {totalPorCategoria.length > 0 ? (
+            <div style={{ height: 220 }}>
+              <VChart key={`cat-donut-${totalGeral.toFixed(0)}`} spec={catDonutSpec as any} />
+            </div>
+          ) : (
+            <div className="h-[220px] flex flex-col items-center justify-center text-slate-400 gap-2">
+              <span className="text-3xl">📊</span>
+              <p className="text-sm">Sem dados de categoria</p>
+            </div>
+          )}
+        </Card>
+      </div>
 
-      {/* Cards visuais */}
+      {/* Cards visuais dos cartões (seletor) */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {cartoes.map((c) => {
           const dado     = totalPorCartao.find((t) => t.id === c.id)!;

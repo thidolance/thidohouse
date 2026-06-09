@@ -216,6 +216,9 @@ export default function TabContas({ mes, ano }: Props) {
 
   const sortContas = (list: Conta[]) => {
     return [...list].sort((a, b) => {
+      // Pago sempre vai para o final da sua seção
+      if (a.status !== b.status) return a.status === 'pendente' ? -1 : 1;
+      // Dentro do mesmo status, aplica o critério escolhido
       switch (ordenacao) {
         case 'vencimento-asc':  return a.vencimento - b.vencimento;
         case 'vencimento-desc': return b.vencimento - a.vencimento;
@@ -223,7 +226,6 @@ export default function TabContas({ mes, ano }: Props) {
         case 'valor-desc':      return b.valor - a.valor;
         case 'nome-az':         return a.descricao.localeCompare(b.descricao);
         case 'nome-za':         return b.descricao.localeCompare(a.descricao);
-        case 'status':          return a.status === 'pendente' ? -1 : 1;
         default:                return a.vencimento - b.vencimento;
       }
     });
@@ -634,7 +636,7 @@ export default function TabContas({ mes, ano }: Props) {
           <p className="font-semibold text-slate-700 text-sm mb-3">Por Categoria</p>
           {pieValues.length > 0 ? (
             <div style={{ height: 240 }}>
-              <VChart spec={donutSpec as any} />
+              <VChart key={`donut-${pieValues.reduce((s, v) => s + v.value, 0).toFixed(0)}-${pieValues.length}`} spec={donutSpec as any} />
             </div>
           ) : (
             <div className="h-[240px] flex flex-col items-center justify-center text-slate-400 gap-2">
@@ -646,7 +648,7 @@ export default function TabContas({ mes, ano }: Props) {
         <Card>
           <p className="font-semibold text-slate-700 text-sm mb-3">Pago vs Pendente</p>
           <div style={{ height: 240 }}>
-            <VChart spec={barSpec as any} />
+            <VChart key={`bar-${totalPago.toFixed(0)}-${totalPendente.toFixed(0)}`} spec={barSpec as any} />
           </div>
         </Card>
       </div>

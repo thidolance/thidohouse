@@ -1,22 +1,22 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
-import {
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-  PieChart, Pie,
-} from 'recharts';
+import { useState, useEffect, useCallback, useMemo } from 'react';
+import dynamic from 'next/dynamic';
 import Modal from '../ui/Modal';
 import Card from '../ui/Card';
 import { Plus, Trash, TrendingUp } from '../ui/Icons';
 import {
-  getEntradas,
-  addEntrada,
-  deleteEntrada,
-  getEntradasHistorico,
-  getDistribuicao,
-  saveDistribuicao,
+  getEntradas, addEntrada, deleteEntrada,
+  getEntradasHistorico, getDistribuicao, saveDistribuicao,
 } from '@/lib/firestore';
 import type { Entrada, Distribuicao } from '@/lib/types';
+
+const VChart = dynamic(
+  () => import('@visactor/react-vchart').then((m) => m.VChart),
+  { ssr: false, loading: () => <div className="animate-pulse bg-slate-100 rounded-xl h-full w-full" /> },
+);
+
+// ── helpers ───────────────────────────────────────────────────────────────────
 
 function formatBRL(raw: string): string {
   const digits = raw.replace(/\D/g, '');
@@ -29,33 +29,40 @@ function parseBRL(formatted: string): number {
   return parseFloat(formatted.replace(/\./g, '').replace(',', '.')) || 0;
 }
 
+function GearIcon() {
+  return (
+    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+    </svg>
+  );
+}
+
 const MESES_CURTOS = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
 
-const DIST_COLORS = ['#6366f1', '#22d3ee', '#a78bfa', '#34d399'];
 const DIST_LABELS = [
-  { key: 'contas', label: 'Contas', color: '#6366f1' },
-  { key: 'ferias', label: 'Férias', color: '#22d3ee' },
-  { key: 'investimento', label: 'Investimento', color: '#a78bfa' },
+  { key: 'contas',        label: 'Contas',        color: '#6366f1' },
+  { key: 'ferias',        label: 'Férias',         color: '#22d3ee' },
+  { key: 'investimento',  label: 'Investimento',   color: '#a78bfa' },
   { key: 'planosFuturos', label: 'Planos Futuros', color: '#34d399' },
 ] as const;
 
-const fmt = (v: number) =>
-  v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+const fmt = (v: number) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+const INPUT = 'w-full border border-slate-200 rounded-xl px-3 py-2 text-sm text-slate-900 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-300';
 
 interface Props { mes: number; ano: number; }
 
 export default function TabEntradas({ mes, ano }: Props) {
-  const [entradas, setEntradas] = useState<Entrada[]>([]);
-  const [historico, setHistorico] = useState<{ mes: string; total: number }[]>([]);
+  const [entradas, setEntradas]   = useState<Entrada[]>([]);
+  const [historico, setHistorico] = useState<{ mes: string; total: number; fill: string }[]>([]);
   const [distribuicao, setDistribuicao] = useState<Distribuicao>({
     mes, ano, contas: 50, ferias: 10, investimento: 20, planosFuturos: 20,
   });
-
-  const [showModal, setShowModal] = useState(false);
+  const [showModal, setShowModal]       = useState(false);
   const [showDistModal, setShowDistModal] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [form, setForm] = useState({ descricao: '', valor: '', data: '' });
-  const [distForm, setDistForm] = useState({ contas: 50, ferias: 10, investimento: 20, planosFuturos: 20 });
+  const [loading, setLoading]           = useState(false);
+  const [form, setForm]                 = useState({ descricao: '', valor: '', data: '' });
+  const [distForm, setDistForm]         = useState({ contas: 50, ferias: 10, investimento: 20, planosFuturos: 20 });
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -68,24 +75,25 @@ export default function TabEntradas({ mes, ano }: Props) {
 
     const byMonth: Record<string, number> = {};
     hist.forEach((e) => {
-      const key = `${String(e.mes).padStart(2, '0')}/${e.ano}`;
+      const key = `${String(e.ano).padStart(4,'0')}${String(e.mes).padStart(2, '0')}`;
       byMonth[key] = (byMonth[key] ?? 0) + e.valor;
     });
     const sorted = Object.entries(byMonth)
       .sort(([a], [b]) => a.localeCompare(b))
       .slice(-12)
-      .map(([k, total]) => {
-        const [m] = k.split('/');
-        return { mes: MESES_CURTOS[parseInt(m, 10) - 1], total };
-      });
+      .map(([k, total], i, arr) => ({
+        mes: MESES_CURTOS[parseInt(k.slice(4), 10) - 1],
+        total,
+        fill: i === arr.length - 1 ? '#6366f1' : '#a5b4fc',
+      }));
     setHistorico(sorted);
 
     if (dist) {
       setDistribuicao(dist);
       setDistForm({ contas: dist.contas, ferias: dist.ferias, investimento: dist.investimento, planosFuturos: dist.planosFuturos });
     } else {
-      const defaultDist = { mes, ano, contas: 50, ferias: 10, investimento: 20, planosFuturos: 20 };
-      setDistribuicao(defaultDist);
+      const d = { mes, ano, contas: 50, ferias: 10, investimento: 20, planosFuturos: 20 };
+      setDistribuicao(d);
       setDistForm({ contas: 50, ferias: 10, investimento: 20, planosFuturos: 20 });
     }
     setLoading(false);
@@ -95,16 +103,12 @@ export default function TabEntradas({ mes, ano }: Props) {
 
   const totalMes = entradas.reduce((s, e) => s + e.valor, 0);
 
-  async function handleAddEntrada(e: React.SubmitEvent) {
+  // ── handlers ─────────────────────────────────────────────────────────────
+
+  async function handleAddEntrada(e: React.SubmitEvent<HTMLFormElement>) {
     e.preventDefault();
     const [y, m] = form.data.split('-').map(Number);
-    await addEntrada({
-      descricao: form.descricao,
-      valor: parseBRL(form.valor),
-      data: form.data,
-      mes: m,
-      ano: y,
-    });
+    await addEntrada({ descricao: form.descricao, valor: parseBRL(form.valor), data: form.data, mes: m, ano: y });
     setForm({ descricao: '', valor: '', data: '' });
     setShowModal(false);
     load();
@@ -115,7 +119,7 @@ export default function TabEntradas({ mes, ano }: Props) {
     load();
   }
 
-  async function handleSaveDistribuicao(e: React.SubmitEvent) {
+  async function handleSaveDistribuicao(e: React.SubmitEvent<HTMLFormElement>) {
     e.preventDefault();
     const soma = distForm.contas + distForm.ferias + distForm.investimento + distForm.planosFuturos;
     if (soma !== 100) return alert('Os percentuais devem somar 100%');
@@ -124,125 +128,217 @@ export default function TabEntradas({ mes, ano }: Props) {
     load();
   }
 
-  const distPieData = DIST_LABELS.map(({ key, label, color }, i) => ({
+  // ── dados derivados ───────────────────────────────────────────────────────
+
+  const distPieData = DIST_LABELS.map(({ key, label, color }) => ({
     name: label,
     value: distribuicao[key],
     valor: totalMes * (distribuicao[key] / 100),
-    fill: color ?? DIST_COLORS[i],
+    fill: color,
   }));
 
+  const distSoma = distForm.contas + distForm.ferias + distForm.investimento + distForm.planosFuturos;
+
+  // ── specs VChart ──────────────────────────────────────────────────────────
+
+  const historicoSpec = useMemo(() => ({
+    type: 'bar',
+    autoFit: true,
+    background: 'transparent',
+    data: [{ id: 'hist', values: historico }],
+    xField: 'mes',
+    yField: 'total',
+    bar: {
+      style: {
+        cornerRadius: [6, 6, 0, 0],
+        fill: (d: Record<string, unknown>) => String(d['fill']),
+      },
+    },
+    axes: [
+      { orient: 'bottom', domainLine: { visible: false }, tick: { visible: false }, label: { style: { fontSize: 11, fill: '#94a3b8' } } },
+      {
+        orient: 'left',
+        grid: { style: { stroke: '#f1f5f9', lineDash: [3, 3] } },
+        domainLine: { visible: false },
+        tick: { visible: false },
+        label: {
+          style: { fontSize: 10, fill: '#94a3b8' },
+          formatMethod: (v: number) => v === 0 ? 'R$0' : `R$${(v / 1000).toFixed(0)}k`,
+        },
+      },
+    ],
+    tooltip: {
+      mark: {
+        title: { visible: false },
+        content: [{ key: (d: Record<string, unknown>) => String(d['mes']), value: (d: Record<string, unknown>) => fmt(Number(d['total'])) }],
+      },
+    },
+  }), [historico]);
+
+  const distSpec = useMemo(() => ({
+    type: 'pie',
+    autoFit: true,
+    background: 'transparent',
+    data: [{ id: 'dist', values: distPieData }],
+    valueField: 'value',
+    categoryField: 'name',
+    outerRadius: 0.75,
+    innerRadius: 0.52,
+    padAngle: 0.8,
+    color: distPieData.map((d) => d.fill),
+    pie: { style: { cornerRadius: 4 } },
+    label: { visible: false },
+    legends: [{
+      visible: true,
+      orient: 'bottom',
+      padding: { top: 8 },
+      maxRow: 2,
+      item: {
+        label: { style: { fontSize: 11, fill: '#64748b' } },
+        value: { visible: false },
+      },
+    }],
+    tooltip: {
+      mark: {
+        title: { visible: false },
+        content: [{
+          key: (d: Record<string, unknown>) => String(d['name']),
+          value: (d: Record<string, unknown>) => `${d['value']}% · ${fmt(Number(d['valor']))}`,
+        }],
+      },
+    },
+  }), [distPieData]);
+
+  // ── render ────────────────────────────────────────────────────────────────
+
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex justify-end">
-        <button
-          onClick={() => setShowModal(true)}
-          className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-xl text-sm font-medium hover:bg-indigo-700 transition-colors"
-        >
-          <Plus /> Nova Entrada
+    <div className="space-y-5">
+
+      {/* ── Header ── */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-lg font-bold text-slate-800">Entradas</h2>
+          <p className="text-xs text-slate-400">{entradas.length} entrada(s) · {fmt(totalMes)}</p>
+        </div>
+        <button onClick={() => setShowModal(true)}
+          className="inline-flex items-center gap-1.5 px-3 py-2 bg-indigo-600 text-white rounded-xl text-sm font-medium hover:bg-indigo-700 transition-colors shadow-sm">
+          <Plus /><span className="hidden sm:inline">Nova Entrada</span>
         </button>
       </div>
 
-      {/* Resumo */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <Card className="bg-gradient-to-br from-indigo-500 to-indigo-600 text-white border-0">
-          <p className="text-indigo-100 text-sm">Total do Mês</p>
-          <p className="text-2xl font-bold mt-1">{fmt(totalMes)}</p>
-        </Card>
-        <Card>
-          <p className="text-slate-500 text-sm">Entradas</p>
-          <p className="text-2xl font-bold text-slate-800 mt-1">{entradas.length}</p>
-        </Card>
-        <Card>
-          <p className="text-slate-500 text-sm">Média por Entrada</p>
-          <p className="text-2xl font-bold text-slate-800 mt-1">
+      {/* ── Cards resumo ── */}
+      <div className="grid grid-cols-3 gap-3">
+        <div className="relative overflow-hidden bg-gradient-to-br from-indigo-600 to-violet-700 rounded-2xl p-4 text-white shadow-md shadow-indigo-200">
+          <div className="absolute -top-4 -right-4 w-20 h-20 bg-white/10 rounded-full" />
+          <p className="text-indigo-200 text-xs font-medium uppercase tracking-wide relative">Total do Mês</p>
+          <p className="text-xl font-bold mt-1 tabular-nums relative">{fmt(totalMes)}</p>
+          <p className="text-indigo-200 text-[11px] mt-1 relative">{entradas.length} entrada(s)</p>
+        </div>
+        <div className="bg-white border border-slate-100 rounded-2xl p-4 shadow-sm">
+          <p className="text-slate-400 text-[11px] font-medium uppercase tracking-wide">Entradas</p>
+          <p className="text-xl font-bold text-slate-800 mt-1">{entradas.length}</p>
+          <div className="flex items-center gap-1.5 mt-2">
+            <TrendingUp />
+            <p className="text-[11px] text-slate-400">neste mês</p>
+          </div>
+        </div>
+        <div className="bg-white border border-slate-100 rounded-2xl p-4 shadow-sm">
+          <p className="text-slate-400 text-[11px] font-medium uppercase tracking-wide">Média</p>
+          <p className="text-xl font-bold text-slate-800 mt-1 tabular-nums">
             {entradas.length > 0 ? fmt(totalMes / entradas.length) : 'R$ 0,00'}
           </p>
-        </Card>
+          <p className="text-[11px] text-slate-400 mt-2">por entrada</p>
+        </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Histórico */}
+      {/* ── Gráficos ── */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <Card>
-          <div className="flex items-center gap-2 mb-4">
+          <div className="flex items-center gap-2 mb-3">
             <TrendingUp />
-            <h3 className="font-semibold text-slate-700">Histórico de Entradas</h3>
+            <p className="font-semibold text-slate-700 text-sm">Histórico (12 meses)</p>
           </div>
-          <ResponsiveContainer width="100%" height={200}>
-            <BarChart data={historico}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-              <XAxis dataKey="mes" tick={{ fontSize: 12 }} />
-              <YAxis tick={{ fontSize: 12 }} tickFormatter={(v) => `R$${(v / 1000).toFixed(0)}k`} />
-              <Tooltip formatter={(v) => v != null ? fmt(Number(v)) : ''} />
-              <Bar dataKey="total" fill="#6366f1" radius={[4, 4, 0, 0]} name="Total" />
-            </BarChart>
-          </ResponsiveContainer>
+          {historico.length > 0 ? (
+            <div style={{ height: 220 }}>
+              <VChart key={`hist-${historico.length}-${historico.at(-1)?.total?.toFixed(0) ?? 0}`} spec={historicoSpec as any} />
+            </div>
+          ) : (
+            <div className="h-[220px] flex flex-col items-center justify-center text-slate-400 gap-2">
+              <span className="text-3xl">📈</span>
+              <p className="text-sm">Sem histórico ainda</p>
+            </div>
+          )}
         </Card>
-
-        {/* Distribuição */}
         <Card>
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="font-semibold text-slate-700">Distribuição</h3>
-            <button
-              onClick={() => setShowDistModal(true)}
-              className="text-xs text-indigo-600 hover:text-indigo-800 font-medium"
-            >
-              Editar %
+          <div className="flex items-center justify-between mb-3">
+            <p className="font-semibold text-slate-700 text-sm">Distribuição</p>
+            <button onClick={() => setShowDistModal(true)}
+              className="inline-flex items-center gap-1 px-2.5 py-1.5 border border-slate-200 rounded-lg text-xs font-medium text-slate-500 hover:bg-slate-50 hover:text-slate-700 transition-colors">
+              <GearIcon /> Editar %
             </button>
           </div>
           {totalMes > 0 ? (
-            <ResponsiveContainer width="100%" height={200}>
-              <PieChart>
-                <Pie data={distPieData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={70} label={({ name, value }) => `${name} ${value}%`} labelLine={false} />
-                <Tooltip formatter={(v, name, entry) => {
-                  const pct = Number(v);
-                  const brl = (entry as { payload?: { valor?: number } })?.payload?.valor ?? totalMes * pct / 100;
-                  return [`${pct}% · ${fmt(brl)}`, String(name)];
-                }} />
-              </PieChart>
-            </ResponsiveContainer>
+            <div style={{ height: 220 }}>
+              <VChart key={`dist-${totalMes.toFixed(0)}`} spec={distSpec as any} />
+            </div>
           ) : (
-            <div className="h-[200px] flex items-center justify-center text-slate-400 text-sm">
-              Adicione entradas para ver a distribuição
+            <div className="h-[220px] flex flex-col items-center justify-center text-slate-400 gap-2">
+              <span className="text-3xl">🥧</span>
+              <p className="text-sm">Adicione entradas para ver a distribuição</p>
             </div>
           )}
-          <div className="mt-3 grid grid-cols-2 gap-2">
-            {DIST_LABELS.map(({ label, color, key }) => (
-              <div key={key} className="flex items-center gap-2">
-                <span className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: color }} />
-                <span className="text-xs text-slate-600">{label}: {distribuicao[key]}%</span>
-                {totalMes > 0 && (
-                  <span className="text-xs text-slate-400 ml-auto">{fmt(totalMes * distribuicao[key] / 100)}</span>
-                )}
-              </div>
-            ))}
-          </div>
+          {/* Legenda com valores */}
+          {totalMes > 0 && (
+            <div className="mt-3 grid grid-cols-2 gap-x-4 gap-y-1.5">
+              {DIST_LABELS.map(({ key, label, color }) => (
+                <div key={key} className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-1.5 min-w-0">
+                    <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: color }} />
+                    <span className="text-[11px] text-slate-500 truncate">{label} {distribuicao[key]}%</span>
+                  </div>
+                  <span className="text-[11px] font-semibold text-slate-700 tabular-nums flex-shrink-0">{fmt(totalMes * distribuicao[key] / 100)}</span>
+                </div>
+              ))}
+            </div>
+          )}
         </Card>
       </div>
 
-      {/* Lista */}
-      <Card>
-        <h3 className="font-semibold text-slate-700 mb-4">Entradas do Mês</h3>
+      {/* ── Lista de entradas ── */}
+      <Card className="!p-0 overflow-hidden">
+        <div className="px-4 py-3 border-b border-slate-100 flex items-center justify-between">
+          <p className="font-semibold text-slate-700 text-sm">Entradas do Mês</p>
+          {entradas.length > 0 && <span className="text-xs text-slate-400">{entradas.length} item(s)</span>}
+        </div>
         {loading ? (
-          <p className="text-slate-400 text-sm text-center py-8">Carregando...</p>
+          <div className="py-12 flex flex-col items-center gap-2 text-slate-400">
+            <div className="w-5 h-5 border-2 border-slate-200 border-t-indigo-500 rounded-full animate-spin" />
+            <p className="text-sm">Carregando...</p>
+          </div>
         ) : entradas.length === 0 ? (
-          <p className="text-slate-400 text-sm text-center py-8">Nenhuma entrada neste mês</p>
+          <div className="py-12 text-center">
+            <p className="text-2xl mb-2">📥</p>
+            <p className="text-slate-400 text-sm">Nenhuma entrada neste mês</p>
+          </div>
         ) : (
-          <div className="space-y-2">
+          <div className="divide-y divide-slate-50">
             {entradas.map((e) => (
-              <div key={e.id} className="flex items-center justify-between p-3 rounded-xl hover:bg-slate-50 transition-colors">
-                <div>
-                  <p className="font-medium text-slate-700 text-sm">{e.descricao}</p>
-                  <p className="text-xs text-slate-400">
-                    {new Date(e.data + 'T12:00:00').toLocaleDateString('pt-BR')}
-                  </p>
-                </div>
+              <div key={e.id} className="group flex items-center justify-between px-4 py-3.5 hover:bg-slate-50/80 transition-colors">
                 <div className="flex items-center gap-3">
-                  <span className="font-semibold text-indigo-600">{fmt(e.valor)}</span>
-                  <button
-                    onClick={() => handleDelete(e.id!)}
-                    className="p-1.5 rounded-lg hover:bg-red-50 text-slate-300 hover:text-red-400 transition-colors"
-                  >
+                  <div className="w-8 h-8 bg-indigo-100 rounded-xl flex items-center justify-center flex-shrink-0">
+                    <TrendingUp />
+                  </div>
+                  <div>
+                    <p className="font-semibold text-slate-800 text-sm leading-tight">{e.descricao}</p>
+                    <p className="text-[11px] text-slate-400 mt-0.5">
+                      {new Date(e.data + 'T12:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' })}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="font-bold text-indigo-600 tabular-nums">{fmt(e.valor)}</span>
+                  <button onClick={() => handleDelete(e.id!)}
+                    className="p-1.5 rounded-lg text-slate-300 hover:text-red-400 hover:bg-red-50 transition-colors opacity-0 group-hover:opacity-100">
                     <Trash />
                   </button>
                 </div>
@@ -252,84 +348,54 @@ export default function TabEntradas({ mes, ano }: Props) {
         )}
       </Card>
 
-      {/* Modal Nova Entrada */}
+      {/* ── Modal Nova Entrada ── */}
       {showModal && (
         <Modal title="Nova Entrada" onClose={() => setShowModal(false)}>
           <form onSubmit={handleAddEntrada} className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1">Descrição</label>
-              <input
-                required
-                value={form.descricao}
-                onChange={(e) => setForm({ ...form, descricao: e.target.value })}
-                className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm text-slate-900 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-300"
-                placeholder="Ex: Salário"
-              />
+              <input required value={form.descricao} onChange={(e) => setForm({ ...form, descricao: e.target.value })} className={INPUT} placeholder="Ex: Salário" />
             </div>
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1">Valor (R$)</label>
-              <input
-                required
-                value={form.valor}
-                onChange={(e) => setForm({ ...form, valor: formatBRL(e.target.value) })}
-                className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm text-slate-900 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-300"
-                placeholder="0,00"
-                inputMode="decimal"
-              />
+              <input required value={form.valor} onChange={(e) => setForm({ ...form, valor: formatBRL(e.target.value) })} className={INPUT} placeholder="0,00" inputMode="decimal" />
             </div>
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1">Data</label>
-              <input
-                required
-                type="date"
-                value={form.data}
-                onChange={(e) => setForm({ ...form, data: e.target.value })}
-                className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm text-slate-900 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-300"
-              />
+              <input required type="date" value={form.data} onChange={(e) => setForm({ ...form, data: e.target.value })} className={INPUT} />
             </div>
-            <div className="flex gap-3 pt-2">
-              <button type="button" onClick={() => setShowModal(false)} className="flex-1 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-600 hover:bg-slate-50 transition-colors">
-                Cancelar
-              </button>
-              <button type="submit" className="flex-1 py-2.5 bg-indigo-600 text-white rounded-xl text-sm font-medium hover:bg-indigo-700 transition-colors">
-                Salvar
-              </button>
+            <div className="flex gap-3 pt-1">
+              <button type="button" onClick={() => setShowModal(false)} className="flex-1 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-600 hover:bg-slate-50">Cancelar</button>
+              <button type="submit" className="flex-1 py-2.5 bg-indigo-600 text-white rounded-xl text-sm font-semibold hover:bg-indigo-700 shadow-sm">Salvar</button>
             </div>
           </form>
         </Modal>
       )}
 
-      {/* Modal Distribuição */}
+      {/* ── Modal Distribuição ── */}
       {showDistModal && (
         <Modal title="Editar Distribuição" onClose={() => setShowDistModal(false)}>
           <form onSubmit={handleSaveDistribuicao} className="space-y-4">
-            <p className="text-xs text-slate-500">Os percentuais devem somar 100%</p>
+            <p className="text-xs text-slate-400 bg-slate-50 rounded-lg p-2">Os percentuais devem somar exatamente 100%.</p>
             {DIST_LABELS.map(({ key, label, color }) => (
               <div key={key}>
-                <label className="block text-sm font-medium text-slate-700 mb-1">
-                  <span className="inline-block w-2 h-2 rounded-full mr-2" style={{ backgroundColor: color }} />
+                <label className="flex items-center gap-2 text-sm font-medium text-slate-700 mb-1">
+                  <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: color }} />
                   {label} (%)
                 </label>
-                <input
-                  type="number"
-                  min={0}
-                  max={100}
+                <input type="number" min={0} max={100}
                   value={distForm[key]}
                   onChange={(e) => setDistForm({ ...distForm, [key]: parseInt(e.target.value) || 0 })}
-                  className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm text-slate-900 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-300"
-                />
+                  className={INPUT} />
               </div>
             ))}
-            <p className={`text-xs font-medium ${distForm.contas + distForm.ferias + distForm.investimento + distForm.planosFuturos === 100 ? 'text-green-500' : 'text-red-500'}`}>
-              Soma: {distForm.contas + distForm.ferias + distForm.investimento + distForm.planosFuturos}%
-            </p>
-            <div className="flex gap-3 pt-2">
-              <button type="button" onClick={() => setShowDistModal(false)} className="flex-1 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-600 hover:bg-slate-50 transition-colors">
-                Cancelar
-              </button>
-              <button type="submit" className="flex-1 py-2.5 bg-indigo-600 text-white rounded-xl text-sm font-medium hover:bg-indigo-700 transition-colors">
-                Salvar
-              </button>
+            <div className={`flex items-center justify-between text-sm p-2 rounded-lg ${distSoma === 100 ? 'bg-emerald-50 text-emerald-600' : 'bg-red-50 text-red-500'}`}>
+              <span className="font-medium">Soma:</span>
+              <span className="font-bold">{distSoma}%</span>
+            </div>
+            <div className="flex gap-3 pt-1">
+              <button type="button" onClick={() => setShowDistModal(false)} className="flex-1 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-600 hover:bg-slate-50">Cancelar</button>
+              <button type="submit" className="flex-1 py-2.5 bg-indigo-600 text-white rounded-xl text-sm font-semibold hover:bg-indigo-700 shadow-sm">Salvar</button>
             </div>
           </form>
         </Modal>
