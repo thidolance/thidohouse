@@ -251,7 +251,7 @@ export default function TabEntradas({ mes, ano }: Props) {
                 required
                 value={form.descricao}
                 onChange={(e) => setForm({ ...form, descricao: e.target.value })}
-                className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300"
+                className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm text-slate-900 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-300"
                 placeholder="Ex: Salário"
               />
             </div>
@@ -261,7 +261,7 @@ export default function TabEntradas({ mes, ano }: Props) {
                 required
                 value={form.valor}
                 onChange={(e) => setForm({ ...form, valor: e.target.value })}
-                className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300"
+                className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm text-slate-900 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-300"
                 placeholder="0,00"
                 inputMode="decimal"
               />
@@ -273,7 +273,7 @@ export default function TabEntradas({ mes, ano }: Props) {
                 type="date"
                 value={form.data}
                 onChange={(e) => setForm({ ...form, data: e.target.value })}
-                className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300"
+                className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm text-slate-900 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-300"
               />
             </div>
             <div className="flex gap-3 pt-2">
@@ -305,7 +305,7 @@ export default function TabEntradas({ mes, ano }: Props) {
                   max={100}
                   value={distForm[key]}
                   onChange={(e) => setDistForm({ ...distForm, [key]: parseInt(e.target.value) || 0 })}
-                  className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300"
+                  className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm text-slate-900 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-300"
                 />
               </div>
             ))}

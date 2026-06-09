@@ -35,6 +35,8 @@ export interface Conta {
   status: 'pago' | 'pendente';
   mes: number;
   ano: number;
+  parcelaAtual?: number;
+  totalParcelas?: number;
 }
 
 export interface Cartao {

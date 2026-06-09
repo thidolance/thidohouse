@@ -351,7 +351,7 @@ export default function TabCartoes({ mes, ano }: Props) {
                 required
                 value={form.descricao}
                 onChange={(e) => setForm({ ...form, descricao: e.target.value })}
-                className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300"
+                className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm text-slate-900 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-300"
                 placeholder="Ex: Notebook"
               />
             </div>
@@ -382,7 +382,7 @@ export default function TabCartoes({ mes, ano }: Props) {
                 required
                 value={form.valorTotal}
                 onChange={(e) => setForm({ ...form, valorTotal: e.target.value })}
-                className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300"
+                className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm text-slate-900 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-300"
                 placeholder="0,00"
                 inputMode="decimal"
               />
@@ -397,7 +397,7 @@ export default function TabCartoes({ mes, ano }: Props) {
                   min={1}
                   value={form.parcelaAtual}
                   onChange={(e) => setForm({ ...form, parcelaAtual: e.target.value })}
-                  className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300"
+                  className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm text-slate-900 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-300"
                   placeholder="1"
                 />
               </div>
@@ -409,7 +409,7 @@ export default function TabCartoes({ mes, ano }: Props) {
                   min={1}
                   value={form.totalParcelas}
                   onChange={(e) => setForm({ ...form, totalParcelas: e.target.value })}
-                  className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300"
+                  className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm text-slate-900 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-300"
                   placeholder="12"
                 />
               </div>

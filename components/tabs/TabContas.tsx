@@ -25,24 +25,42 @@ const CAT_COLORS: Record<string, string> = {
   Outros: '#94a3b8',
 };
 
+const INPUT = 'w-full border border-slate-200 rounded-xl px-3 py-2 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-300 bg-white';
+
 const fmt = (v: number) =>
   v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 
 interface Props { mes: number; ano: number; }
+
+type FormState = {
+  descricao: string;
+  categoria: CategoriaContas;
+  valor: string;
+  vencimento: string;
+  parcelaAtual: string;
+  totalParcelas: string;
+};
+
+const FORM_EMPTY: FormState = {
+  descricao: '', categoria: 'Moradia', valor: '', vencimento: '',
+  parcelaAtual: '', totalParcelas: '',
+};
 
 export default function TabContas({ mes, ano }: Props) {
   const now = new Date();
   const [contas, setContas] = useState<Conta[]>([]);
   const [showModal, setShowModal] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [form, setForm] = useState<{
-    descricao: string; categoria: CategoriaContas; valor: string; vencimento: string;
-  }>({ descricao: '', categoria: 'Moradia', valor: '', vencimento: '' });
+  const [form, setForm] = useState<FormState>(FORM_EMPTY);
 
   const load = useCallback(async () => {
     setLoading(true);
     const list = await getContas(mes, ano);
-    list.sort((a, b) => a.vencimento - b.vencimento);
+    // Pendentes primeiro (por vencimento), pagos por último
+    list.sort((a, b) => {
+      if (a.status !== b.status) return a.status === 'pendente' ? -1 : 1;
+      return a.vencimento - b.vencimento;
+    });
     setContas(list);
     setLoading(false);
   }, [mes, ano]);
@@ -52,6 +70,8 @@ export default function TabContas({ mes, ano }: Props) {
   const totalPago = contas.filter((c) => c.status === 'pago').reduce((s, c) => s + c.valor, 0);
   const totalPendente = contas.filter((c) => c.status === 'pendente').reduce((s, c) => s + c.valor, 0);
   const total = totalPago + totalPendente;
+  const pctPago = total > 0 ? (totalPago / total) * 100 : 0;
+  const countPago = contas.filter((c) => c.status === 'pago').length;
 
   async function handleAdd(e: React.SubmitEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -63,8 +83,10 @@ export default function TabContas({ mes, ano }: Props) {
       status: 'pendente',
       mes,
       ano,
+      parcelaAtual: form.parcelaAtual ? parseInt(form.parcelaAtual) : undefined,
+      totalParcelas: form.totalParcelas ? parseInt(form.totalParcelas) : undefined,
     });
-    setForm({ descricao: '', categoria: 'Moradia', valor: '', vencimento: '' });
+    setForm(FORM_EMPTY);
     setShowModal(false);
     load();
   }
@@ -93,7 +115,10 @@ export default function TabContas({ mes, ano }: Props) {
   ];
 
   const pendentesHoje = contas.filter(
-    (c) => c.status === 'pendente' && c.vencimento <= new Date().getDate() && mes === now.getMonth() + 1 && ano === now.getFullYear()
+    (c) => c.status === 'pendente'
+      && c.vencimento <= new Date().getDate()
+      && mes === now.getMonth() + 1
+      && ano === now.getFullYear()
   );
 
   return (
@@ -130,7 +155,7 @@ export default function TabContas({ mes, ano }: Props) {
           <p className="text-slate-500 text-sm">Pago</p>
           <p className="text-2xl font-bold text-emerald-600 mt-1">{fmt(totalPago)}</p>
           <div className="mt-2 h-1.5 bg-slate-100 rounded-full">
-            <div className="h-full bg-emerald-500 rounded-full transition-all" style={{ width: total > 0 ? `${(totalPago / total) * 100}%` : '0%' }} />
+            <div className="h-full bg-emerald-500 rounded-full transition-all" style={{ width: `${pctPago}%` }} />
           </div>
         </Card>
         <Card>
@@ -181,7 +206,32 @@ export default function TabContas({ mes, ano }: Props) {
 
       {/* Lista de contas */}
       <Card>
-        <h3 className="font-semibold text-slate-700 mb-4">Contas do Mês</h3>
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="font-semibold text-slate-700">Contas do Mês</h3>
+          {contas.length > 0 && (
+            <span className="text-xs text-slate-500">
+              {countPago}/{contas.length} pagas
+            </span>
+          )}
+        </div>
+
+        {/* Barra de progresso geral */}
+        {contas.length > 0 && (
+          <div className="mb-4">
+            <div className="flex justify-between items-center mb-1">
+              <span className="text-xs text-slate-500">{fmt(totalPago)} pagos</span>
+              <span className="text-xs font-semibold text-emerald-600">{pctPago.toFixed(0)}%</span>
+            </div>
+            <div className="h-2.5 bg-slate-100 rounded-full overflow-hidden">
+              <div
+                className="h-full bg-emerald-500 rounded-full transition-all duration-500"
+                style={{ width: `${pctPago}%` }}
+              />
+            </div>
+            <p className="text-xs text-slate-400 mt-1">{fmt(totalPendente)} ainda pendentes</p>
+          </div>
+        )}
+
         {loading ? (
           <p className="text-slate-400 text-sm text-center py-8">Carregando...</p>
         ) : contas.length === 0 ? (
@@ -191,19 +241,34 @@ export default function TabContas({ mes, ano }: Props) {
             {contas.map((c) => (
               <div
                 key={c.id}
-                className={`flex items-center justify-between p-3 rounded-xl transition-colors ${c.status === 'pago' ? 'bg-emerald-50' : 'hover:bg-slate-50'}`}
+                className={`flex items-center justify-between p-3 rounded-xl transition-all duration-200 ${
+                  c.status === 'pago'
+                    ? 'bg-emerald-50 border border-emerald-100'
+                    : 'hover:bg-slate-50 border border-transparent'
+                }`}
               >
                 <div className="flex items-center gap-3">
                   <button
                     onClick={() => handleToggle(c.id!, c.status)}
-                    className={`w-7 h-7 rounded-full border-2 flex items-center justify-center transition-colors flex-shrink-0 ${c.status === 'pago' ? 'bg-emerald-500 border-emerald-500 text-white' : 'border-slate-300 hover:border-emerald-400'}`}
+                    className={`w-7 h-7 rounded-full border-2 flex items-center justify-center transition-colors flex-shrink-0 ${
+                      c.status === 'pago'
+                        ? 'bg-emerald-500 border-emerald-500 text-white'
+                        : 'border-slate-300 hover:border-emerald-400'
+                    }`}
                   >
                     {c.status === 'pago' && <Check />}
                   </button>
                   <div>
-                    <p className={`font-medium text-sm ${c.status === 'pago' ? 'line-through text-slate-400' : 'text-slate-700'}`}>
-                      {c.descricao}
-                    </p>
+                    <div className="flex items-center gap-2">
+                      <p className={`font-medium text-sm ${c.status === 'pago' ? 'line-through text-slate-400' : 'text-slate-700'}`}>
+                        {c.descricao}
+                      </p>
+                      {c.totalParcelas && c.parcelaAtual && (
+                        <span className="text-xs bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded-md font-medium">
+                          {c.parcelaAtual}/{c.totalParcelas}x
+                        </span>
+                      )}
+                    </div>
                     <div className="flex items-center gap-2 mt-0.5">
                       <span
                         className="text-xs px-1.5 py-0.5 rounded-md font-medium"
@@ -234,7 +299,7 @@ export default function TabContas({ mes, ano }: Props) {
 
       {/* Modal nova conta */}
       {showModal && (
-        <Modal title="Nova Conta" onClose={() => setShowModal(false)}>
+        <Modal title="Nova Conta" onClose={() => { setShowModal(false); setForm(FORM_EMPTY); }}>
           <form onSubmit={handleAdd} className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1">Descrição</label>
@@ -242,7 +307,7 @@ export default function TabContas({ mes, ano }: Props) {
                 required
                 value={form.descricao}
                 onChange={(e) => setForm({ ...form, descricao: e.target.value })}
-                className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300"
+                className={INPUT}
                 placeholder="Ex: Aluguel"
               />
             </div>
@@ -251,7 +316,7 @@ export default function TabContas({ mes, ano }: Props) {
               <select
                 value={form.categoria}
                 onChange={(e) => setForm({ ...form, categoria: e.target.value as CategoriaContas })}
-                className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300"
+                className={INPUT}
               >
                 {CATEGORIAS.map((c) => <option key={c}>{c}</option>)}
               </select>
@@ -263,7 +328,7 @@ export default function TabContas({ mes, ano }: Props) {
                   required
                   value={form.valor}
                   onChange={(e) => setForm({ ...form, valor: e.target.value })}
-                  className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300"
+                  className={INPUT}
                   placeholder="0,00"
                   inputMode="decimal"
                 />
@@ -277,13 +342,52 @@ export default function TabContas({ mes, ano }: Props) {
                   max={31}
                   value={form.vencimento}
                   onChange={(e) => setForm({ ...form, vencimento: e.target.value })}
-                  className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300"
+                  className={INPUT}
                   placeholder="10"
                 />
               </div>
             </div>
+
+            {/* Parcelas (opcional) */}
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">
+                Parcelas <span className="text-slate-400 font-normal">(opcional)</span>
+              </label>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <input
+                    type="number"
+                    min={1}
+                    value={form.parcelaAtual}
+                    onChange={(e) => setForm({ ...form, parcelaAtual: e.target.value })}
+                    className={INPUT}
+                    placeholder="Parcela atual (ex: 3)"
+                  />
+                </div>
+                <div>
+                  <input
+                    type="number"
+                    min={1}
+                    value={form.totalParcelas}
+                    onChange={(e) => setForm({ ...form, totalParcelas: e.target.value })}
+                    className={INPUT}
+                    placeholder="Total de parcelas (ex: 12)"
+                  />
+                </div>
+              </div>
+              {form.parcelaAtual && form.totalParcelas && (
+                <p className="text-xs text-slate-400 mt-1">
+                  Parcela {form.parcelaAtual} de {form.totalParcelas}
+                </p>
+              )}
+            </div>
+
             <div className="flex gap-3 pt-2">
-              <button type="button" onClick={() => setShowModal(false)} className="flex-1 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-600 hover:bg-slate-50 transition-colors">
+              <button
+                type="button"
+                onClick={() => { setShowModal(false); setForm(FORM_EMPTY); }}
+                className="flex-1 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-600 hover:bg-slate-50 transition-colors"
+              >
                 Cancelar
               </button>
               <button type="submit" className="flex-1 py-2.5 bg-indigo-600 text-white rounded-xl text-sm font-medium hover:bg-indigo-700 transition-colors">
