@@ -1,0 +1,298 @@
+'use client';
+
+import { useState, useEffect, useCallback } from 'react';
+import {
+  PieChart, Pie, Tooltip, ResponsiveContainer, BarChart, Bar,
+  XAxis, YAxis, CartesianGrid, Legend,
+} from 'recharts';
+import Modal from '../ui/Modal';
+import Card from '../ui/Card';
+import { Plus, Trash, Check, Receipt } from '../ui/Icons';
+import { getContas, addConta, deleteConta, updateContaStatus } from '@/lib/firestore';
+import type { Conta, CategoriaContas } from '@/lib/types';
+
+const CATEGORIAS: CategoriaContas[] = [
+  'Moradia', 'Alimentação', 'Transporte', 'Saúde', 'Lazer', 'Educação', 'Outros',
+];
+
+const CAT_COLORS: Record<string, string> = {
+  Moradia: '#6366f1',
+  Alimentação: '#f59e0b',
+  Transporte: '#3b82f6',
+  Saúde: '#10b981',
+  Lazer: '#ec4899',
+  Educação: '#8b5cf6',
+  Outros: '#94a3b8',
+};
+
+const fmt = (v: number) =>
+  v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+
+interface Props { mes: number; ano: number; }
+
+export default function TabContas({ mes, ano }: Props) {
+  const now = new Date();
+  const [contas, setContas] = useState<Conta[]>([]);
+  const [showModal, setShowModal] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [form, setForm] = useState<{
+    descricao: string; categoria: CategoriaContas; valor: string; vencimento: string;
+  }>({ descricao: '', categoria: 'Moradia', valor: '', vencimento: '' });
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    const list = await getContas(mes, ano);
+    list.sort((a, b) => a.vencimento - b.vencimento);
+    setContas(list);
+    setLoading(false);
+  }, [mes, ano]);
+
+  useEffect(() => { load(); }, [load]);
+
+  const totalPago = contas.filter((c) => c.status === 'pago').reduce((s, c) => s + c.valor, 0);
+  const totalPendente = contas.filter((c) => c.status === 'pendente').reduce((s, c) => s + c.valor, 0);
+  const total = totalPago + totalPendente;
+
+  async function handleAdd(e: React.SubmitEvent<HTMLFormElement>) {
+    e.preventDefault();
+    await addConta({
+      descricao: form.descricao,
+      categoria: form.categoria,
+      valor: parseFloat(form.valor.replace(',', '.')),
+      vencimento: parseInt(form.vencimento),
+      status: 'pendente',
+      mes,
+      ano,
+    });
+    setForm({ descricao: '', categoria: 'Moradia', valor: '', vencimento: '' });
+    setShowModal(false);
+    load();
+  }
+
+  async function handleToggle(id: string, status: 'pago' | 'pendente') {
+    await updateContaStatus(id, status === 'pago' ? 'pendente' : 'pago');
+    load();
+  }
+
+  async function handleDelete(id: string) {
+    await deleteConta(id);
+    load();
+  }
+
+  const pieData = CATEGORIAS
+    .map((cat) => ({
+      name: cat,
+      value: contas.filter((c) => c.categoria === cat).reduce((s, c) => s + c.valor, 0),
+      fill: CAT_COLORS[cat] ?? '#94a3b8',
+    }))
+    .filter((d) => d.value > 0);
+
+  const barData = [
+    { name: 'Pago', valor: totalPago, fill: '#10b981' },
+    { name: 'Pendente', valor: totalPendente, fill: '#f59e0b' },
+  ];
+
+  const pendentesHoje = contas.filter(
+    (c) => c.status === 'pendente' && c.vencimento <= new Date().getDate() && mes === now.getMonth() + 1 && ano === now.getFullYear()
+  );
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex justify-end">
+        <button
+          onClick={() => setShowModal(true)}
+          className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-xl text-sm font-medium hover:bg-indigo-700 transition-colors"
+        >
+          <Plus /> Nova Conta
+        </button>
+      </div>
+
+      {/* Alertas de vencimento */}
+      {pendentesHoje.length > 0 && (
+        <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
+          <p className="text-amber-800 text-sm font-medium">
+            {pendentesHoje.length} conta(s) vencida(s) ou vencendo hoje
+          </p>
+          <p className="text-amber-600 text-xs mt-1">
+            {pendentesHoje.map((c) => c.descricao).join(', ')}
+          </p>
+        </div>
+      )}
+
+      {/* Resumo */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <Card className="bg-gradient-to-br from-slate-700 to-slate-800 text-white border-0">
+          <p className="text-slate-300 text-sm">Total do Mês</p>
+          <p className="text-2xl font-bold mt-1">{fmt(total)}</p>
+        </Card>
+        <Card>
+          <p className="text-slate-500 text-sm">Pago</p>
+          <p className="text-2xl font-bold text-emerald-600 mt-1">{fmt(totalPago)}</p>
+          <div className="mt-2 h-1.5 bg-slate-100 rounded-full">
+            <div className="h-full bg-emerald-500 rounded-full transition-all" style={{ width: total > 0 ? `${(totalPago / total) * 100}%` : '0%' }} />
+          </div>
+        </Card>
+        <Card>
+          <p className="text-slate-500 text-sm">Pendente</p>
+          <p className="text-2xl font-bold text-amber-500 mt-1">{fmt(totalPendente)}</p>
+          <div className="mt-2 h-1.5 bg-slate-100 rounded-full">
+            <div className="h-full bg-amber-400 rounded-full transition-all" style={{ width: total > 0 ? `${(totalPendente / total) * 100}%` : '0%' }} />
+          </div>
+        </Card>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Gráfico por categoria */}
+        <Card>
+          <div className="flex items-center gap-2 mb-4">
+            <Receipt />
+            <h3 className="font-semibold text-slate-700">Por Categoria</h3>
+          </div>
+          {pieData.length > 0 ? (
+            <ResponsiveContainer width="100%" height={220}>
+              <PieChart>
+                <Pie data={pieData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={75} innerRadius={35} />
+                <Tooltip formatter={(v) => v != null ? fmt(Number(v)) : ''} />
+                <Legend />
+              </PieChart>
+            </ResponsiveContainer>
+          ) : (
+            <div className="h-[220px] flex items-center justify-center text-slate-400 text-sm">
+              Nenhuma conta cadastrada
+            </div>
+          )}
+        </Card>
+
+        {/* Pago vs Pendente */}
+        <Card>
+          <h3 className="font-semibold text-slate-700 mb-4">Pago vs Pendente</h3>
+          <ResponsiveContainer width="100%" height={220}>
+            <BarChart data={barData}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+              <XAxis dataKey="name" tick={{ fontSize: 13 }} />
+              <YAxis tick={{ fontSize: 12 }} tickFormatter={(v) => `R$${(v / 1000).toFixed(0)}k`} />
+              <Tooltip formatter={(v) => v != null ? fmt(Number(v)) : ''} />
+              <Bar dataKey="valor" radius={[6, 6, 0, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        </Card>
+      </div>
+
+      {/* Lista de contas */}
+      <Card>
+        <h3 className="font-semibold text-slate-700 mb-4">Contas do Mês</h3>
+        {loading ? (
+          <p className="text-slate-400 text-sm text-center py-8">Carregando...</p>
+        ) : contas.length === 0 ? (
+          <p className="text-slate-400 text-sm text-center py-8">Nenhuma conta cadastrada neste mês</p>
+        ) : (
+          <div className="space-y-2">
+            {contas.map((c) => (
+              <div
+                key={c.id}
+                className={`flex items-center justify-between p-3 rounded-xl transition-colors ${c.status === 'pago' ? 'bg-emerald-50' : 'hover:bg-slate-50'}`}
+              >
+                <div className="flex items-center gap-3">
+                  <button
+                    onClick={() => handleToggle(c.id!, c.status)}
+                    className={`w-7 h-7 rounded-full border-2 flex items-center justify-center transition-colors flex-shrink-0 ${c.status === 'pago' ? 'bg-emerald-500 border-emerald-500 text-white' : 'border-slate-300 hover:border-emerald-400'}`}
+                  >
+                    {c.status === 'pago' && <Check />}
+                  </button>
+                  <div>
+                    <p className={`font-medium text-sm ${c.status === 'pago' ? 'line-through text-slate-400' : 'text-slate-700'}`}>
+                      {c.descricao}
+                    </p>
+                    <div className="flex items-center gap-2 mt-0.5">
+                      <span
+                        className="text-xs px-1.5 py-0.5 rounded-md font-medium"
+                        style={{ backgroundColor: `${CAT_COLORS[c.categoria]}22`, color: CAT_COLORS[c.categoria] }}
+                      >
+                        {c.categoria}
+                      </span>
+                      <span className="text-xs text-slate-400">vence dia {c.vencimento}</span>
+                    </div>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <span className={`font-semibold text-sm ${c.status === 'pago' ? 'text-emerald-600' : 'text-slate-700'}`}>
+                    {fmt(c.valor)}
+                  </span>
+                  <button
+                    onClick={() => handleDelete(c.id!)}
+                    className="p-1.5 rounded-lg hover:bg-red-50 text-slate-300 hover:text-red-400 transition-colors"
+                  >
+                    <Trash />
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </Card>
+
+      {/* Modal nova conta */}
+      {showModal && (
+        <Modal title="Nova Conta" onClose={() => setShowModal(false)}>
+          <form onSubmit={handleAdd} className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">Descrição</label>
+              <input
+                required
+                value={form.descricao}
+                onChange={(e) => setForm({ ...form, descricao: e.target.value })}
+                className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300"
+                placeholder="Ex: Aluguel"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">Categoria</label>
+              <select
+                value={form.categoria}
+                onChange={(e) => setForm({ ...form, categoria: e.target.value as CategoriaContas })}
+                className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300"
+              >
+                {CATEGORIAS.map((c) => <option key={c}>{c}</option>)}
+              </select>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Valor (R$)</label>
+                <input
+                  required
+                  value={form.valor}
+                  onChange={(e) => setForm({ ...form, valor: e.target.value })}
+                  className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300"
+                  placeholder="0,00"
+                  inputMode="decimal"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Vencimento (dia)</label>
+                <input
+                  required
+                  type="number"
+                  min={1}
+                  max={31}
+                  value={form.vencimento}
+                  onChange={(e) => setForm({ ...form, vencimento: e.target.value })}
+                  className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300"
+                  placeholder="10"
+                />
+              </div>
+            </div>
+            <div className="flex gap-3 pt-2">
+              <button type="button" onClick={() => setShowModal(false)} className="flex-1 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-600 hover:bg-slate-50 transition-colors">
+                Cancelar
+              </button>
+              <button type="submit" className="flex-1 py-2.5 bg-indigo-600 text-white rounded-xl text-sm font-medium hover:bg-indigo-700 transition-colors">
+                Salvar
+              </button>
+            </div>
+          </form>
+        </Modal>
+      )}
+    </div>
+  );
+}

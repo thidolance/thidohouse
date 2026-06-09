@@ -1,64 +1,67 @@
-import Image from "next/image";
+'use client';
+
+import { useState } from 'react';
+import TabVisaoGeral from '@/components/tabs/TabVisaoGeral';
+import TabEntradas from '@/components/tabs/TabEntradas';
+import TabContas from '@/components/tabs/TabContas';
+import TabCartoes from '@/components/tabs/TabCartoes';
+import MonthPicker from '@/components/ui/MonthPicker';
+import { LayoutGrid, TrendingUp, Receipt, CreditCard } from '@/components/ui/Icons';
+
+const TABS = [
+  { id: 'visao',    label: 'Visão Geral',   icon: <LayoutGrid /> },
+  { id: 'entradas', label: 'Entradas',       icon: <TrendingUp /> },
+  { id: 'contas',   label: 'Contas do Mês',  icon: <Receipt /> },
+  { id: 'cartoes',  label: 'Cartões',        icon: <CreditCard /> },
+] as const;
+
+type TabId = (typeof TABS)[number]['id'];
 
 export default function Home() {
+  const now = new Date();
+  const [tab, setTab] = useState<TabId>('visao');
+  const [mes, setMes] = useState(now.getMonth() + 1);
+  const [ano, setAno] = useState(now.getFullYear());
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+    <div className="min-h-screen bg-slate-50">
+      {/* Header */}
+      <header className="bg-white border-b border-slate-100 sticky top-0 z-40">
+        <div className="max-w-5xl mx-auto px-4">
+          <div className="flex items-center justify-between h-14">
+            <div className="flex items-center gap-2">
+              <span className="text-indigo-600 font-bold text-lg tracking-tight">ThidoHouse</span>
+              <span className="text-slate-400 text-sm hidden sm:block">· Controle Financeiro</span>
+            </div>
+            <MonthPicker mes={mes} ano={ano} onChange={(m, a) => { setMes(m); setAno(a); }} />
+          </div>
+
+          {/* Tabs */}
+          <nav className="flex gap-1 -mb-px overflow-x-auto">
+            {TABS.map((t) => (
+              <button
+                key={t.id}
+                onClick={() => setTab(t.id)}
+                className={`flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
+                  tab === t.id
+                    ? 'border-indigo-600 text-indigo-600'
+                    : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
+                }`}
+              >
+                {t.icon}
+                {t.label}
+              </button>
+            ))}
+          </nav>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
+      </header>
+
+      {/* Conteúdo */}
+      <main className="max-w-5xl mx-auto px-4 py-6">
+        {tab === 'visao'    && <TabVisaoGeral mes={mes} ano={ano} />}
+        {tab === 'entradas' && <TabEntradas   mes={mes} ano={ano} />}
+        {tab === 'contas'   && <TabContas     mes={mes} ano={ano} />}
+        {tab === 'cartoes'  && <TabCartoes    mes={mes} ano={ano} />}
       </main>
     </div>
   );

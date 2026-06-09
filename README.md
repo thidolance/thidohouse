@@ -1,36 +1,25 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# ThidoHouse · Controle Financeiro
 
-## Getting Started
+App de controle financeiro doméstico — Next.js 16, TypeScript, Tailwind CSS e Firebase Firestore.
 
-First, run the development server:
+## Funcionalidades
+
+- **Visão Geral** — gráficos de evolução de ganhos, gastos e poupança por categoria (últimos 12 meses)
+- **Entradas** — registro de salários/receitas com distribuição percentual por categoria (contas, férias, investimento, planos futuros)
+- **Contas do Mês** — cadastro de contas com categoria, vencimento e status pago/pendente
+- **Cartões** — compras parceladas agrupadas por cartão (Bradesco, Nubank, Sicob, Inter)
+
+O seletor de mês no topo é global — muda todos os dados de todas as abas ao mesmo tempo.
+
+## Desenvolvimento local
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Acesse [http://localhost:3000](http://localhost:3000).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Deploy
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+O projeto está configurado para deploy na Vercel. Basta conectar o repositório — o Firebase config já está embutido em `lib/firebase.ts`.
