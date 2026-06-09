@@ -10,7 +10,8 @@ import {
   setDoc,
 } from 'firebase/firestore';
 import { db } from './firebase';
-import type { Entrada, Distribuicao, Conta, Cartao, CompraParcelada, FaturaCartao } from './types';
+import type { Entrada, Distribuicao, Conta, Cartao, CategoriaCompra, CompraParcelada, FaturaCartao } from './types';
+import { DEFAULT_CARTOES, DEFAULT_CATEGORIAS } from './cartoes';
 
 // ─── Entradas ───────────────────────────────────────────────────────────────
 
@@ -101,15 +102,42 @@ export async function getContasHistorico(): Promise<Conta[]> {
 
 export async function getCartoes(): Promise<Cartao[]> {
   const snap = await getDocs(collection(db, 'cartoes'));
-  return snap.docs.map((d) => ({ id: d.id, ...d.data() } as Cartao));
+  if (!snap.empty) return snap.docs.map((d) => ({ id: d.id, ...d.data() } as Cartao));
+  // Seed na primeira vez
+  await Promise.all(DEFAULT_CARTOES.map((c) => addDoc(collection(db, 'cartoes'), c)));
+  const seeded = await getDocs(collection(db, 'cartoes'));
+  return seeded.docs.map((d) => ({ id: d.id, ...d.data() } as Cartao));
 }
 
 export async function addCartao(c: Omit<Cartao, 'id'>): Promise<void> {
   await addDoc(collection(db, 'cartoes'), c);
 }
 
+export async function updateCartao(id: string, c: Omit<Cartao, 'id'>): Promise<void> {
+  await setDoc(doc(db, 'cartoes', id), c);
+}
+
 export async function deleteCartao(id: string): Promise<void> {
   await deleteDoc(doc(db, 'cartoes', id));
+}
+
+// ─── Categorias de Compra ────────────────────────────────────────────────────
+
+export async function getCategorias(): Promise<CategoriaCompra[]> {
+  const snap = await getDocs(collection(db, 'categorias'));
+  if (!snap.empty) return snap.docs.map((d) => ({ id: d.id, ...d.data() } as CategoriaCompra));
+  // Seed na primeira vez
+  await Promise.all(DEFAULT_CATEGORIAS.map((c) => addDoc(collection(db, 'categorias'), c)));
+  const seeded = await getDocs(collection(db, 'categorias'));
+  return seeded.docs.map((d) => ({ id: d.id, ...d.data() } as CategoriaCompra));
+}
+
+export async function addCategoria(c: Omit<CategoriaCompra, 'id'>): Promise<void> {
+  await addDoc(collection(db, 'categorias'), c);
+}
+
+export async function deleteCategoria(id: string): Promise<void> {
+  await deleteDoc(doc(db, 'categorias', id));
 }
 
 // ─── Helpers ────────────────────────────────────────────────────────────────

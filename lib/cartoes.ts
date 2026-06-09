@@ -1,8 +1,16 @@
-export const CARTOES = [
-  { id: 'bradesco', nome: 'Bradesco', cor: '#CC0000', bgGrad: 'from-red-600 to-red-700',       bandeira: 'Visa'        },
-  { id: 'nubank',   nome: 'Nubank',   cor: '#820AD1', bgGrad: 'from-purple-700 to-purple-800', bandeira: 'Mastercard'  },
-  { id: 'sicob',    nome: 'Sicob',    cor: '#16a34a', bgGrad: 'from-green-600 to-green-700',   bandeira: 'Visa'        },
-  { id: 'inter',    nome: 'Inter',    cor: '#FF7A00', bgGrad: 'from-orange-500 to-orange-600', bandeira: 'Mastercard'  },
-] as const;
+import type { Cartao, CategoriaCompra } from './types';
 
-export type CartaoId = (typeof CARTOES)[number]['id'];
+export const DEFAULT_CARTOES: Omit<Cartao, 'id'>[] = [
+  { nome: 'Bradesco', cor: '#CC0000', bandeira: 'Visa' },
+  { nome: 'Nubank',   cor: '#820AD1', bandeira: 'Mastercard' },
+  { nome: 'Sicob',    cor: '#16a34a', bandeira: 'Visa' },
+  { nome: 'Inter',    cor: '#FF7A00', bandeira: 'Mastercard' },
+];
+
+export const DEFAULT_CATEGORIAS: Omit<CategoriaCompra, 'id'>[] = [
+  { nome: 'Saúde',     cor: '#10b981' },
+  { nome: 'Casa',      cor: '#6366f1' },
+  { nome: 'Filhos',    cor: '#f59e0b' },
+  { nome: 'Comida',    cor: '#ef4444' },
+  { nome: 'Besteiras', cor: '#ec4899' },
+];

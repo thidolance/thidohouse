@@ -43,9 +43,14 @@ export interface Cartao {
   id?: string;
   nome: string;
   cor: string;
+  bandeira?: 'Visa' | 'Mastercard';
 }
 
-export type TipoCompra = 'Saúde' | 'Casa' | 'Filhos' | 'Comida' | 'Besteiras';
+export interface CategoriaCompra {
+  id?: string;
+  nome: string;
+  cor: string;
+}
 
 export interface FaturaCartao {
   id?: string;
@@ -59,7 +64,7 @@ export interface CompraParcelada {
   id?: string;
   cartaoId: string;
   descricao: string;
-  tipo: TipoCompra;
+  tipo: string;
   valorTotal: number;
   valorParcela: number;
   totalParcelas: number;

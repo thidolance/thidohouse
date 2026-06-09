@@ -10,10 +10,9 @@ import Card from '../ui/Card';
 import { Plus, Trash, Check, Receipt } from '../ui/Icons';
 import {
   getContas, addConta, deleteConta, updateContaStatus,
-  getCompras, getFaturasCartao, setFaturaCartaoStatus,
+  getCompras, getFaturasCartao, setFaturaCartaoStatus, getCartoes,
 } from '@/lib/firestore';
-import type { Conta, CategoriaContas } from '@/lib/types';
-import { CARTOES } from '@/lib/cartoes';
+import type { Conta, Cartao, CategoriaContas } from '@/lib/types';
 
 const CATEGORIAS: CategoriaContas[] = [
   'Moradia', 'Alimentação', 'Transporte', 'Saúde', 'Lazer', 'Educação', 'Outros',
@@ -54,6 +53,7 @@ type CartaoItem = {
 export default function TabContas({ mes, ano }: Props) {
   const now = new Date();
   const [contas, setContas] = useState<Conta[]>([]);
+  const [cartoes, setCartoes] = useState<Cartao[]>([]);
   const [itensCartao, setItensCartao] = useState<CartaoItem[]>([]);
   const [showModal, setShowModal] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -61,11 +61,13 @@ export default function TabContas({ mes, ano }: Props) {
 
   const load = useCallback(async () => {
     setLoading(true);
-    const [contasList, comprasList, faturasList] = await Promise.all([
+    const [contasList, comprasList, faturasList, cartoesList] = await Promise.all([
       getContas(mes, ano),
       getCompras(mes, ano),
       getFaturasCartao(mes, ano),
+      getCartoes(),
     ]);
+    setCartoes(cartoesList);
 
     // Ordena: pendentes primeiro por vencimento, pagos por último
     contasList.sort((a, b) => {
@@ -76,7 +78,7 @@ export default function TabContas({ mes, ano }: Props) {
 
     // Agrupa compras por cartão e cria item por cartão com gasto > 0
     type CartaoItem = { tipo: 'cartao'; cartaoId: string; cartaoNome: string; cartaoCor: string; valor: number; status: 'pago' | 'pendente' };
-    const cards: CartaoItem[] = CARTOES.flatMap((c): CartaoItem[] => {
+    const cards: CartaoItem[] = cartoesList.flatMap((c): CartaoItem[] => {
       const total = comprasList
         .filter((p) => p.cartaoId === c.id)
         .reduce((s, p) => s + p.valorParcela, 0);
