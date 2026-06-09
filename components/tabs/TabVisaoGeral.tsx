@@ -1,19 +1,22 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import {
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-  Legend, ComposedChart, Area,
-} from 'recharts';
+import { useState, useEffect, useMemo } from 'react';
+import dynamic from 'next/dynamic';
 import Card from '../ui/Card';
 import {
   getEntradasHistorico,
   getContasHistorico,
   getDistribuicoesHistorico,
   getComprasHistorico,
+  getCategoriasContas,
+  getCategorias,
 } from '@/lib/firestore';
+import type { CategoriaContaConfig, CategoriaCompra } from '@/lib/types';
 
-// ─── Tipos ───────────────────────────────────────────────────────────────────
+const VChart = dynamic(
+  () => import('@visactor/react-vchart').then((m) => m.VChart),
+  { ssr: false, loading: () => <div className="animate-pulse bg-slate-100 rounded-xl h-full w-full" /> },
+);
 
 interface MesDashboard {
   label: string;
@@ -24,14 +27,12 @@ interface MesDashboard {
   ferias: number;
   investimento: number;
   planosFuturos: number;
+  isAtual: boolean;
 }
 
-interface Props {
-  mes: number;
-  ano: number;
-}
+interface CatGasto { nome: string; total: number; fill: string; }
 
-// ─── Helpers ─────────────────────────────────────────────────────────────────
+interface Props { mes: number; ano: number; }
 
 const MESES_CURTOS = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
 
@@ -40,241 +41,382 @@ function getLast12Months(mesAtual: number, anoAtual: number) {
   let m = mesAtual;
   let a = anoAtual;
   for (let i = 0; i < 12; i++) {
-    result.unshift({
-      mes: m,
-      ano: a,
-      label: `${MESES_CURTOS[m - 1]}/${String(a).slice(2)}`,
-      mesAno: `${String(m).padStart(2, '0')}/${a}`,
-    });
+    result.unshift({ mes: m, ano: a, label: `${MESES_CURTOS[m - 1]}/${String(a).slice(2)}`, mesAno: `${String(m).padStart(2, '0')}/${a}` });
     m--;
     if (m === 0) { m = 12; a--; }
   }
   return result;
 }
 
-const fmt = (v: number) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-const fmtK = (v: number | undefined) => {
-  const n = Number(v ?? 0);
-  return n >= 1000 ? `R$${(n / 1000).toFixed(1)}k` : `R$${n.toFixed(0)}`;
+const fmt  = (v: number) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+const fmtK = (v: number) => v >= 1000 ? `R$${(v / 1000).toFixed(1)}k` : `R$${v.toFixed(0)}`;
+
+const AXIS_BOTTOM = {
+  orient: 'bottom',
+  domainLine: { visible: false },
+  tick: { visible: false },
+  label: { style: { fontSize: 11, fill: '#94a3b8' } },
 };
 
-// ─── CustomTooltip ───────────────────────────────────────────────────────────
-
-function CustomTooltip({ active, payload, label }: {
-  active?: boolean;
-  payload?: { name: string; value: number; color: string }[];
-  label?: string;
-}) {
-  if (!active || !payload?.length) return null;
-  return (
-    <div className="bg-white border border-slate-100 rounded-xl shadow-lg p-3 text-sm">
-      <p className="font-semibold text-slate-600 mb-2">{label}</p>
-      {payload.map((p) => (
-        <div key={p.name} className="flex items-center gap-2">
-          <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: p.color }} />
-          <span className="text-slate-500">{p.name}:</span>
-          <span className="font-medium text-slate-700">{fmt(p.value)}</span>
-        </div>
-      ))}
-    </div>
-  );
-}
-
-// ─── Componente principal ────────────────────────────────────────────────────
+const AXIS_LEFT = (formatMethod: (v: number) => string) => ({
+  orient: 'left',
+  grid: { style: { stroke: '#f1f5f9', lineDash: [3, 3] } },
+  domainLine: { visible: false },
+  tick: { visible: false },
+  label: { style: { fontSize: 11, fill: '#94a3b8' }, formatMethod },
+});
 
 export default function TabVisaoGeral({ mes, ano }: Props) {
-  const [dados, setDados] = useState<MesDashboard[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [dados, setDados]             = useState<MesDashboard[]>([]);
+  const [gastosPorCat, setGastosPorCat] = useState<CatGasto[]>([]);
+  const [loading, setLoading]         = useState(true);
 
   useEffect(() => {
     async function load() {
       setLoading(true);
-      const [entradas, contas, distribuicoes, compras] = await Promise.all([
+      const [entradas, contas, distribuicoes, compras, catContas, catCartoes] = await Promise.all([
         getEntradasHistorico(),
         getContasHistorico(),
         getDistribuicoesHistorico(),
         getComprasHistorico(),
+        getCategoriasContas() as Promise<CategoriaContaConfig[]>,
+        getCategorias() as Promise<CategoriaCompra[]>,
       ]);
 
       const meses = getLast12Months(mes, ano);
 
       const result: MesDashboard[] = meses.map(({ mes: m, ano: a, label, mesAno }) => {
-        const ganhos = entradas
-          .filter((e) => e.mes === m && e.ano === a)
-          .reduce((s, e) => s + e.valor, 0);
-
-        const gastoContas = contas
-          .filter((c) => c.mes === m && c.ano === a)
-          .reduce((s, c) => s + c.valor, 0);
-
-        const gastoCartoes = compras
-          .filter((c) => c.mes === m && c.ano === a)
-          .reduce((s, c) => s + c.valorParcela, 0);
-
+        const ganhos = entradas.filter((e) => e.mes === m && e.ano === a).reduce((s, e) => s + e.valor, 0);
+        const gastoContas = contas.filter((c) => c.mes === m && c.ano === a).reduce((s, c) => s + c.valor, 0);
+        const gastoCartoes = compras.filter((c) => c.mes === m && c.ano === a).reduce((s, c) => s + c.valorParcela, 0);
         const gastos = gastoContas + gastoCartoes;
-
         const dist = distribuicoes.find((d) => d.mes === m && d.ano === a);
         const ferias = ganhos * (dist?.ferias ?? 0) / 100;
         const investimento = ganhos * (dist?.investimento ?? 0) / 100;
         const planosFuturos = ganhos * (dist?.planosFuturos ?? 0) / 100;
-
-        return {
-          label,
-          mesAno,
-          ganhos,
-          gastos,
-          saldo: ganhos - gastos,
-          ferias,
-          investimento,
-          planosFuturos,
-        };
+        return { label, mesAno, ganhos, gastos, saldo: ganhos - gastos, ferias, investimento, planosFuturos, isAtual: m === mes && a === ano };
       });
 
+      // Gastos por categoria — mês atual
+      const catMap = new Map<string, { total: number; fill: string }>();
+      contas
+        .filter((c) => c.mes === mes && c.ano === ano)
+        .forEach((c) => {
+          const cc = catContas.find((x) => x.nome === c.categoria);
+          const prev = catMap.get(c.categoria) ?? { total: 0, fill: cc?.cor ?? '#94a3b8' };
+          catMap.set(c.categoria, { total: prev.total + c.valor, fill: prev.fill });
+        });
+      compras
+        .filter((c) => c.mes === mes && c.ano === ano)
+        .forEach((c) => {
+          const cc = catCartoes.find((x) => x.nome === c.tipo);
+          const prev = catMap.get(c.tipo) ?? { total: 0, fill: cc?.cor ?? '#94a3b8' };
+          catMap.set(c.tipo, { total: prev.total + c.valorParcela, fill: prev.fill });
+        });
+      const gpc: CatGasto[] = Array.from(catMap.entries())
+        .map(([nome, { total, fill }]) => ({ nome, total, fill }))
+        .filter((c) => c.total > 0)
+        .sort((a, b) => b.total - a.total);
+
       setDados(result);
+      setGastosPorCat(gpc);
       setLoading(false);
     }
     load();
   }, [mes, ano]);
 
-  const atual = dados.find((d) => {
-    const [m, a] = d.mesAno.split('/');
-    return parseInt(m) === mes && parseInt(a) === ano;
-  });
-
+  const atual = dados.find((d) => d.isAtual);
   const totalGuardado = (atual?.ferias ?? 0) + (atual?.investimento ?? 0) + (atual?.planosFuturos ?? 0);
   const pctGuardado = atual?.ganhos ? (totalGuardado / atual.ganhos) * 100 : 0;
 
+  // ── specs VChart ──────────────────────────────────────────────────────────
+
+  const evoSpec = useMemo(() => ({
+    type: 'bar',
+    autoFit: true,
+    background: 'transparent',
+    data: [{
+      id: 'evo',
+      values: dados.flatMap((d) => [
+        { label: d.label, valor: d.ganhos, tipo: 'Ganhos', isAtual: d.isAtual },
+        { label: d.label, valor: d.gastos, tipo: 'Gastos', isAtual: d.isAtual },
+      ]),
+    }],
+    xField: ['label', 'tipo'],
+    yField: 'valor',
+    seriesField: 'tipo',
+    color: ['#6366f1', '#f43f5e'],
+    bar: {
+      style: {
+        cornerRadius: [4, 4, 0, 0],
+        opacity: (d: Record<string, unknown>) => d['isAtual'] ? 1 : 0.65,
+      },
+    },
+    axes: [AXIS_BOTTOM, AXIS_LEFT(fmtK)],
+    legends: [{
+      visible: true,
+      orient: 'top',
+      padding: { bottom: 8 },
+      item: { label: { style: { fontSize: 11, fill: '#64748b' } } },
+    }],
+    tooltip: {
+      mark: {
+        title: { visible: false },
+        content: [{ key: (d: Record<string, unknown>) => String(d['tipo']), value: (d: Record<string, unknown>) => fmt(Number(d['valor'])) }],
+      },
+    },
+  }), [dados]);
+
+  const gastosSpec = useMemo(() => ({
+    type: 'bar',
+    autoFit: true,
+    background: 'transparent',
+    data: [{ id: 'gastos', values: dados }],
+    xField: 'label',
+    yField: 'gastos',
+    bar: {
+      style: {
+        cornerRadius: [6, 6, 0, 0],
+        fill: (d: Record<string, unknown>) => d['isAtual'] ? '#f43f5e' : '#fda4af',
+      },
+    },
+    axes: [AXIS_BOTTOM, AXIS_LEFT(fmtK)],
+    tooltip: {
+      mark: {
+        title: { visible: false },
+        content: [{ key: () => 'Gastos', value: (d: Record<string, unknown>) => fmt(Number(d['gastos'])) }],
+      },
+    },
+  }), [dados]);
+
+  const ganhosSpec = useMemo(() => ({
+    type: 'bar',
+    autoFit: true,
+    background: 'transparent',
+    data: [{ id: 'ganhos', values: dados }],
+    xField: 'label',
+    yField: 'ganhos',
+    bar: {
+      style: {
+        cornerRadius: [6, 6, 0, 0],
+        fill: (d: Record<string, unknown>) => d['isAtual'] ? '#6366f1' : '#a5b4fc',
+      },
+    },
+    axes: [AXIS_BOTTOM, AXIS_LEFT(fmtK)],
+    tooltip: {
+      mark: {
+        title: { visible: false },
+        content: [{ key: () => 'Ganhos', value: (d: Record<string, unknown>) => fmt(Number(d['ganhos'])) }],
+      },
+    },
+  }), [dados]);
+
+  const catDonutSpec = useMemo(() => ({
+    type: 'pie',
+    autoFit: true,
+    background: 'transparent',
+    data: [{ id: 'cat', values: gastosPorCat }],
+    valueField: 'total',
+    categoryField: 'nome',
+    outerRadius: 0.75,
+    innerRadius: 0.52,
+    padAngle: 0.8,
+    color: gastosPorCat.map((d) => d.fill),
+    pie: { style: { cornerRadius: 4 } },
+    label: { visible: false },
+    legends: [{
+      visible: true,
+      orient: 'bottom',
+      padding: { top: 8 },
+      maxRow: 3,
+      item: {
+        label: { style: { fontSize: 11, fill: '#64748b' } },
+        value: { visible: false },
+      },
+    }],
+    tooltip: {
+      mark: {
+        title: { visible: false },
+        content: [{ key: (d: Record<string, unknown>) => String(d['nome']), value: (d: Record<string, unknown>) => fmt(Number(d['total'])) }],
+      },
+    },
+  }), [gastosPorCat]);
+
+  const guardadoSpec = useMemo(() => {
+    const vals = dados.flatMap((d) => [
+      { label: d.label, valor: d.ferias, tipo: 'Férias', isAtual: d.isAtual },
+      { label: d.label, valor: d.investimento, tipo: 'Investimento', isAtual: d.isAtual },
+      { label: d.label, valor: d.planosFuturos, tipo: 'Planos Futuros', isAtual: d.isAtual },
+    ]).filter((d) => d.valor > 0);
+    return {
+      type: 'bar',
+      autoFit: true,
+      background: 'transparent',
+      data: [{ id: 'guard', values: vals }],
+      xField: ['label', 'tipo'],
+      yField: 'valor',
+      seriesField: 'tipo',
+      stack: true,
+      color: ['#22d3ee', '#a78bfa', '#34d399'],
+      bar: { style: { cornerRadius: [4, 4, 0, 0] } },
+      axes: [AXIS_BOTTOM, AXIS_LEFT(fmtK)],
+      legends: [{
+        visible: true,
+        orient: 'top',
+        padding: { bottom: 8 },
+        item: { label: { style: { fontSize: 11, fill: '#64748b' } } },
+      }],
+      tooltip: {
+        mark: {
+          title: { visible: false },
+          content: [{ key: (d: Record<string, unknown>) => String(d['tipo']), value: (d: Record<string, unknown>) => fmt(Number(d['valor'])) }],
+        },
+      },
+    };
+  }, [dados]);
+
+  const dataKey = dados.map((d) => d.gastos + d.ganhos).join('-');
+
   if (loading) {
-    return (
-      <div className="flex items-center justify-center py-24 text-slate-400 text-sm">
-        Carregando dados...
-      </div>
-    );
+    return <div className="flex items-center justify-center py-24 text-slate-400 text-sm">Carregando dados...</div>;
   }
 
   return (
-    <div className="space-y-6">
-      {/* Resumo do mês atual */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card className="bg-gradient-to-br from-indigo-500 to-indigo-600 text-white border-0">
-          <p className="text-indigo-100 text-xs">Ganhos do mês</p>
-          <p className="text-xl font-bold mt-1">{fmt(atual?.ganhos ?? 0)}</p>
-        </Card>
-        <Card className="bg-gradient-to-br from-rose-500 to-rose-600 text-white border-0">
-          <p className="text-rose-100 text-xs">Gastos do mês</p>
-          <p className="text-xl font-bold mt-1">{fmt(atual?.gastos ?? 0)}</p>
-        </Card>
-        <Card className={`border-0 text-white bg-gradient-to-br ${(atual?.saldo ?? 0) >= 0 ? 'from-emerald-500 to-emerald-600' : 'from-amber-500 to-amber-600'}`}>
-          <p className="text-white/80 text-xs">Saldo do mês</p>
-          <p className="text-xl font-bold mt-1">{fmt(atual?.saldo ?? 0)}</p>
+    <div className="space-y-5">
+      {/* ── Cards do mês atual ── */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <div className="relative overflow-hidden bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-2xl p-4 text-white shadow-sm">
+          <div className="absolute -top-3 -right-3 w-16 h-16 bg-white/10 rounded-full" />
+          <p className="text-indigo-100 text-xs relative">Ganhos do mês</p>
+          <p className="text-xl font-bold mt-1 tabular-nums relative">{fmt(atual?.ganhos ?? 0)}</p>
+        </div>
+        <div className="relative overflow-hidden bg-gradient-to-br from-rose-500 to-rose-600 rounded-2xl p-4 text-white shadow-sm">
+          <div className="absolute -top-3 -right-3 w-16 h-16 bg-white/10 rounded-full" />
+          <p className="text-rose-100 text-xs relative">Gastos do mês</p>
+          <p className="text-xl font-bold mt-1 tabular-nums relative">{fmt(atual?.gastos ?? 0)}</p>
+        </div>
+        <div className={`relative overflow-hidden rounded-2xl p-4 text-white shadow-sm bg-gradient-to-br ${(atual?.saldo ?? 0) >= 0 ? 'from-emerald-500 to-emerald-600' : 'from-amber-500 to-amber-600'}`}>
+          <div className="absolute -top-3 -right-3 w-16 h-16 bg-white/10 rounded-full" />
+          <p className="text-white/80 text-xs relative">Saldo do mês</p>
+          <p className="text-xl font-bold mt-1 tabular-nums relative">{fmt(atual?.saldo ?? 0)}</p>
+        </div>
+        <div className="relative overflow-hidden bg-gradient-to-br from-violet-500 to-violet-600 rounded-2xl p-4 text-white shadow-sm">
+          <div className="absolute -top-3 -right-3 w-16 h-16 bg-white/10 rounded-full" />
+          <p className="text-violet-100 text-xs relative">Guardado no mês</p>
+          <p className="text-xl font-bold mt-1 tabular-nums relative">{fmt(totalGuardado)}</p>
+          <p className="text-violet-200 text-[11px] mt-0.5 relative">{pctGuardado.toFixed(0)}% dos ganhos</p>
+        </div>
+      </div>
+
+      {/* ── Evolução Ganhos vs Gastos ── */}
+      <Card>
+        <div className="mb-3">
+          <p className="font-semibold text-slate-700 text-sm">Evolução — Ganhos vs Gastos</p>
+          <p className="text-xs text-slate-400">Últimos 12 meses · mês atual destacado</p>
+        </div>
+        <div style={{ height: 240 }}>
+          <VChart key={`evo-${dataKey}`} spec={evoSpec as any} />
+        </div>
+      </Card>
+
+      {/* ── Evolução dos Gastos + Ganhos (lado a lado) ── */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <Card>
+          <div className="mb-3">
+            <p className="font-semibold text-slate-700 text-sm">Evolução dos Gastos</p>
+            <p className="text-xs text-slate-400">Contas + Cartões — 12 meses</p>
+          </div>
+          <div style={{ height: 200 }}>
+            <VChart key={`gastos-${dataKey}`} spec={gastosSpec as any} />
+          </div>
         </Card>
         <Card>
-          <p className="text-slate-500 text-xs">Guardado no mês</p>
-          <p className="text-xl font-bold text-violet-600 mt-1">{fmt(totalGuardado)}</p>
-          <p className="text-xs text-slate-400 mt-0.5">{pctGuardado.toFixed(0)}% dos ganhos</p>
+          <div className="mb-3">
+            <p className="font-semibold text-slate-700 text-sm">Evolução dos Ganhos</p>
+            <p className="text-xs text-slate-400">Entradas — 12 meses</p>
+          </div>
+          <div style={{ height: 200 }}>
+            <VChart key={`ganhos-${dataKey}`} spec={ganhosSpec as any} />
+          </div>
         </Card>
       </div>
 
-      {/* Evolução ganhos vs gastos */}
+      {/* ── Gastos por Categoria (mês atual) ── */}
       <Card>
-        <h3 className="font-semibold text-slate-700 mb-1">Evolução — Ganhos vs Gastos</h3>
-        <p className="text-xs text-slate-400 mb-4">Últimos 12 meses</p>
-        <ResponsiveContainer width="100%" height={240}>
-          <ComposedChart data={dados} barGap={4}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-            <XAxis dataKey="label" tick={{ fontSize: 11 }} />
-            <YAxis tick={{ fontSize: 11 }} tickFormatter={fmtK} width={55} />
-            <Tooltip content={<CustomTooltip />} />
-            <Legend
-              formatter={(v) => <span className="text-xs text-slate-600">{v}</span>}
-            />
-            <Bar dataKey="ganhos" name="Ganhos" fill="#6366f1" radius={[3, 3, 0, 0]} barSize={14} />
-            <Bar dataKey="gastos" name="Gastos" fill="#f43f5e" radius={[3, 3, 0, 0]} barSize={14} />
-            <Area
-              dataKey="saldo"
-              name="Saldo"
-              fill="#a5f3fc"
-              stroke="#06b6d4"
-              strokeWidth={2}
-              fillOpacity={0.25}
-              type="monotone"
-            />
-          </ComposedChart>
-        </ResponsiveContainer>
+        <div className="mb-3">
+          <p className="font-semibold text-slate-700 text-sm">Gastos por Categoria</p>
+          <p className="text-xs text-slate-400">Contas + Cartões — mês atual</p>
+        </div>
+        {gastosPorCat.length > 0 ? (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-center">
+            <div style={{ height: 260 }}>
+              <VChart key={`cat-${gastosPorCat.map((c) => c.total).join('-')}`} spec={catDonutSpec as any} />
+            </div>
+            <div className="space-y-2">
+              {gastosPorCat.map((c) => {
+                const pct = atual ? (c.total / (atual.gastos || 1)) * 100 : 0;
+                return (
+                  <div key={c.nome} className="flex items-center gap-3">
+                    <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: c.fill }} />
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between mb-0.5">
+                        <span className="text-xs font-medium text-slate-600 truncate">{c.nome}</span>
+                        <span className="text-xs text-slate-400 ml-2 flex-shrink-0">{pct.toFixed(0)}%</span>
+                      </div>
+                      <div className="w-full bg-slate-100 rounded-full h-1.5">
+                        <div className="h-1.5 rounded-full transition-all" style={{ width: `${pct}%`, backgroundColor: c.fill }} />
+                      </div>
+                    </div>
+                    <span className="text-xs font-semibold text-slate-700 flex-shrink-0 tabular-nums">{fmt(c.total)}</span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        ) : (
+          <div className="h-[200px] flex flex-col items-center justify-center text-slate-400 gap-2">
+            <span className="text-3xl">📊</span>
+            <p className="text-sm">Sem gastos neste mês</p>
+          </div>
+        )}
       </Card>
 
-      {/* Evolução dos gastos (detalhado) */}
+      {/* ── Quanto está sendo guardado ── */}
       <Card>
-        <h3 className="font-semibold text-slate-700 mb-1">Evolução dos Gastos</h3>
-        <p className="text-xs text-slate-400 mb-4">Contas + Cartões — Últimos 12 meses</p>
-        <ResponsiveContainer width="100%" height={200}>
-          <BarChart data={dados}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-            <XAxis dataKey="label" tick={{ fontSize: 11 }} />
-            <YAxis tick={{ fontSize: 11 }} tickFormatter={fmtK} width={55} />
-            <Tooltip content={<CustomTooltip />} />
-            <Bar dataKey="gastos" name="Gastos" fill="#f43f5e" radius={[4, 4, 0, 0]} />
-          </BarChart>
-        </ResponsiveContainer>
-      </Card>
-
-      {/* O que está sendo guardado por categoria */}
-      <Card>
-        <h3 className="font-semibold text-slate-700 mb-1">Quanto está sendo guardado — por categoria</h3>
-        <p className="text-xs text-slate-400 mb-4">Com base na distribuição configurada · Últimos 12 meses</p>
+        <div className="mb-3">
+          <p className="font-semibold text-slate-700 text-sm">Quanto está sendo guardado — por categoria</p>
+          <p className="text-xs text-slate-400">Com base na distribuição configurada · Últimos 12 meses</p>
+        </div>
 
         {dados.every((d) => d.ferias === 0 && d.investimento === 0 && d.planosFuturos === 0) ? (
           <div className="h-[200px] flex flex-col items-center justify-center text-slate-400 text-sm gap-2">
+            <span className="text-3xl">💰</span>
             <p>Configure a distribuição na aba Entradas para ver esta análise.</p>
           </div>
         ) : (
-          <ResponsiveContainer width="100%" height={220}>
-            <BarChart data={dados}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-              <XAxis dataKey="label" tick={{ fontSize: 11 }} />
-              <YAxis tick={{ fontSize: 11 }} tickFormatter={fmtK} width={55} />
-              <Tooltip content={<CustomTooltip />} />
-              <Legend formatter={(v) => <span className="text-xs text-slate-600">{v}</span>} />
-              <Bar dataKey="ferias" name="Férias" stackId="a" fill="#22d3ee" radius={[0, 0, 0, 0]} />
-              <Bar dataKey="investimento" name="Investimento" stackId="a" fill="#a78bfa" radius={[0, 0, 0, 0]} />
-              <Bar dataKey="planosFuturos" name="Planos Futuros" stackId="a" fill="#34d399" radius={[4, 4, 0, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
-        )}
-
-        {/* Mini resumo categorias do mês atual */}
-        {totalGuardado > 0 && (
-          <div className="mt-4 grid grid-cols-3 gap-3 pt-4 border-t border-slate-50">
-            {[
-              { label: 'Férias', valor: atual?.ferias ?? 0, color: '#22d3ee', bg: 'bg-cyan-50' },
-              { label: 'Investimento', valor: atual?.investimento ?? 0, color: '#a78bfa', bg: 'bg-violet-50' },
-              { label: 'Planos Futuros', valor: atual?.planosFuturos ?? 0, color: '#34d399', bg: 'bg-emerald-50' },
-            ].map((item) => (
-              <div key={item.label} className={`${item.bg} rounded-xl p-3`}>
-                <div className="flex items-center gap-1.5 mb-1">
-                  <span className="w-2 h-2 rounded-full" style={{ backgroundColor: item.color }} />
-                  <span className="text-xs text-slate-500">{item.label}</span>
-                </div>
-                <p className="font-bold text-slate-700 text-sm">{fmt(item.valor)}</p>
+          <>
+            <div style={{ height: 220 }}>
+              <VChart key={`guard-${dataKey}`} spec={guardadoSpec as any} />
+            </div>
+            {totalGuardado > 0 && (
+              <div className="mt-4 grid grid-cols-3 gap-3 pt-4 border-t border-slate-50">
+                {[
+                  { label: 'Férias', valor: atual?.ferias ?? 0, color: '#22d3ee', bg: 'bg-cyan-50' },
+                  { label: 'Investimento', valor: atual?.investimento ?? 0, color: '#a78bfa', bg: 'bg-violet-50' },
+                  { label: 'Planos Futuros', valor: atual?.planosFuturos ?? 0, color: '#34d399', bg: 'bg-emerald-50' },
+                ].map((item) => (
+                  <div key={item.label} className={`${item.bg} rounded-xl p-3`}>
+                    <div className="flex items-center gap-1.5 mb-1">
+                      <span className="w-2 h-2 rounded-full" style={{ backgroundColor: item.color }} />
+                      <span className="text-xs text-slate-500">{item.label}</span>
+                    </div>
+                    <p className="font-bold text-slate-700 text-sm tabular-nums">{fmt(item.valor)}</p>
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
+            )}
+          </>
         )}
-      </Card>
-
-      {/* Evolução dos ganhos (detalhado) */}
-      <Card>
-        <h3 className="font-semibold text-slate-700 mb-1">Evolução dos Ganhos</h3>
-        <p className="text-xs text-slate-400 mb-4">Últimos 12 meses</p>
-        <ResponsiveContainer width="100%" height={200}>
-          <BarChart data={dados}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-            <XAxis dataKey="label" tick={{ fontSize: 11 }} />
-            <YAxis tick={{ fontSize: 11 }} tickFormatter={fmtK} width={55} />
-            <Tooltip content={<CustomTooltip />} />
-            <Bar dataKey="ganhos" name="Ganhos" fill="#6366f1" radius={[4, 4, 0, 0]} />
-          </BarChart>
-        </ResponsiveContainer>
       </Card>
     </div>
   );

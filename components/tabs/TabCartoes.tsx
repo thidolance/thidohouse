@@ -334,25 +334,13 @@ export default function TabCartoes({ mes, ano }: Props) {
         </div>
       </div>
 
-      {/* ── Cards resumo ── */}
-      <div className="grid grid-cols-3 gap-3">
-        <div className="relative overflow-hidden bg-gradient-to-br from-indigo-600 to-violet-700 rounded-2xl p-4 text-white shadow-md shadow-indigo-200">
-          <div className="absolute -top-4 -right-4 w-20 h-20 bg-white/10 rounded-full" />
-          <p className="text-indigo-200 text-xs font-medium uppercase tracking-wide relative">Total do Mês</p>
-          <p className="text-xl font-bold mt-1 tabular-nums relative">{fmt(totalGeral)}</p>
-          <p className="text-indigo-200 text-[11px] mt-1 relative">{compras.length} compra(s)</p>
-        </div>
-        {cartoes.slice(0, 2).map((c) => {
-          const dado = totalPorCartao.find((t) => t.id === c.id)!;
-          return (
-            <div key={c.id} className="relative overflow-hidden rounded-2xl p-4 text-white shadow-sm" style={{ backgroundColor: c.cor }}>
-              <div className="absolute inset-0 bg-gradient-to-br from-white/15 to-black/25 pointer-events-none" />
-              <p className="relative text-white/70 text-[11px] font-medium uppercase tracking-wide">{c.nome}</p>
-              <p className="relative text-lg font-bold mt-1 tabular-nums">{fmt(dado?.total ?? 0)}</p>
-              <p className="relative text-white/50 text-[11px]">{dado?.count ?? 0} compra(s)</p>
-            </div>
-          );
-        })}
+      {/* ── Card total ── */}
+      <div className="relative overflow-hidden bg-gradient-to-br from-indigo-600 to-violet-700 rounded-2xl p-5 text-white shadow-md shadow-indigo-200">
+        <div className="absolute -top-6 -right-6 w-28 h-28 bg-white/10 rounded-full" />
+        <div className="absolute -bottom-4 -left-4 w-20 h-20 bg-white/5 rounded-full" />
+        <p className="text-indigo-200 text-xs font-medium uppercase tracking-wide relative">Total do Mês</p>
+        <p className="text-3xl font-bold mt-1 tabular-nums relative">{fmt(totalGeral)}</p>
+        <p className="text-indigo-200 text-[11px] mt-1 relative">{compras.length} compra(s) em {cartoes.length} cartão(s)</p>
       </div>
 
       {/* ── Gráficos ── */}

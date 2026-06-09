@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { useState, useEffect, useCallback, useMemo } from 'react';
+import dynamic from 'next/dynamic';
 import Modal from '../ui/Modal';
 import Card from '../ui/Card';
 import { Plus, Trash, Pencil } from '../ui/Icons';
@@ -10,6 +10,11 @@ import {
   getCategoriasEmpresa, addCategoriaEmpresa, deleteCategoriaEmpresa,
 } from '@/lib/firestore';
 import type { CustoEmpresa, CategoriaEmpresa } from '@/lib/types';
+
+const VChart = dynamic(
+  () => import('@visactor/react-vchart').then((m) => m.VChart),
+  { ssr: false, loading: () => <div className="animate-pulse bg-violet-50 rounded-xl h-full w-full" /> },
+);
 
 function GearIcon() {
   return (
@@ -20,7 +25,7 @@ function GearIcon() {
   );
 }
 
-const INPUT = 'w-full border border-slate-200 rounded-xl px-3 py-2 text-sm text-slate-900 bg-white focus:outline-none focus:ring-2 focus:ring-sky-300';
+const INPUT = 'w-full border border-slate-200 rounded-xl px-3 py-2 text-sm text-slate-900 bg-white focus:outline-none focus:ring-2 focus:ring-violet-300';
 const fmt   = (v: number) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 
 interface Props { mes: number; ano: number; }
@@ -32,7 +37,7 @@ type FormCusto = {
 const CUSTO_EMPTY: FormCusto = { categoriaId: '', descricao: '', valor: '', totalParcelas: '1', parcelaAtual: '1' };
 
 type FormCat = { nome: string; cor: string };
-const CAT_EMPTY: FormCat = { nome: '', cor: '#38bdf8' };
+const CAT_EMPTY: FormCat = { nome: '', cor: '#8b5cf6' };
 
 export default function TabEmpresa({ mes, ano }: Props) {
   const [custos, setCustos]         = useState<CustoEmpresa[]>([]);
@@ -46,7 +51,7 @@ export default function TabEmpresa({ mes, ano }: Props) {
   const [editCustoId, setEditCustoId] = useState<string | null>(null);
   const [formCusto, setFormCusto]     = useState<FormCusto>(CUSTO_EMPTY);
 
-  const [formCat, setFormCat]       = useState<FormCat>(CAT_EMPTY);
+  const [formCat, setFormCat]         = useState<FormCat>(CAT_EMPTY);
   const [showCatForm, setShowCatForm] = useState(false);
 
   const loadCategorias = useCallback(async () => {
@@ -73,7 +78,6 @@ export default function TabEmpresa({ mes, ano }: Props) {
 
   function catPorId(id: string) { return categorias.find((c) => c.id === id); }
 
-  // ── custos ────────────────────────────────────────────────────────────────
   async function handleSaveCusto(e: React.SubmitEvent<HTMLFormElement>) {
     e.preventDefault();
     const total    = parseFloat(formCusto.valor.replace(',', '.'));
@@ -118,8 +122,7 @@ export default function TabEmpresa({ mes, ano }: Props) {
     loadCustos();
   }
 
-  // ── categorias (config) ───────────────────────────────────────────────────
-  async function handleSaveCategoria(e: React.FormEvent) {
+  async function handleSaveCategoria(e: React.SubmitEvent<HTMLFormElement>) {
     e.preventDefault();
     await addCategoriaEmpresa(formCat);
     setShowCatForm(false);
@@ -137,68 +140,137 @@ export default function TabEmpresa({ mes, ano }: Props) {
 
   const totalPorCategoria = categorias.map((cat) => {
     const itens = custos.filter((c) => c.categoriaId === cat.id);
-    return { ...cat, total: itens.reduce((s, c) => s + c.valorParcela, 0), count: itens.length };
+    return { ...cat, fill: cat.cor, total: itens.reduce((s, c) => s + c.valorParcela, 0), count: itens.length };
   });
 
   const custosFiltrados = catFiltro ? custos.filter((c) => c.categoriaId === catFiltro) : custos;
   const catAtiva        = categorias.find((c) => c.id === catFiltro);
 
+  // ── specs VChart ──────────────────────────────────────────────────────────
+  const barSpec = useMemo(() => ({
+    type: 'bar',
+    autoFit: true,
+    background: 'transparent',
+    data: [{ id: 'bar', values: totalPorCategoria.filter((c) => c.total > 0) }],
+    xField: 'nome',
+    yField: 'total',
+    bar: {
+      style: {
+        cornerRadius: [8, 8, 0, 0],
+        fill: (d: Record<string, unknown>) => String(d['fill']),
+      },
+    },
+    axes: [
+      { orient: 'bottom', domainLine: { visible: false }, tick: { visible: false }, label: { style: { fontSize: 12, fill: '#7c3aed' } } },
+      {
+        orient: 'left',
+        grid: { style: { stroke: '#f5f3ff', lineDash: [3, 3] } },
+        domainLine: { visible: false },
+        tick: { visible: false },
+        label: {
+          style: { fontSize: 11, fill: '#a78bfa' },
+          formatMethod: (v: number) => v === 0 ? 'R$0' : `R$${(v / 1000).toFixed(0)}k`,
+        },
+      },
+    ],
+    tooltip: {
+      mark: {
+        title: { visible: false },
+        content: [{ key: (d: Record<string, unknown>) => String(d['nome']), value: (d: Record<string, unknown>) => fmt(Number(d['total'])) }],
+      },
+    },
+  }), [totalPorCategoria]);
+
+  const donutSpec = useMemo(() => {
+    const vals = totalPorCategoria.filter((c) => c.total > 0);
+    return {
+      type: 'pie',
+      autoFit: true,
+      background: 'transparent',
+      data: [{ id: 'pie', values: vals }],
+      valueField: 'total',
+      categoryField: 'nome',
+      outerRadius: 0.75,
+      innerRadius: 0.52,
+      padAngle: 0.8,
+      color: vals.map((d) => d.fill),
+      pie: { style: { cornerRadius: 4 } },
+      label: { visible: false },
+      legends: [{
+        visible: true,
+        orient: 'bottom',
+        padding: { top: 8 },
+        maxRow: 3,
+        item: {
+          label: { style: { fontSize: 11, fill: '#6d28d9' } },
+          value: { visible: false },
+        },
+      }],
+      tooltip: {
+        mark: {
+          title: { visible: false },
+          content: [{ key: (d: Record<string, unknown>) => String(d['nome']), value: (d: Record<string, unknown>) => fmt(Number(d['total'])) }],
+        },
+      },
+    };
+  }, [totalPorCategoria]);
+
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex justify-end gap-2">
-        <button
-          onClick={() => setShowConfigModal(true)}
-          className="inline-flex items-center gap-2 px-4 py-2 border border-slate-200 text-slate-600 rounded-xl text-sm font-medium hover:bg-slate-50 transition-colors"
-        >
-          <GearIcon /> Configurações
-        </button>
-        <button
-          onClick={() => abrirNovoCusto()}
-          className="inline-flex items-center gap-2 px-4 py-2 bg-sky-600 text-white rounded-xl text-sm font-medium hover:bg-sky-700 transition-colors"
-        >
-          <Plus /> Novo Custo
-        </button>
-      </div>
-
-      {/* Resumo */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <div className="col-span-2 sm:col-span-1 bg-gradient-to-br from-sky-700 to-sky-800 rounded-2xl p-4 text-white">
-          <p className="text-sky-200 text-xs">Total do Mês</p>
-          <p className="text-xl font-bold mt-1">{fmt(totalGeral)}</p>
-          <p className="text-sky-300 text-xs mt-1">{custos.length} custo(s)</p>
+    <div className="space-y-5">
+      {/* ── Header ── */}
+      <div className="flex items-center justify-between gap-2">
+        <div>
+          <h2 className="text-lg font-bold text-slate-800">Empresa</h2>
+          <p className="text-xs text-slate-400">{custos.length} custo(s) · {fmt(totalGeral)}</p>
         </div>
-        {totalPorCategoria.filter((c) => c.total > 0).map((cat) => (
-          <div key={cat.id} className="relative overflow-hidden rounded-2xl p-3 text-white" style={{ backgroundColor: cat.cor }}>
-            <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-black/20 pointer-events-none" />
-            <p className="relative text-white/70 text-xs">{cat.nome}</p>
-            <p className="relative text-base font-bold mt-1">{fmt(cat.total)}</p>
-            <p className="relative text-white/50 text-xs">{cat.count} item(s)</p>
-          </div>
-        ))}
+        <div className="flex gap-2">
+          <button
+            onClick={() => setShowConfigModal(true)}
+            className="inline-flex items-center gap-1.5 px-3 py-2 border border-violet-200 text-violet-500 rounded-xl text-sm font-medium hover:bg-violet-50 hover:text-violet-700 transition-colors"
+          >
+            <GearIcon /><span className="hidden sm:inline">Configurações</span>
+          </button>
+          <button
+            onClick={() => abrirNovoCusto()}
+            className="inline-flex items-center gap-1.5 px-3 py-2 bg-violet-600 text-white rounded-xl text-sm font-medium hover:bg-violet-700 transition-colors shadow-sm shadow-violet-200"
+          >
+            <Plus /><span className="hidden sm:inline">Novo Custo</span>
+          </button>
+        </div>
       </div>
 
-      {/* Gráfico */}
+      {/* ── Card total ── */}
+      <div className="relative overflow-hidden bg-gradient-to-br from-violet-600 to-purple-700 rounded-2xl p-5 text-white shadow-md shadow-violet-200">
+        <div className="absolute -top-6 -right-6 w-28 h-28 bg-white/10 rounded-full" />
+        <div className="absolute -bottom-4 -left-4 w-20 h-20 bg-white/5 rounded-full" />
+        <p className="text-violet-200 text-xs font-medium uppercase tracking-wide relative">Total do Mês — Empresa</p>
+        <p className="text-3xl font-bold mt-1 tabular-nums relative">{fmt(totalGeral)}</p>
+        <p className="text-violet-200 text-[11px] mt-1 relative">{custos.length} custo(s) em {categorias.length} categoria(s)</p>
+      </div>
+
+      {/* ── Gráficos ── */}
       {totalGeral > 0 && (
-        <Card>
-          <h3 className="font-semibold text-slate-700 mb-4">Custo por Categoria</h3>
-          <ResponsiveContainer width="100%" height={200}>
-            <BarChart data={totalPorCategoria.filter((c) => c.total > 0)}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-              <XAxis dataKey="nome" tick={{ fontSize: 12 }} />
-              <YAxis tick={{ fontSize: 12 }} tickFormatter={(v) => `R$${(v / 1000).toFixed(1)}k`} />
-              <Tooltip formatter={(v) => v != null ? fmt(Number(v)) : ''} />
-              <Bar dataKey="total" radius={[6, 6, 0, 0]} name="Total" />
-            </BarChart>
-          </ResponsiveContainer>
-        </Card>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <Card>
+            <p className="font-semibold text-slate-700 text-sm mb-3">Custo por Categoria</p>
+            <div style={{ height: 220 }}>
+              <VChart key={`emp-bar-${totalGeral.toFixed(0)}`} spec={barSpec as any} />
+            </div>
+          </Card>
+          <Card>
+            <p className="font-semibold text-slate-700 text-sm mb-3">Distribuição</p>
+            <div style={{ height: 220 }}>
+              <VChart key={`emp-donut-${totalGeral.toFixed(0)}`} spec={donutSpec as any} />
+            </div>
+          </Card>
+        </div>
       )}
 
-      {/* Filtros de categoria */}
+      {/* ── Filtros de categoria ── */}
       <div className="flex flex-wrap gap-2">
         <button
           onClick={() => setCatFiltro(null)}
-          className={`px-4 py-2 rounded-xl text-sm font-medium transition-all border ${!catFiltro ? 'bg-sky-600 text-white border-sky-600' : 'border-slate-200 text-slate-500 hover:border-sky-300'}`}
+          className={`px-3 py-1.5 rounded-full text-sm font-medium transition-all border ${!catFiltro ? 'bg-violet-600 text-white border-violet-600' : 'border-slate-200 text-slate-500 hover:border-violet-300 hover:text-violet-600'}`}
         >
           Todos
         </button>
@@ -206,7 +278,7 @@ export default function TabEmpresa({ mes, ano }: Props) {
           <button
             key={cat.id}
             onClick={() => setCatFiltro(catFiltro === cat.id ? null : cat.id!)}
-            className="px-4 py-2 rounded-xl text-sm font-medium transition-all border"
+            className="px-3 py-1.5 rounded-full text-sm font-medium transition-all border"
             style={catFiltro === cat.id
               ? { backgroundColor: cat.cor, color: '#fff', borderColor: cat.cor }
               : { borderColor: '#e2e8f0', color: '#64748b' }}
@@ -216,16 +288,16 @@ export default function TabEmpresa({ mes, ano }: Props) {
         ))}
       </div>
 
-      {/* Lista de custos */}
+      {/* ── Lista de custos ── */}
       <Card>
         <div className="flex items-center justify-between mb-4">
-          <h3 className="font-semibold text-slate-700">
+          <h3 className="font-semibold text-slate-700 text-sm">
             {catAtiva ? `Custos — ${catAtiva.nome}` : 'Todos os Custos do Mês'}
           </h3>
           {catAtiva && (
             <button
               onClick={() => abrirNovoCusto(catAtiva.id)}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-sky-600 text-white rounded-lg text-xs font-medium hover:bg-sky-700 transition-colors"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-violet-600 text-white rounded-lg text-xs font-medium hover:bg-violet-700 transition-colors"
             >
               <Plus /> Adicionar
             </button>
@@ -235,20 +307,21 @@ export default function TabEmpresa({ mes, ano }: Props) {
         {loading ? (
           <p className="text-slate-400 text-sm text-center py-8">Carregando...</p>
         ) : custosFiltrados.length === 0 ? (
-          <p className="text-slate-400 text-sm text-center py-8">
-            {catFiltro ? 'Nenhum custo nesta categoria este mês' : 'Nenhum custo cadastrado este mês'}
-          </p>
+          <div className="py-10 flex flex-col items-center gap-2 text-slate-400">
+            <span className="text-3xl">🏢</span>
+            <p className="text-sm">{catFiltro ? 'Nenhum custo nesta categoria' : 'Nenhum custo cadastrado este mês'}</p>
+          </div>
         ) : (
-          <div className="space-y-2">
+          <div className="space-y-1">
             {custosFiltrados.map((c) => {
               const cat = catPorId(c.categoriaId);
               return (
-                <div key={c.id} className="flex items-center justify-between p-3 rounded-xl hover:bg-slate-50 transition-colors">
+                <div key={c.id} className="group flex items-center justify-between p-3 rounded-xl hover:bg-violet-50/50 transition-colors">
                   <div className="flex items-center gap-3">
-                    <span className="w-1 h-10 rounded-full flex-shrink-0" style={{ backgroundColor: cat?.cor ?? '#38bdf8' }} />
+                    <span className="w-1 h-10 rounded-full flex-shrink-0" style={{ backgroundColor: cat?.cor ?? '#8b5cf6' }} />
                     <span
                       className="text-xs px-2 py-0.5 rounded-full font-medium"
-                      style={{ backgroundColor: `${cat?.cor ?? '#38bdf8'}22`, color: cat?.cor ?? '#38bdf8' }}
+                      style={{ backgroundColor: `${cat?.cor ?? '#8b5cf6'}22`, color: cat?.cor ?? '#8b5cf6' }}
                     >
                       {cat?.nome ?? '—'}
                     </span>
@@ -261,9 +334,9 @@ export default function TabEmpresa({ mes, ano }: Props) {
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
-                    <span className="font-semibold text-sm text-sky-600">{fmt(c.valorParcela)}</span>
-                    <button onClick={() => abrirEditCusto(c)} className="p-1.5 rounded-lg hover:bg-sky-50 text-slate-300 hover:text-sky-500 transition-colors"><Pencil /></button>
-                    <button onClick={() => handleDeleteCusto(c.id!)} className="p-1.5 rounded-lg hover:bg-red-50 text-slate-300 hover:text-red-400 transition-colors"><Trash /></button>
+                    <span className="font-semibold text-sm text-violet-600">{fmt(c.valorParcela)}</span>
+                    <button onClick={() => abrirEditCusto(c)} className="p-1.5 rounded-lg opacity-0 group-hover:opacity-100 hover:bg-violet-100 text-slate-300 hover:text-violet-500 transition-all"><Pencil /></button>
+                    <button onClick={() => handleDeleteCusto(c.id!)} className="p-1.5 rounded-lg opacity-0 group-hover:opacity-100 hover:bg-red-50 text-slate-300 hover:text-red-400 transition-all"><Trash /></button>
                   </div>
                 </div>
               );
@@ -320,14 +393,14 @@ export default function TabEmpresa({ mes, ano }: Props) {
             </div>
 
             {formCusto.valor && parseInt(formCusto.totalParcelas) > 1 && (
-              <p className="text-xs text-slate-500 bg-slate-50 rounded-lg p-2">
+              <p className="text-xs text-slate-500 bg-violet-50 rounded-lg p-2">
                 Valor por parcela: <strong>{fmt(parseFloat(formCusto.valor.replace(',', '.')) / parseInt(formCusto.totalParcelas) || 0)}</strong>
               </p>
             )}
 
             <div className="flex gap-3 pt-2">
               <button type="button" onClick={() => { setShowCustoModal(false); setEditCustoId(null); }} className="flex-1 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-600 hover:bg-slate-50">Cancelar</button>
-              <button type="submit" className="flex-1 py-2.5 bg-sky-600 text-white rounded-xl text-sm font-medium hover:bg-sky-700">Salvar</button>
+              <button type="submit" className="flex-1 py-2.5 bg-violet-600 text-white rounded-xl text-sm font-medium hover:bg-violet-700">Salvar</button>
             </div>
           </form>
         </Modal>
@@ -339,19 +412,19 @@ export default function TabEmpresa({ mes, ano }: Props) {
           <div className="space-y-3">
             <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Categorias</p>
             {categorias.map((cat) => (
-              <div key={cat.id} className="flex items-center gap-3 p-3 rounded-xl border border-slate-100 hover:bg-slate-50">
-                <span className="w-5 h-5 rounded-full flex-shrink-0" style={{ backgroundColor: cat.cor }} />
+              <div key={cat.id} className="flex items-center gap-3 p-3 rounded-xl border border-violet-100 hover:bg-violet-50/50">
+                <span className="w-5 h-5 rounded-full flex-shrink-0 shadow-sm" style={{ backgroundColor: cat.cor }} />
                 <p className="flex-1 text-sm font-medium text-slate-700">{cat.nome}</p>
                 <button onClick={() => handleDeleteCategoria(cat.id!)} className="p-1.5 rounded-lg hover:bg-red-50 text-slate-300 hover:text-red-400 transition-colors"><Trash /></button>
               </div>
             ))}
 
             {!showCatForm ? (
-              <button onClick={() => setShowCatForm(true)} className="w-full py-2.5 border-2 border-dashed border-slate-200 rounded-xl text-sm text-slate-400 hover:border-sky-300 hover:text-sky-500 transition-colors flex items-center justify-center gap-2">
+              <button onClick={() => setShowCatForm(true)} className="w-full py-2.5 border-2 border-dashed border-violet-200 rounded-xl text-sm text-slate-400 hover:border-violet-400 hover:text-violet-500 transition-colors flex items-center justify-center gap-2">
                 <Plus /> Nova Categoria
               </button>
             ) : (
-              <form onSubmit={handleSaveCategoria} className="border border-slate-200 rounded-xl p-4 space-y-3 bg-slate-50">
+              <form onSubmit={handleSaveCategoria} className="border border-violet-200 rounded-xl p-4 space-y-3 bg-violet-50/30">
                 <p className="text-sm font-semibold text-slate-700">Nova Categoria</p>
                 <input required value={formCat.nome} onChange={(e) => setFormCat({ ...formCat, nome: e.target.value })} className={INPUT} placeholder="Ex: Alvará, ISS..." />
                 <div>
@@ -366,7 +439,7 @@ export default function TabEmpresa({ mes, ano }: Props) {
                 </div>
                 <div className="flex gap-2">
                   <button type="button" onClick={() => { setShowCatForm(false); setFormCat(CAT_EMPTY); }} className="flex-1 py-2 border border-slate-200 rounded-xl text-xs text-slate-600 hover:bg-white">Cancelar</button>
-                  <button type="submit" className="flex-1 py-2 bg-sky-600 text-white rounded-xl text-xs font-medium hover:bg-sky-700">Salvar</button>
+                  <button type="submit" className="flex-1 py-2 bg-violet-600 text-white rounded-xl text-xs font-medium hover:bg-violet-700">Salvar</button>
                 </div>
               </form>
             )}
