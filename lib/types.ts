@@ -17,19 +17,16 @@ export interface Distribuicao {
   planosFuturos: number;
 }
 
-export type CategoriaContas =
-  | 'Moradia'
-  | 'Alimentação'
-  | 'Transporte'
-  | 'Saúde'
-  | 'Lazer'
-  | 'Educação'
-  | 'Outros';
+export interface CategoriaContaConfig {
+  id?: string;
+  nome: string;
+  cor: string;
+}
 
 export interface Conta {
   id?: string;
   descricao: string;
-  categoria: CategoriaContas;
+  categoria: string;
   valor: number;
   vencimento: number;
   status: 'pago' | 'pendente';
@@ -37,6 +34,8 @@ export interface Conta {
   ano: number;
   parcelaAtual?: number;
   totalParcelas?: number;
+  fixa?: boolean;
+  grupoId?: string;
 }
 
 export interface Cartao {
@@ -50,6 +49,32 @@ export interface CategoriaCompra {
   id?: string;
   nome: string;
   cor: string;
+}
+
+export interface CategoriaEmpresa {
+  id?: string;
+  nome: string;
+  cor: string;
+}
+
+export interface CustoEmpresa {
+  id?: string;
+  categoriaId: string;
+  descricao: string;
+  valor: number;
+  valorParcela: number;
+  totalParcelas: number;
+  parcelaAtual: number;
+  mes: number;
+  ano: number;
+}
+
+export interface FaturaEmpresa {
+  id?: string;
+  categoriaId: string;
+  status: 'pago' | 'pendente';
+  mes: number;
+  ano: number;
 }
 
 export interface FaturaCartao {

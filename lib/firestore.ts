@@ -10,8 +10,18 @@ import {
   setDoc,
 } from 'firebase/firestore';
 import { db } from './firebase';
-import type { Entrada, Distribuicao, Conta, Cartao, CategoriaCompra, CompraParcelada, FaturaCartao } from './types';
+import type {
+  Entrada, Distribuicao, Conta, CategoriaContaConfig,
+  Cartao, CategoriaCompra, CompraParcelada, FaturaCartao,
+  CategoriaEmpresa, CustoEmpresa, FaturaEmpresa,
+} from './types';
 import { DEFAULT_CARTOES, DEFAULT_CATEGORIAS } from './cartoes';
+
+const DEFAULT_CATEGORIAS_EMPRESA: Omit<CategoriaEmpresa, 'id'>[] = [
+  { nome: 'DAS',          cor: '#38bdf8' },
+  { nome: 'DARF',         cor: '#0ea5e9' },
+  { nome: 'Renegociação', cor: '#0284c7' },
+];
 
 // ─── Entradas ───────────────────────────────────────────────────────────────
 
@@ -68,25 +78,72 @@ export async function getContas(mes: number, ano: number): Promise<Conta[]> {
   return snap.docs.map((d) => ({ id: d.id, ...d.data() } as Conta));
 }
 
-// Grava uma doc por parcela restante; contas sem parcela gravam uma só
+function makeGrupoId() {
+  return `${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+}
+
+// Grava uma doc por parcela restante; fixas propagam 24 meses à frente
 export async function addConta(c: Omit<Conta, 'id'>): Promise<void> {
-  if (!c.parcelaAtual || !c.totalParcelas) {
-    await addDoc(collection(db, 'contas'), c);
+  if (c.parcelaAtual && c.totalParcelas) {
+    const remaining = c.totalParcelas - c.parcelaAtual + 1;
+    await Promise.all(
+      Array.from({ length: remaining }, (_, i) => {
+        const { mes, ano } = addMonths(c.mes, c.ano, i);
+        return addDoc(collection(db, 'contas'), {
+          ...c, parcelaAtual: c.parcelaAtual! + i, mes, ano, status: 'pendente',
+        });
+      }),
+    );
     return;
   }
-  const remaining = c.totalParcelas - c.parcelaAtual + 1;
-  await Promise.all(
-    Array.from({ length: remaining }, (_, i) => {
-      const { mes, ano } = addMonths(c.mes, c.ano, i);
-      return addDoc(collection(db, 'contas'), {
-        ...c, parcelaAtual: c.parcelaAtual! + i, mes, ano, status: 'pendente',
-      });
-    }),
-  );
+  if (c.fixa) {
+    const grupoId = makeGrupoId();
+    await Promise.all([
+      addDoc(collection(db, 'contas'), { ...c, grupoId }),
+      ...Array.from({ length: 24 }, (_, i) => {
+        const { mes, ano } = addMonths(c.mes, c.ano, i + 1);
+        return addDoc(collection(db, 'contas'), { ...c, grupoId, mes, ano, status: 'pendente' });
+      }),
+    ]);
+    return;
+  }
+  await addDoc(collection(db, 'contas'), c);
+}
+
+export async function updateConta(id: string, c: Omit<Conta, 'id'>): Promise<void> {
+  await setDoc(doc(db, 'contas', id), c);
 }
 
 export async function updateContaStatus(id: string, status: 'pago' | 'pendente'): Promise<void> {
   await updateDoc(doc(db, 'contas', id), { status });
+}
+
+// Ativa/desativa fixa: cria 24 cópias ou apaga todas as futuras do mesmo grupoId
+export async function toggleContaFixa(id: string, conta: Conta, tornarFixa: boolean): Promise<void> {
+  const { id: _id, ...data } = conta;
+  if (tornarFixa) {
+    const grupoId = makeGrupoId();
+    await Promise.all([
+      setDoc(doc(db, 'contas', id), { ...data, fixa: true, grupoId }),
+      ...Array.from({ length: 24 }, (_, i) => {
+        const { mes, ano } = addMonths(conta.mes, conta.ano, i + 1);
+        return addDoc(collection(db, 'contas'), {
+          ...data, fixa: true, grupoId, mes, ano, status: 'pendente',
+        });
+      }),
+    ]);
+  } else {
+    await setDoc(doc(db, 'contas', id), { ...data, fixa: false });
+    if (conta.grupoId) {
+      const snap = await getDocs(query(collection(db, 'contas'), where('grupoId', '==', conta.grupoId)));
+      const currentAbs = conta.ano * 12 + conta.mes;
+      await Promise.all(
+        snap.docs
+          .filter((d) => { const x = d.data(); return d.id !== id && (x.ano * 12 + x.mes) > currentAbs; })
+          .map((d) => deleteDoc(d.ref)),
+      );
+    }
+  }
 }
 
 export async function deleteConta(id: string): Promise<void> {
@@ -96,6 +153,34 @@ export async function deleteConta(id: string): Promise<void> {
 export async function getContasHistorico(): Promise<Conta[]> {
   const snap = await getDocs(collection(db, 'contas'));
   return snap.docs.map((d) => ({ id: d.id, ...d.data() } as Conta));
+}
+
+// ─── Categorias de Contas ────────────────────────────────────────────────────
+
+const DEFAULT_CATEGORIAS_CONTAS: Omit<CategoriaContaConfig, 'id'>[] = [
+  { nome: 'Moradia',     cor: '#6366f1' },
+  { nome: 'Alimentação', cor: '#f59e0b' },
+  { nome: 'Transporte',  cor: '#3b82f6' },
+  { nome: 'Saúde',       cor: '#10b981' },
+  { nome: 'Lazer',       cor: '#ec4899' },
+  { nome: 'Educação',    cor: '#8b5cf6' },
+  { nome: 'Outros',      cor: '#94a3b8' },
+];
+
+export async function getCategoriasContas(): Promise<CategoriaContaConfig[]> {
+  const snap = await getDocs(collection(db, 'categorias_contas'));
+  if (!snap.empty) return snap.docs.map((d) => ({ id: d.id, ...d.data() } as CategoriaContaConfig));
+  await Promise.all(DEFAULT_CATEGORIAS_CONTAS.map((c) => addDoc(collection(db, 'categorias_contas'), c)));
+  const seeded = await getDocs(collection(db, 'categorias_contas'));
+  return seeded.docs.map((d) => ({ id: d.id, ...d.data() } as CategoriaContaConfig));
+}
+
+export async function addCategoriaContas(c: Omit<CategoriaContaConfig, 'id'>): Promise<void> {
+  await addDoc(collection(db, 'categorias_contas'), c);
+}
+
+export async function deleteCategoriaContas(id: string): Promise<void> {
+  await deleteDoc(doc(db, 'categorias_contas', id));
 }
 
 // ─── Cartões ────────────────────────────────────────────────────────────────
@@ -192,4 +277,63 @@ export async function setFaturaCartaoStatus(
 ): Promise<void> {
   const docId = `${cartaoId}_${String(mes).padStart(2, '0')}_${ano}`;
   await setDoc(doc(db, 'faturas_cartao', docId), { cartaoId, mes, ano, status });
+}
+
+// ─── Categorias de Empresa ───────────────────────────────────────────────────
+
+export async function getCategoriasEmpresa(): Promise<CategoriaEmpresa[]> {
+  const snap = await getDocs(collection(db, 'categorias_empresa'));
+  if (!snap.empty) return snap.docs.map((d) => ({ id: d.id, ...d.data() } as CategoriaEmpresa));
+  await Promise.all(DEFAULT_CATEGORIAS_EMPRESA.map((c) => addDoc(collection(db, 'categorias_empresa'), c)));
+  const seeded = await getDocs(collection(db, 'categorias_empresa'));
+  return seeded.docs.map((d) => ({ id: d.id, ...d.data() } as CategoriaEmpresa));
+}
+
+export async function addCategoriaEmpresa(c: Omit<CategoriaEmpresa, 'id'>): Promise<void> {
+  await addDoc(collection(db, 'categorias_empresa'), c);
+}
+
+export async function deleteCategoriaEmpresa(id: string): Promise<void> {
+  await deleteDoc(doc(db, 'categorias_empresa', id));
+}
+
+// ─── Custos Empresa ──────────────────────────────────────────────────────────
+
+export async function getCustosEmpresa(mes: number, ano: number): Promise<CustoEmpresa[]> {
+  const q = query(collection(db, 'custos_empresa'), where('mes', '==', mes), where('ano', '==', ano));
+  const snap = await getDocs(q);
+  return snap.docs.map((d) => ({ id: d.id, ...d.data() } as CustoEmpresa));
+}
+
+export async function addCustoEmpresa(c: Omit<CustoEmpresa, 'id'>): Promise<void> {
+  const remaining = c.totalParcelas - c.parcelaAtual + 1;
+  await Promise.all(
+    Array.from({ length: remaining }, (_, i) => {
+      const { mes, ano } = addMonths(c.mes, c.ano, i);
+      return addDoc(collection(db, 'custos_empresa'), { ...c, parcelaAtual: c.parcelaAtual + i, mes, ano });
+    }),
+  );
+}
+
+export async function updateCustoEmpresa(id: string, c: Omit<CustoEmpresa, 'id'>): Promise<void> {
+  await setDoc(doc(db, 'custos_empresa', id), c);
+}
+
+export async function deleteCustoEmpresa(id: string): Promise<void> {
+  await deleteDoc(doc(db, 'custos_empresa', id));
+}
+
+// ─── Faturas Empresa ─────────────────────────────────────────────────────────
+
+export async function getFaturasEmpresa(mes: number, ano: number): Promise<FaturaEmpresa[]> {
+  const q = query(collection(db, 'faturas_empresa'), where('mes', '==', mes), where('ano', '==', ano));
+  const snap = await getDocs(q);
+  return snap.docs.map((d) => ({ id: d.id, ...d.data() } as FaturaEmpresa));
+}
+
+export async function setFaturaEmpresaStatus(
+  categoriaId: string, mes: number, ano: number, status: 'pago' | 'pendente',
+): Promise<void> {
+  const docId = `${categoriaId}_${String(mes).padStart(2, '0')}_${ano}`;
+  await setDoc(doc(db, 'faturas_empresa', docId), { categoriaId, mes, ano, status });
 }
