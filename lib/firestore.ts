@@ -162,7 +162,15 @@ export async function updateContaAndFuture(id: string, conta: Conta, data: Omit<
         .filter((d) => { const x = d.data(); return d.id !== id && (x.ano * 12 + x.mes) > currentAbs; })
         .map((d) => {
           const prev = d.data();
-          return setDoc(d.ref, { ...data, mes: prev.mes, ano: prev.ano, status: prev.status, grupoId: conta.grupoId });
+          return setDoc(d.ref, {
+            ...data,
+            mes: prev.mes,
+            ano: prev.ano,
+            status: prev.status,
+            grupoId: conta.grupoId,
+            ...(prev.parcelaAtual  != null ? { parcelaAtual:  prev.parcelaAtual  } : {}),
+            ...(prev.totalParcelas != null ? { totalParcelas: prev.totalParcelas } : {}),
+          });
         }),
     );
   }

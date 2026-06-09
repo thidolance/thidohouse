@@ -405,7 +405,7 @@ export default function TabContas({ mes, ano }: Props) {
       categoria:     form.categoria,
       valor,
       vencimento,
-      status: 'pendente',
+      status: editConta?.status ?? 'pendente',
       mes, ano,
       ...(form.parcelaAtual  ? { parcelaAtual:  parseInt(form.parcelaAtual)  } : {}),
       ...(form.totalParcelas ? { totalParcelas: parseInt(form.totalParcelas) } : {}),
@@ -545,7 +545,7 @@ export default function TabContas({ mes, ano }: Props) {
               <div className="flex-1 max-w-[100px] bg-slate-100 rounded-full h-1.5">
                 <div
                   className="h-1.5 rounded-full transition-all"
-                  style={{ width: `${(c.parcelaAtual / c.totalParcelas) * 100}%`, backgroundColor: pago ? '#10b981' : cor, opacity: pago ? 0.6 : 0.75 }}
+                  style={{ width: `${(c.parcelaAtual / c.totalParcelas) * 100}%`, backgroundColor: '#10b981', opacity: pago ? 0.5 : 0.8 }}
                 />
               </div>
               <span className="text-[10px] text-slate-400 tabular-nums">{c.parcelaAtual}/{c.totalParcelas}</span>
@@ -748,7 +748,7 @@ export default function TabContas({ mes, ano }: Props) {
         ) : (
           <div className="divide-y divide-slate-50/80">
 
-            {/* ── Fixas (sempre acima) ── */}
+            {/* ── Contas Fixas ── */}
             {mostrarContas && contasFixas.length > 0 && (
               <div>
                 <SectionHeader label="Contas Fixas" count={contasFixas.length} total={contasFixas.reduce((s, c) => s + c.valor, 0)} />
@@ -756,7 +756,17 @@ export default function TabContas({ mes, ano }: Props) {
               </div>
             )}
 
-            {/* ── Cartões (segundo) ── */}
+            {/* ── Contas regulares ── */}
+            {mostrarContas && contasRegulares.length > 0 && (
+              <div>
+                {(filtroTipo === 'todos' || contasFixas.length > 0) && (
+                  <SectionHeader label="Contas" count={contasRegulares.length} total={contasRegulares.reduce((s, c) => s + c.valor, 0)} />
+                )}
+                {contasRegulares.map((c) => <ContaRow key={c.id} c={c} />)}
+              </div>
+            )}
+
+            {/* ── Cartões ── */}
             {mostrarCartoes && cartoesFiltrados.length > 0 && (
               <div>
                 {filtroTipo === 'todos' && (
@@ -800,16 +810,6 @@ export default function TabContas({ mes, ano }: Props) {
                   </div>
                   <span className={`font-bold text-sm tabular-nums ${empresaStatus === 'pago' ? 'text-emerald-600' : 'text-slate-800'}`}>{fmt(empresaSum)}</span>
                 </div>
-              </div>
-            )}
-
-            {/* ── Contas regulares (por vencimento) ── */}
-            {mostrarContas && contasRegulares.length > 0 && (
-              <div>
-                {(filtroTipo === 'todos' || contasFixas.length > 0) && (
-                  <SectionHeader label="Contas" count={contasRegulares.length} total={contasRegulares.reduce((s, c) => s + c.valor, 0)} />
-                )}
-                {contasRegulares.map((c) => <ContaRow key={c.id} c={c} />)}
               </div>
             )}
 
