@@ -8,8 +8,12 @@ import {
 import Modal from '../ui/Modal';
 import Card from '../ui/Card';
 import { Plus, Trash, Check, Receipt } from '../ui/Icons';
-import { getContas, addConta, deleteConta, updateContaStatus } from '@/lib/firestore';
+import {
+  getContas, addConta, deleteConta, updateContaStatus,
+  getCompras, getFaturasCartao, setFaturaCartaoStatus,
+} from '@/lib/firestore';
 import type { Conta, CategoriaContas } from '@/lib/types';
+import { CARTOES } from '@/lib/cartoes';
 
 const CATEGORIAS: CategoriaContas[] = [
   'Moradia', 'Alimentação', 'Transporte', 'Saúde', 'Lazer', 'Educação', 'Outros',
@@ -25,7 +29,7 @@ const CAT_COLORS: Record<string, string> = {
   Outros: '#94a3b8',
 };
 
-const INPUT = 'w-full border border-slate-200 rounded-xl px-3 py-2 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-300 bg-white';
+const INPUT = 'w-full border border-slate-200 rounded-xl px-3 py-2 text-sm text-slate-900 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-300';
 
 const fmt = (v: number) =>
   v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
@@ -33,45 +37,83 @@ const fmt = (v: number) =>
 interface Props { mes: number; ano: number; }
 
 type FormState = {
-  descricao: string;
-  categoria: CategoriaContas;
-  valor: string;
-  vencimento: string;
-  parcelaAtual: string;
-  totalParcelas: string;
+  descricao: string; categoria: CategoriaContas; valor: string; vencimento: string;
+  parcelaAtual: string; totalParcelas: string;
 };
-
 const FORM_EMPTY: FormState = {
   descricao: '', categoria: 'Moradia', valor: '', vencimento: '',
   parcelaAtual: '', totalParcelas: '',
 };
 
+// Item unificado para a lista
+type CartaoItem = {
+  tipo: 'cartao'; cartaoId: string; cartaoNome: string;
+  cartaoCor: string; valor: number; status: 'pago' | 'pendente';
+};
+
 export default function TabContas({ mes, ano }: Props) {
   const now = new Date();
   const [contas, setContas] = useState<Conta[]>([]);
+  const [itensCartao, setItensCartao] = useState<CartaoItem[]>([]);
   const [showModal, setShowModal] = useState(false);
   const [loading, setLoading] = useState(false);
   const [form, setForm] = useState<FormState>(FORM_EMPTY);
 
   const load = useCallback(async () => {
     setLoading(true);
-    const list = await getContas(mes, ano);
-    // Pendentes primeiro (por vencimento), pagos por último
-    list.sort((a, b) => {
+    const [contasList, comprasList, faturasList] = await Promise.all([
+      getContas(mes, ano),
+      getCompras(mes, ano),
+      getFaturasCartao(mes, ano),
+    ]);
+
+    // Ordena: pendentes primeiro por vencimento, pagos por último
+    contasList.sort((a, b) => {
       if (a.status !== b.status) return a.status === 'pendente' ? -1 : 1;
       return a.vencimento - b.vencimento;
     });
-    setContas(list);
+    setContas(contasList);
+
+    // Agrupa compras por cartão e cria item por cartão com gasto > 0
+    type CartaoItem = { tipo: 'cartao'; cartaoId: string; cartaoNome: string; cartaoCor: string; valor: number; status: 'pago' | 'pendente' };
+    const cards: CartaoItem[] = CARTOES.flatMap((c): CartaoItem[] => {
+      const total = comprasList
+        .filter((p) => p.cartaoId === c.id)
+        .reduce((s, p) => s + p.valorParcela, 0);
+      if (total === 0) return [];
+      const fatura = faturasList.find((f) => f.cartaoId === c.id);
+      return [{
+        tipo: 'cartao',
+        cartaoId: c.id as string,
+        cartaoNome: c.nome as string,
+        cartaoCor: c.cor as string,
+        valor: total,
+        status: fatura?.status ?? 'pendente',
+      }];
+    });
+
+    // Mesmo critério de ordenação dos cartões
+    cards.sort((a, b) => {
+      if (a.status !== b.status) return a.status === 'pendente' ? -1 : 1;
+      return a.cartaoNome.localeCompare(b.cartaoNome);
+    });
+    setItensCartao(cards);
     setLoading(false);
   }, [mes, ano]);
 
   useEffect(() => { load(); }, [load]);
 
-  const totalPago = contas.filter((c) => c.status === 'pago').reduce((s, c) => s + c.valor, 0);
-  const totalPendente = contas.filter((c) => c.status === 'pendente').reduce((s, c) => s + c.valor, 0);
-  const total = totalPago + totalPendente;
-  const pctPago = total > 0 ? (totalPago / total) * 100 : 0;
-  const countPago = contas.filter((c) => c.status === 'pago').length;
+  const totalContasPago     = contas.filter((c) => c.status === 'pago').reduce((s, c) => s + c.valor, 0);
+  const totalContasPendente = contas.filter((c) => c.status === 'pendente').reduce((s, c) => s + c.valor, 0);
+  const totalCartoesPago     = itensCartao.filter((c) => c.status === 'pago').reduce((s, c) => s + c.valor, 0);
+  const totalCartoesPendente = itensCartao.filter((c) => c.status === 'pendente').reduce((s, c) => s + c.valor, 0);
+
+  const totalPago     = totalContasPago + totalCartoesPago;
+  const totalPendente = totalContasPendente + totalCartoesPendente;
+  const total         = totalPago + totalPendente;
+  const pctPago       = total > 0 ? (totalPago / total) * 100 : 0;
+  const countPago     = contas.filter((c) => c.status === 'pago').length + itensCartao.filter((c) => c.status === 'pago').length;
+  const countTotal    = contas.length + itensCartao.length;
 
   async function handleAdd(e: React.SubmitEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -83,7 +125,7 @@ export default function TabContas({ mes, ano }: Props) {
       status: 'pendente',
       mes,
       ano,
-      parcelaAtual: form.parcelaAtual ? parseInt(form.parcelaAtual) : undefined,
+      parcelaAtual:  form.parcelaAtual  ? parseInt(form.parcelaAtual)  : undefined,
       totalParcelas: form.totalParcelas ? parseInt(form.totalParcelas) : undefined,
     });
     setForm(FORM_EMPTY);
@@ -91,8 +133,13 @@ export default function TabContas({ mes, ano }: Props) {
     load();
   }
 
-  async function handleToggle(id: string, status: 'pago' | 'pendente') {
+  async function handleToggleConta(id: string, status: 'pago' | 'pendente') {
     await updateContaStatus(id, status === 'pago' ? 'pendente' : 'pago');
+    load();
+  }
+
+  async function handleToggleCartao(cartaoId: string, status: 'pago' | 'pendente') {
+    await setFaturaCartaoStatus(cartaoId, mes, ano, status === 'pago' ? 'pendente' : 'pago');
     load();
   }
 
@@ -109,8 +156,12 @@ export default function TabContas({ mes, ano }: Props) {
     }))
     .filter((d) => d.value > 0);
 
+  // Inclui cartões no pie de categorias
+  const pieFaturas = itensCartao.map((c) => ({ name: c.cartaoNome, value: c.valor, fill: c.cartaoCor }));
+  const pieDataFull = [...pieData, ...pieFaturas];
+
   const barData = [
-    { name: 'Pago', valor: totalPago, fill: '#10b981' },
+    { name: 'Pago',     valor: totalPago,     fill: '#10b981' },
     { name: 'Pendente', valor: totalPendente, fill: '#f59e0b' },
   ];
 
@@ -118,7 +169,7 @@ export default function TabContas({ mes, ano }: Props) {
     (c) => c.status === 'pendente'
       && c.vencimento <= new Date().getDate()
       && mes === now.getMonth() + 1
-      && ano === now.getFullYear()
+      && ano === now.getFullYear(),
   );
 
   return (
@@ -133,7 +184,7 @@ export default function TabContas({ mes, ano }: Props) {
         </button>
       </div>
 
-      {/* Alertas de vencimento */}
+      {/* Alertas */}
       {pendentesHoje.length > 0 && (
         <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
           <p className="text-amber-800 text-sm font-medium">
@@ -150,6 +201,11 @@ export default function TabContas({ mes, ano }: Props) {
         <Card className="bg-gradient-to-br from-slate-700 to-slate-800 text-white border-0">
           <p className="text-slate-300 text-sm">Total do Mês</p>
           <p className="text-2xl font-bold mt-1">{fmt(total)}</p>
+          {itensCartao.length > 0 && (
+            <p className="text-slate-400 text-xs mt-1">
+              incl. {fmt(totalCartoesPago + totalCartoesPendente)} em cartões
+            </p>
+          )}
         </Card>
         <Card>
           <p className="text-slate-500 text-sm">Pago</p>
@@ -174,10 +230,10 @@ export default function TabContas({ mes, ano }: Props) {
             <Receipt />
             <h3 className="font-semibold text-slate-700">Por Categoria</h3>
           </div>
-          {pieData.length > 0 ? (
+          {pieDataFull.length > 0 ? (
             <ResponsiveContainer width="100%" height={220}>
               <PieChart>
-                <Pie data={pieData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={75} innerRadius={35} />
+                <Pie data={pieDataFull} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={75} innerRadius={35} />
                 <Tooltip formatter={(v) => v != null ? fmt(Number(v)) : ''} />
                 <Legend />
               </PieChart>
@@ -204,19 +260,17 @@ export default function TabContas({ mes, ano }: Props) {
         </Card>
       </div>
 
-      {/* Lista de contas */}
+      {/* Lista unificada */}
       <Card>
         <div className="flex items-center justify-between mb-3">
           <h3 className="font-semibold text-slate-700">Contas do Mês</h3>
-          {contas.length > 0 && (
-            <span className="text-xs text-slate-500">
-              {countPago}/{contas.length} pagas
-            </span>
+          {countTotal > 0 && (
+            <span className="text-xs text-slate-500">{countPago}/{countTotal} pagas</span>
           )}
         </div>
 
-        {/* Barra de progresso geral */}
-        {contas.length > 0 && (
+        {/* Barra de progresso */}
+        {countTotal > 0 && (
           <div className="mb-4">
             <div className="flex justify-between items-center mb-1">
               <span className="text-xs text-slate-500">{fmt(totalPago)} pagos</span>
@@ -234,10 +288,11 @@ export default function TabContas({ mes, ano }: Props) {
 
         {loading ? (
           <p className="text-slate-400 text-sm text-center py-8">Carregando...</p>
-        ) : contas.length === 0 ? (
+        ) : countTotal === 0 ? (
           <p className="text-slate-400 text-sm text-center py-8">Nenhuma conta cadastrada neste mês</p>
         ) : (
           <div className="space-y-2">
+            {/* ── Contas manuais ── */}
             {contas.map((c) => (
               <div
                 key={c.id}
@@ -249,7 +304,7 @@ export default function TabContas({ mes, ano }: Props) {
               >
                 <div className="flex items-center gap-3">
                   <button
-                    onClick={() => handleToggle(c.id!, c.status)}
+                    onClick={() => handleToggleConta(c.id!, c.status)}
                     className={`w-7 h-7 rounded-full border-2 flex items-center justify-center transition-colors flex-shrink-0 ${
                       c.status === 'pago'
                         ? 'bg-emerald-500 border-emerald-500 text-white'
@@ -290,6 +345,53 @@ export default function TabContas({ mes, ano }: Props) {
                   >
                     <Trash />
                   </button>
+                </div>
+              </div>
+            ))}
+
+            {/* ── Faturas de cartão ── */}
+            {itensCartao.map((c) => (
+              <div
+                key={c.cartaoId}
+                className={`flex items-center justify-between p-3 rounded-xl transition-all duration-200 border ${
+                  c.status === 'pago'
+                    ? 'border-emerald-100 bg-emerald-50'
+                    : 'border-transparent hover:bg-slate-50'
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  <button
+                    onClick={() => handleToggleCartao(c.cartaoId, c.status)}
+                    className={`w-7 h-7 rounded-full border-2 flex items-center justify-center transition-colors flex-shrink-0 ${
+                      c.status === 'pago'
+                        ? 'bg-emerald-500 border-emerald-500 text-white'
+                        : 'border-slate-300 hover:border-emerald-400'
+                    }`}
+                  >
+                    {c.status === 'pago' && <Check />}
+                  </button>
+                  <div>
+                    <p className={`font-medium text-sm ${c.status === 'pago' ? 'line-through text-slate-400' : 'text-slate-700'}`}>
+                      Fatura {c.cartaoNome}
+                    </p>
+                    <div className="flex items-center gap-2 mt-0.5">
+                      {/* Badge na cor do cartão */}
+                      <span
+                        className="text-xs px-1.5 py-0.5 rounded-md font-semibold"
+                        style={{ backgroundColor: `${c.cartaoCor}22`, color: c.cartaoCor }}
+                      >
+                        {c.cartaoNome}
+                      </span>
+                      <span className="text-xs text-slate-400">fatura do mês</span>
+                    </div>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  {/* Barra lateral colorida */}
+                  <div className="w-1 h-8 rounded-full" style={{ backgroundColor: c.cartaoCor }} />
+                  <span className={`font-semibold text-sm ${c.status === 'pago' ? 'text-emerald-600' : 'text-slate-700'}`}>
+                    {fmt(c.valor)}
+                  </span>
                 </div>
               </div>
             ))}
@@ -347,33 +449,27 @@ export default function TabContas({ mes, ano }: Props) {
                 />
               </div>
             </div>
-
-            {/* Parcelas (opcional) */}
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1">
                 Parcelas <span className="text-slate-400 font-normal">(opcional)</span>
               </label>
               <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <input
-                    type="number"
-                    min={1}
-                    value={form.parcelaAtual}
-                    onChange={(e) => setForm({ ...form, parcelaAtual: e.target.value })}
-                    className={INPUT}
-                    placeholder="Parcela atual (ex: 3)"
-                  />
-                </div>
-                <div>
-                  <input
-                    type="number"
-                    min={1}
-                    value={form.totalParcelas}
-                    onChange={(e) => setForm({ ...form, totalParcelas: e.target.value })}
-                    className={INPUT}
-                    placeholder="Total de parcelas (ex: 12)"
-                  />
-                </div>
+                <input
+                  type="number"
+                  min={1}
+                  value={form.parcelaAtual}
+                  onChange={(e) => setForm({ ...form, parcelaAtual: e.target.value })}
+                  className={INPUT}
+                  placeholder="Parcela atual"
+                />
+                <input
+                  type="number"
+                  min={1}
+                  value={form.totalParcelas}
+                  onChange={(e) => setForm({ ...form, totalParcelas: e.target.value })}
+                  className={INPUT}
+                  placeholder="Total parcelas"
+                />
               </div>
               {form.parcelaAtual && form.totalParcelas && (
                 <p className="text-xs text-slate-400 mt-1">
@@ -381,7 +477,6 @@ export default function TabContas({ mes, ano }: Props) {
                 </p>
               )}
             </div>
-
             <div className="flex gap-3 pt-2">
               <button
                 type="button"

@@ -10,7 +10,7 @@ import {
   setDoc,
 } from 'firebase/firestore';
 import { db } from './firebase';
-import type { Entrada, Distribuicao, Conta, Cartao, CompraParcelada } from './types';
+import type { Entrada, Distribuicao, Conta, Cartao, CompraParcelada, FaturaCartao } from './types';
 
 // ─── Entradas ───────────────────────────────────────────────────────────────
 
@@ -118,4 +118,19 @@ export async function deleteCompra(id: string): Promise<void> {
 export async function getComprasHistorico(): Promise<CompraParcelada[]> {
   const snap = await getDocs(collection(db, 'compras'));
   return snap.docs.map((d) => ({ id: d.id, ...d.data() } as CompraParcelada));
+}
+
+// ─── Faturas de Cartão ───────────────────────────────────────────────────────
+
+export async function getFaturasCartao(mes: number, ano: number): Promise<FaturaCartao[]> {
+  const q = query(collection(db, 'faturas_cartao'), where('mes', '==', mes), where('ano', '==', ano));
+  const snap = await getDocs(q);
+  return snap.docs.map((d) => ({ id: d.id, ...d.data() } as FaturaCartao));
+}
+
+export async function setFaturaCartaoStatus(
+  cartaoId: string, mes: number, ano: number, status: 'pago' | 'pendente',
+): Promise<void> {
+  const docId = `${cartaoId}_${String(mes).padStart(2, '0')}_${ano}`;
+  await setDoc(doc(db, 'faturas_cartao', docId), { cartaoId, mes, ano, status });
 }

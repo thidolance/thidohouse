@@ -47,6 +47,14 @@ export interface Cartao {
 
 export type TipoCompra = 'Saúde' | 'Casa' | 'Filhos' | 'Comida' | 'Besteiras';
 
+export interface FaturaCartao {
+  id?: string;
+  cartaoId: string;
+  status: 'pago' | 'pendente';
+  mes: number;
+  ano: number;
+}
+
 export interface CompraParcelada {
   id?: string;
   cartaoId: string;
