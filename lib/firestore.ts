@@ -67,8 +67,21 @@ export async function getContas(mes: number, ano: number): Promise<Conta[]> {
   return snap.docs.map((d) => ({ id: d.id, ...d.data() } as Conta));
 }
 
+// Grava uma doc por parcela restante; contas sem parcela gravam uma só
 export async function addConta(c: Omit<Conta, 'id'>): Promise<void> {
-  await addDoc(collection(db, 'contas'), c);
+  if (!c.parcelaAtual || !c.totalParcelas) {
+    await addDoc(collection(db, 'contas'), c);
+    return;
+  }
+  const remaining = c.totalParcelas - c.parcelaAtual + 1;
+  await Promise.all(
+    Array.from({ length: remaining }, (_, i) => {
+      const { mes, ano } = addMonths(c.mes, c.ano, i);
+      return addDoc(collection(db, 'contas'), {
+        ...c, parcelaAtual: c.parcelaAtual! + i, mes, ano, status: 'pendente',
+      });
+    }),
+  );
 }
 
 export async function updateContaStatus(id: string, status: 'pago' | 'pendente'): Promise<void> {
@@ -99,6 +112,13 @@ export async function deleteCartao(id: string): Promise<void> {
   await deleteDoc(doc(db, 'cartoes', id));
 }
 
+// ─── Helpers ────────────────────────────────────────────────────────────────
+
+function addMonths(mes: number, ano: number, n: number): { mes: number; ano: number } {
+  const total = ano * 12 + (mes - 1) + n;
+  return { mes: (total % 12) + 1, ano: Math.floor(total / 12) };
+}
+
 // ─── Compras Parceladas ──────────────────────────────────────────────────────
 
 export async function getCompras(mes: number, ano: number): Promise<CompraParcelada[]> {
@@ -107,8 +127,19 @@ export async function getCompras(mes: number, ano: number): Promise<CompraParcel
   return snap.docs.map((d) => ({ id: d.id, ...d.data() } as CompraParcelada));
 }
 
+// Grava uma doc por parcela restante, cada uma no mês correto
 export async function addCompra(c: Omit<CompraParcelada, 'id'>): Promise<void> {
-  await addDoc(collection(db, 'compras'), c);
+  const remaining = c.totalParcelas - c.parcelaAtual + 1;
+  await Promise.all(
+    Array.from({ length: remaining }, (_, i) => {
+      const { mes, ano } = addMonths(c.mes, c.ano, i);
+      return addDoc(collection(db, 'compras'), { ...c, parcelaAtual: c.parcelaAtual + i, mes, ano });
+    }),
+  );
+}
+
+export async function updateCompra(id: string, c: Omit<CompraParcelada, 'id'>): Promise<void> {
+  await setDoc(doc(db, 'compras', id), c);
 }
 
 export async function deleteCompra(id: string): Promise<void> {

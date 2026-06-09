@@ -18,6 +18,17 @@ import {
 } from '@/lib/firestore';
 import type { Entrada, Distribuicao } from '@/lib/types';
 
+function formatBRL(raw: string): string {
+  const digits = raw.replace(/\D/g, '');
+  if (!digits) return '';
+  const num = parseInt(digits, 10) / 100;
+  return num.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+function parseBRL(formatted: string): number {
+  return parseFloat(formatted.replace(/\./g, '').replace(',', '.')) || 0;
+}
+
 const MESES_CURTOS = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
 
 const DIST_COLORS = ['#6366f1', '#22d3ee', '#a78bfa', '#34d399'];
@@ -89,7 +100,7 @@ export default function TabEntradas({ mes, ano }: Props) {
     const [y, m] = form.data.split('-').map(Number);
     await addEntrada({
       descricao: form.descricao,
-      valor: parseFloat(form.valor.replace(',', '.')),
+      valor: parseBRL(form.valor),
       data: form.data,
       mes: m,
       ano: y,
@@ -260,7 +271,7 @@ export default function TabEntradas({ mes, ano }: Props) {
               <input
                 required
                 value={form.valor}
-                onChange={(e) => setForm({ ...form, valor: e.target.value })}
+                onChange={(e) => setForm({ ...form, valor: formatBRL(e.target.value) })}
                 className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm text-slate-900 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-300"
                 placeholder="0,00"
                 inputMode="decimal"

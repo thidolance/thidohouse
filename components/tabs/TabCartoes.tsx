@@ -6,8 +6,8 @@ import {
 } from 'recharts';
 import Modal from '../ui/Modal';
 import Card from '../ui/Card';
-import { Plus, Trash } from '../ui/Icons';
-import { getCompras, addCompra, deleteCompra } from '@/lib/firestore';
+import { Plus, Trash, Pencil } from '../ui/Icons';
+import { getCompras, addCompra, updateCompra, deleteCompra } from '@/lib/firestore';
 import type { CompraParcelada, TipoCompra } from '@/lib/types';
 import { CARTOES } from '@/lib/cartoes';
 import type { CartaoId } from '@/lib/cartoes';
@@ -59,6 +59,7 @@ export default function TabCartoes({ mes, ano }: Props) {
   const [cartaoSelecionado, setCartaoSelecionado] = useState<CartaoId | null>(null);
   const [showModal, setShowModal] = useState(false);
 
+  const [editId, setEditId] = useState<string | null>(null);
   const [form, setForm] = useState<{
     cartaoId: CartaoId;
     descricao: string;
@@ -84,11 +85,13 @@ export default function TabCartoes({ mes, ano }: Props) {
 
   useEffect(() => { load(); }, [load]);
 
-  async function handleAdd(e: React.SubmitEvent<HTMLFormElement>) {
+  const FORM_EMPTY = { cartaoId: 'bradesco' as CartaoId, descricao: '', tipo: 'Casa' as TipoCompra, valorTotal: '', totalParcelas: '', parcelaAtual: '1' };
+
+  async function handleSave(e: React.SubmitEvent<HTMLFormElement>) {
     e.preventDefault();
     const total = parseFloat(form.valorTotal.replace(',', '.'));
     const parcelas = parseInt(form.totalParcelas);
-    await addCompra({
+    const data = {
       cartaoId: form.cartaoId,
       descricao: form.descricao,
       tipo: form.tipo,
@@ -98,10 +101,29 @@ export default function TabCartoes({ mes, ano }: Props) {
       parcelaAtual: parseInt(form.parcelaAtual),
       mes,
       ano,
-    });
+    };
+    if (editId) {
+      await updateCompra(editId, data);
+    } else {
+      await addCompra(data);
+    }
     setShowModal(false);
-    setForm((f) => ({ ...f, descricao: '', valorTotal: '', totalParcelas: '', parcelaAtual: '1' }));
+    setEditId(null);
+    setForm(FORM_EMPTY);
     load();
+  }
+
+  function handleEdit(p: CompraParcelada) {
+    setEditId(p.id!);
+    setForm({
+      cartaoId: p.cartaoId as CartaoId,
+      descricao: p.descricao,
+      tipo: p.tipo,
+      valorTotal: p.valorTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2 }),
+      totalParcelas: String(p.totalParcelas),
+      parcelaAtual: String(p.parcelaAtual),
+    });
+    setShowModal(true);
   }
 
   async function handleDelete(id: string) {
@@ -123,7 +145,8 @@ export default function TabCartoes({ mes, ano }: Props) {
     : [];
 
   function abrirModal(cartaoId: CartaoId) {
-    setForm((f) => ({ ...f, cartaoId, parcelaAtual: '1' }));
+    setEditId(null);
+    setForm({ ...FORM_EMPTY, cartaoId, parcelaAtual: '1' });
     setShowModal(true);
   }
 
@@ -246,6 +269,12 @@ export default function TabCartoes({ mes, ano }: Props) {
                         <div className="flex items-center gap-3">
                           <span className="font-semibold text-sm" style={{ color: c.cor }}>{fmt(p.valorParcela)}</span>
                           <button
+                            onClick={() => handleEdit(p)}
+                            className="p-1.5 rounded-lg hover:bg-indigo-50 text-slate-300 hover:text-indigo-400 transition-colors"
+                          >
+                            <Pencil />
+                          </button>
+                          <button
                             onClick={() => handleDelete(p.id!)}
                             className="p-1.5 rounded-lg hover:bg-red-50 text-slate-300 hover:text-red-400 transition-colors"
                           >
@@ -292,6 +321,12 @@ export default function TabCartoes({ mes, ano }: Props) {
                     <div className="flex items-center gap-3">
                       <span className="font-semibold text-sm text-slate-700">{fmt(p.valorParcela)}</span>
                       <button
+                        onClick={() => handleEdit(p)}
+                        className="p-1.5 rounded-lg hover:bg-indigo-50 text-slate-300 hover:text-indigo-400 transition-colors"
+                      >
+                        <Pencil />
+                      </button>
+                      <button
                         onClick={() => handleDelete(p.id!)}
                         className="p-1.5 rounded-lg hover:bg-red-50 text-slate-300 hover:text-red-400 transition-colors"
                       >
@@ -308,8 +343,8 @@ export default function TabCartoes({ mes, ano }: Props) {
 
       {/* Modal nova compra */}
       {showModal && (
-        <Modal title="Nova Compra Parcelada" onClose={() => setShowModal(false)}>
-          <form onSubmit={handleAdd} className="space-y-4">
+        <Modal title={editId ? 'Editar Compra' : 'Nova Compra Parcelada'} onClose={() => { setShowModal(false); setEditId(null); setForm(FORM_EMPTY); }}>
+          <form onSubmit={handleSave} className="space-y-4">
             {/* Seleção do cartão */}
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-2">Cartão</label>
