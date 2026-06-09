@@ -85,12 +85,13 @@ function makeGrupoId() {
 // Grava uma doc por parcela restante; fixas propagam 24 meses à frente
 export async function addConta(c: Omit<Conta, 'id'>): Promise<void> {
   if (c.parcelaAtual && c.totalParcelas) {
+    const grupoId = makeGrupoId();
     const remaining = c.totalParcelas - c.parcelaAtual + 1;
     await Promise.all(
       Array.from({ length: remaining }, (_, i) => {
         const { mes, ano } = addMonths(c.mes, c.ano, i);
         return addDoc(collection(db, 'contas'), {
-          ...c, parcelaAtual: c.parcelaAtual! + i, mes, ano, status: 'pendente',
+          ...c, grupoId, parcelaAtual: c.parcelaAtual! + i, mes, ano, status: 'pendente',
         });
       }),
     );
@@ -148,6 +149,37 @@ export async function toggleContaFixa(id: string, conta: Conta, tornarFixa: bool
 
 export async function deleteConta(id: string): Promise<void> {
   await deleteDoc(doc(db, 'contas', id));
+}
+
+// Atualiza a conta e todos os meses futuros com o mesmo grupoId
+export async function updateContaAndFuture(id: string, conta: Conta, data: Omit<Conta, 'id'>): Promise<void> {
+  await setDoc(doc(db, 'contas', id), data);
+  if (conta.grupoId) {
+    const snap = await getDocs(query(collection(db, 'contas'), where('grupoId', '==', conta.grupoId)));
+    const currentAbs = conta.ano * 12 + conta.mes;
+    await Promise.all(
+      snap.docs
+        .filter((d) => { const x = d.data(); return d.id !== id && (x.ano * 12 + x.mes) > currentAbs; })
+        .map((d) => {
+          const prev = d.data();
+          return setDoc(d.ref, { ...data, mes: prev.mes, ano: prev.ano, status: prev.status, grupoId: conta.grupoId });
+        }),
+    );
+  }
+}
+
+// Apaga a conta e todos os meses futuros com o mesmo grupoId
+export async function deleteContaAndFuture(id: string, conta: Conta): Promise<void> {
+  await deleteDoc(doc(db, 'contas', id));
+  if (conta.grupoId) {
+    const snap = await getDocs(query(collection(db, 'contas'), where('grupoId', '==', conta.grupoId)));
+    const currentAbs = conta.ano * 12 + conta.mes;
+    await Promise.all(
+      snap.docs
+        .filter((d) => { const x = d.data(); return d.id !== id && (x.ano * 12 + x.mes) > currentAbs; })
+        .map((d) => deleteDoc(d.ref)),
+    );
+  }
 }
 
 export async function getContasHistorico(): Promise<Conta[]> {
@@ -242,11 +274,12 @@ export async function getCompras(mes: number, ano: number): Promise<CompraParcel
 
 // Grava uma doc por parcela restante, cada uma no mês correto
 export async function addCompra(c: Omit<CompraParcelada, 'id'>): Promise<void> {
+  const grupoId = makeGrupoId();
   const remaining = c.totalParcelas - c.parcelaAtual + 1;
   await Promise.all(
     Array.from({ length: remaining }, (_, i) => {
       const { mes, ano } = addMonths(c.mes, c.ano, i);
-      return addDoc(collection(db, 'compras'), { ...c, parcelaAtual: c.parcelaAtual + i, mes, ano });
+      return addDoc(collection(db, 'compras'), { ...c, grupoId, parcelaAtual: c.parcelaAtual + i, mes, ano });
     }),
   );
 }
@@ -257,6 +290,20 @@ export async function updateCompra(id: string, c: Omit<CompraParcelada, 'id'>): 
 
 export async function deleteCompra(id: string): Promise<void> {
   await deleteDoc(doc(db, 'compras', id));
+}
+
+// Apaga a compra e todos os meses futuros com o mesmo grupoId
+export async function deleteCompraAndFuture(id: string, compra: CompraParcelada): Promise<void> {
+  await deleteDoc(doc(db, 'compras', id));
+  if (compra.grupoId) {
+    const snap = await getDocs(query(collection(db, 'compras'), where('grupoId', '==', compra.grupoId)));
+    const currentAbs = compra.ano * 12 + compra.mes;
+    await Promise.all(
+      snap.docs
+        .filter((d) => { const x = d.data(); return d.id !== id && (x.ano * 12 + x.mes) > currentAbs; })
+        .map((d) => deleteDoc(d.ref)),
+    );
+  }
 }
 
 export async function getComprasHistorico(): Promise<CompraParcelada[]> {

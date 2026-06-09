@@ -6,7 +6,7 @@ import Modal from '../ui/Modal';
 import Card from '../ui/Card';
 import { Plus, Trash, Pencil } from '../ui/Icons';
 import {
-  getCompras, addCompra, updateCompra, deleteCompra,
+  getCompras, addCompra, updateCompra, deleteCompra, deleteCompraAndFuture,
   getCartoes, addCartao, updateCartao, deleteCartao,
   getCategorias, addCategoria, deleteCategoria,
 } from '@/lib/firestore';
@@ -85,6 +85,9 @@ export default function TabCartoes({ mes, ano }: Props) {
   const [formCat, setFormCat]           = useState<FormCategoria>(CAT_EMPTY);
   const [showCatForm, setShowCatForm]   = useState(false);
 
+  // dialog exclusão de compra
+  const [deleteCompraDialog, setDeleteCompraDialog] = useState<CompraParcelada | null>(null);
+
   const loadConfig = useCallback(async () => {
     const [c, cat] = await Promise.all([getCartoes(), getCategorias()]);
     setCartoes(c);
@@ -152,8 +155,22 @@ export default function TabCartoes({ mes, ano }: Props) {
     setShowCompraModal(true);
   }
 
-  async function handleDeleteCompra(id: string) {
-    await deleteCompra(id);
+  function iniciarDeleteCompra(p: CompraParcelada) {
+    if (p.grupoId) {
+      setDeleteCompraDialog(p);
+    } else {
+      deleteCompra(p.id!).then(loadCompras);
+    }
+  }
+
+  async function confirmarDeleteCompra(scope: 'this' | 'future') {
+    const p = deleteCompraDialog!;
+    setDeleteCompraDialog(null);
+    if (scope === 'future') {
+      await deleteCompraAndFuture(p.id!, p);
+    } else {
+      await deleteCompra(p.id!);
+    }
     loadCompras();
   }
 
@@ -170,7 +187,7 @@ export default function TabCartoes({ mes, ano }: Props) {
     setShowCartaoForm(true);
   }
 
-  async function handleSaveCartao(e: React.FormEvent) {
+  async function handleSaveCartao(e: React.SubmitEvent<HTMLFormElement>) {
     e.preventDefault();
     if (editCartaoId) await updateCartao(editCartaoId, formCartao);
     else              await addCartao(formCartao);
@@ -186,7 +203,7 @@ export default function TabCartoes({ mes, ano }: Props) {
   }
 
   // ── categorias (config) ────────────────────────────────────────────────────
-  async function handleSaveCategoria(e: React.FormEvent) {
+  async function handleSaveCategoria(e: React.SubmitEvent<HTMLFormElement>) {
     e.preventDefault();
     await addCategoria(formCat);
     setShowCatForm(false);
@@ -334,7 +351,7 @@ export default function TabCartoes({ mes, ano }: Props) {
                   <div className="flex items-center gap-2">
                     <span className="font-semibold text-sm" style={{ color: cartaoAtivo.cor }}>{fmt(p.valorParcela)}</span>
                     <button onClick={() => abrirEditCompra(p)} className="p-1.5 rounded-lg hover:bg-indigo-50 text-slate-300 hover:text-indigo-400 transition-colors"><Pencil /></button>
-                    <button onClick={() => handleDeleteCompra(p.id!)} className="p-1.5 rounded-lg hover:bg-red-50 text-slate-300 hover:text-red-400 transition-colors"><Trash /></button>
+                    <button onClick={() => iniciarDeleteCompra(p)} className="p-1.5 rounded-lg hover:bg-red-50 text-slate-300 hover:text-red-400 transition-colors"><Trash /></button>
                   </div>
                 </div>
               ))}
@@ -370,7 +387,7 @@ export default function TabCartoes({ mes, ano }: Props) {
                     <div className="flex items-center gap-2">
                       <span className="font-semibold text-sm text-slate-700">{fmt(p.valorParcela)}</span>
                       <button onClick={() => abrirEditCompra(p)} className="p-1.5 rounded-lg hover:bg-indigo-50 text-slate-300 hover:text-indigo-400 transition-colors"><Pencil /></button>
-                      <button onClick={() => handleDeleteCompra(p.id!)} className="p-1.5 rounded-lg hover:bg-red-50 text-slate-300 hover:text-red-400 transition-colors"><Trash /></button>
+                      <button onClick={() => iniciarDeleteCompra(p)} className="p-1.5 rounded-lg hover:bg-red-50 text-slate-300 hover:text-red-400 transition-colors"><Trash /></button>
                     </div>
                   </div>
                 );
@@ -583,6 +600,32 @@ export default function TabCartoes({ mes, ano }: Props) {
             </div>
           )}
         </Modal>
+      )}
+
+      {/* ── Dialog exclusão de parcelas futuras ── */}
+      {deleteCompraDialog && (
+        <div className="fixed inset-0 z-[200] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 space-y-4">
+            <h3 className="font-bold text-slate-800">Remover compra parcelada</h3>
+            <p className="text-sm text-slate-500 leading-relaxed">
+              <strong>"{deleteCompraDialog.descricao}"</strong> tem parcelas em meses seguintes. Deseja remover só esta parcela ou todas as parcelas restantes?
+            </p>
+            <div className="space-y-2 pt-1">
+              <button onClick={() => confirmarDeleteCompra('future')}
+                className="w-full py-2.5 rounded-xl text-sm font-semibold bg-red-500 text-white hover:bg-red-600 transition-colors">
+                Remover esta e as seguintes
+              </button>
+              <button onClick={() => confirmarDeleteCompra('this')}
+                className="w-full py-2.5 rounded-xl text-sm font-medium bg-slate-700 text-white hover:bg-slate-800 transition-colors">
+                Só esta parcela
+              </button>
+              <button onClick={() => setDeleteCompraDialog(null)}
+                className="w-full py-2.5 rounded-xl text-sm text-slate-500 border border-slate-200 hover:bg-slate-50 transition-colors">
+                Cancelar
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

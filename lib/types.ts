@@ -96,4 +96,5 @@ export interface CompraParcelada {
   parcelaAtual: number;
   mes: number;
   ano: number;
+  grupoId?: string;
 }
