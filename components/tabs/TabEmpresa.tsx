@@ -335,8 +335,8 @@ export default function TabEmpresa({ mes, ano }: Props) {
                   </div>
                   <div className="flex items-center gap-2">
                     <span className="font-semibold text-sm text-violet-600">{fmt(c.valorParcela)}</span>
-                    <button onClick={() => abrirEditCusto(c)} className="p-1.5 rounded-lg opacity-0 group-hover:opacity-100 hover:bg-violet-100 text-slate-300 hover:text-violet-500 transition-all"><Pencil /></button>
-                    <button onClick={() => handleDeleteCusto(c.id!)} className="p-1.5 rounded-lg opacity-0 group-hover:opacity-100 hover:bg-red-50 text-slate-300 hover:text-red-400 transition-all"><Trash /></button>
+                    <button onClick={() => abrirEditCusto(c)} className="p-1.5 rounded-lg opacity-100 sm:opacity-0 sm:group-hover:opacity-100 hover:bg-violet-100 text-slate-300 hover:text-violet-500 transition-all"><Pencil /></button>
+                    <button onClick={() => handleDeleteCusto(c.id!)} className="p-1.5 rounded-lg opacity-100 sm:opacity-0 sm:group-hover:opacity-100 hover:bg-red-50 text-slate-300 hover:text-red-400 transition-all"><Trash /></button>
                   </div>
                 </div>
               );

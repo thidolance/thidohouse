@@ -250,7 +250,7 @@ export default function TabEntradas({ mes, ano }: Props) {
       </div>
 
       {/* ── Cards resumo ── */}
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         <div className="relative overflow-hidden bg-gradient-to-br from-indigo-600 to-violet-700 rounded-2xl p-4 text-white shadow-md shadow-indigo-200">
           <div className="absolute -top-4 -right-4 w-20 h-20 bg-white/10 rounded-full" />
           <p className="text-indigo-200 text-xs font-medium uppercase tracking-wide relative">Total do Mês</p>
@@ -361,7 +361,7 @@ export default function TabEntradas({ mes, ano }: Props) {
                 <div className="flex items-center gap-2">
                   <span className="font-bold text-indigo-600 tabular-nums">{fmt(e.valor)}</span>
                   <button onClick={() => handleDelete(e.id!)}
-                    className="p-1.5 rounded-lg text-slate-300 hover:text-red-400 hover:bg-red-50 transition-colors opacity-0 group-hover:opacity-100">
+                    className="p-1.5 rounded-lg text-slate-300 hover:text-red-400 hover:bg-red-50 transition-colors opacity-100 sm:opacity-0 sm:group-hover:opacity-100">
                     <Trash />
                   </button>
                 </div>

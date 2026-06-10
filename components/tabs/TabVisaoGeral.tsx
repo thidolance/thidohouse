@@ -94,7 +94,8 @@ export default function TabVisaoGeral({ mes, ano }: Props) {
         const ferias = ganhos * (dist?.ferias ?? 0) / 100;
         const investimento = ganhos * (dist?.investimento ?? 0) / 100;
         const planosFuturos = ganhos * (dist?.planosFuturos ?? 0) / 100;
-        return { label, mesAno, ganhos, gastos, saldo: ganhos - gastos, ferias, investimento, planosFuturos, isAtual: m === mes && a === ano };
+        const guardado = ferias + investimento + planosFuturos;
+        return { label, mesAno, ganhos, gastos, saldo: ganhos - gastos - guardado, ferias, investimento, planosFuturos, isAtual: m === mes && a === ano };
       });
 
       // Gastos por categoria — mês atual
@@ -128,6 +129,7 @@ export default function TabVisaoGeral({ mes, ano }: Props) {
   const atual = dados.find((d) => d.isAtual);
   const totalGuardado = (atual?.ferias ?? 0) + (atual?.investimento ?? 0) + (atual?.planosFuturos ?? 0);
   const pctGuardado = atual?.ganhos ? (totalGuardado / atual.ganhos) * 100 : 0;
+  const totalAcumulado = dados.reduce((s, d) => s + d.ferias + d.investimento + d.planosFuturos, 0);
 
   // ── specs VChart ──────────────────────────────────────────────────────────
 
@@ -275,6 +277,39 @@ export default function TabVisaoGeral({ mes, ano }: Props) {
     };
   }, [dados]);
 
+  const acumuladoSpec = useMemo(() => {
+    let acc = 0;
+    const vals = dados.map((d) => {
+      acc += d.ferias + d.investimento + d.planosFuturos;
+      return { label: d.label, valor: acc, isAtual: d.isAtual };
+    });
+    return {
+      type: 'area',
+      autoFit: true,
+      background: 'transparent',
+      data: [{ id: 'acumulado', values: vals }],
+      xField: 'label',
+      yField: 'valor',
+      area: { style: { fill: 'rgba(167, 139, 250, 0.18)', curveType: 'monotone' } },
+      line: { style: { stroke: '#a78bfa', lineWidth: 2, curveType: 'monotone' } },
+      point: {
+        style: {
+          fill: (d: Record<string, unknown>) => d['isAtual'] ? '#a78bfa' : '#ffffff',
+          stroke: '#a78bfa',
+          lineWidth: 2,
+          size: (d: Record<string, unknown>) => d['isAtual'] ? 6 : 4,
+        },
+      },
+      axes: [AXIS_BOTTOM, AXIS_LEFT(fmtK)],
+      tooltip: {
+        mark: {
+          title: { visible: false },
+          content: [{ key: () => 'Total acumulado', value: (d: Record<string, unknown>) => fmt(Number(d['valor'])) }],
+        },
+      },
+    };
+  }, [dados]);
+
   const dataKey = dados.map((d) => d.gastos + d.ganhos).join('-');
 
   if (loading) {
@@ -416,6 +451,27 @@ export default function TabVisaoGeral({ mes, ano }: Props) {
               </div>
             )}
           </>
+        )}
+      </Card>
+
+      {/* ── Evolução do Total Guardado (acumulado) ── */}
+      <Card>
+        <div className="mb-3 flex items-center justify-between">
+          <div>
+            <p className="font-semibold text-slate-700 text-sm">Evolução do Total Guardado</p>
+            <p className="text-xs text-slate-400">Soma acumulada de Férias + Investimento + Planos Futuros — 12 meses</p>
+          </div>
+          <p className="font-bold text-violet-600 text-sm tabular-nums">{fmt(totalAcumulado)}</p>
+        </div>
+        {totalAcumulado > 0 ? (
+          <div style={{ height: 220 }}>
+            <VChart key={`acc-${dataKey}`} spec={acumuladoSpec as any} />
+          </div>
+        ) : (
+          <div className="h-[200px] flex flex-col items-center justify-center text-slate-400 text-sm gap-2">
+            <span className="text-3xl">📈</span>
+            <p>Configure a distribuição na aba Entradas para ver esta análise.</p>
+          </div>
         )}
       </Card>
     </div>

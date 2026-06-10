@@ -553,7 +553,7 @@ export default function TabContas({ mes, ano }: Props) {
         </div>
         <div className="flex items-center gap-2 flex-shrink-0">
           <span className={`font-bold text-sm tabular-nums ${pago ? 'text-emerald-600' : 'text-slate-800'}`}>{fmt(c.valor)}</span>
-          <div className="w-[5.5rem] flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+          <div className="w-[5.5rem] flex items-center gap-0.5 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
             {!c.parcelaAtual && (
               <button onClick={() => handleToggleFixa(c)} title={c.fixa ? 'Remover recorrência' : 'Marcar como fixa'}
                 className={`p-1.5 rounded-lg transition-colors ${c.fixa ? 'text-amber-500 bg-amber-50' : 'text-slate-400 hover:text-amber-500 hover:bg-amber-50'}`}>
@@ -612,7 +612,7 @@ export default function TabContas({ mes, ano }: Props) {
       )}
 
       {/* ── Cards resumo ── */}
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         <div className="relative overflow-hidden bg-gradient-to-br from-indigo-600 to-violet-700 rounded-2xl p-4 text-white shadow-md shadow-indigo-200">
           <div className="absolute -top-4 -right-4 w-20 h-20 bg-white/10 rounded-full" />
           <p className="text-indigo-200 text-xs font-medium uppercase tracking-wide relative">Total</p>
