@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Thidinho · Controle Financeiro",
+  title: "ThidoHouse · Controle Financeiro",
   description: "Controle financeiro do Thidinho",
 };
 

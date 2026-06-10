@@ -94,22 +94,22 @@ export function Pencil() {
   );
 }
 
-// Família: pai, mãe, menino de 4 anos e bebê — logo do Thidinho
+// Família: pai, mãe, menino de 4 anos e bebê
 export function FamilyIcon({ className = 'w-6 h-6' }: { className?: string }) {
   return (
     <svg className={className} fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
       {/* Pai */}
-      <circle cx="4" cy="4" r="2" />
-      <rect x="2" y="7" width="4" height="13" rx="2" />
-      {/* Mãe */}
-      <circle cx="10" cy="5" r="1.8" />
-      <rect x="8" y="8" width="4" height="12" rx="2" />
+      <circle cx="3.75" cy="3" r="1.9" />
+      <path d="M1.8,5.5 L5.7,5.5 L6.5,17 L1,17 Z" />
+      {/* Mãe (vestido) */}
+      <circle cx="10" cy="3.5" r="1.8" />
+      <path d="M8.5,5.8 L11.5,5.8 L14,17 L6,17 Z" />
       {/* Menino, 4 anos */}
-      <circle cx="15.5" cy="8.5" r="1.5" />
-      <rect x="13.8" y="11" width="3.4" height="9" rx="1.7" />
+      <circle cx="16.5" cy="8" r="1.4" />
+      <path d="M15.3,9.8 L17.7,9.8 L18.3,18 L14.7,18 Z" />
       {/* Bebê */}
-      <circle cx="20" cy="11.5" r="1.2" />
-      <rect x="18.6" y="13.5" width="2.8" height="6.5" rx="1.4" />
+      <circle cx="21" cy="11" r="1.2" />
+      <ellipse cx="21" cy="15.5" rx="1.8" ry="2.3" />
     </svg>
   );
 }

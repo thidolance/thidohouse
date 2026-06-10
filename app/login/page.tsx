@@ -24,7 +24,7 @@ export default async function LoginPage() {
           <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white/15 ring-1 ring-white/20 backdrop-blur-sm">
             <FamilyIcon className="h-6 w-6" />
           </div>
-          <span className="text-xl font-bold tracking-tight">Thidinho</span>
+          <span className="text-xl font-bold tracking-tight">ThidoHouse</span>
         </div>
 
         <div className="relative">
@@ -39,7 +39,7 @@ export default async function LoginPage() {
         </div>
 
         <p className="relative text-sm text-indigo-100/60">
-          © {new Date().getFullYear()} Thidinho
+          © {new Date().getFullYear()} ThidoHouse
         </p>
       </div>
 
@@ -50,7 +50,7 @@ export default async function LoginPage() {
             <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-indigo-600 text-white">
               <FamilyIcon className="h-6 w-6" />
             </div>
-            <span className="text-xl font-bold tracking-tight text-slate-900">Thidinho</span>
+            <span className="text-xl font-bold tracking-tight text-slate-900">ThidoHouse</span>
           </div>
 
           <div className="rounded-2xl border border-slate-100 bg-white p-8 shadow-sm">

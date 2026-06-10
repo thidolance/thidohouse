@@ -37,7 +37,7 @@ export default function Home() {
               <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-600 text-white">
                 <FamilyIcon className="h-4 w-4" />
               </div>
-              <span className="text-indigo-600 font-bold text-lg tracking-tight">Thidinho</span>
+              <span className="text-indigo-600 font-bold text-lg tracking-tight">ThidoHouse</span>
               <span className="text-slate-400 text-sm hidden sm:block">· Controle Financeiro</span>
             </div>
             <div className="flex items-center gap-2">
