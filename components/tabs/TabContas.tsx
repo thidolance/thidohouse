@@ -340,29 +340,32 @@ export default function TabContas({ mes, ano }: Props) {
     ].filter((d) => d.value > 0);
   }, [contas, itensCartao, empresaSum]);
 
-  const tipoDonutSpec = useMemo(() => ({
-    type: 'pie',
+  const tipoBarSpec = useMemo(() => ({
+    type: 'bar',
     autoFit: true,
     background: 'transparent',
     data: [{ id: 'tipo', values: tipoValues }],
-    valueField: 'value',
-    categoryField: 'name',
-    outerRadius: 0.75,
-    innerRadius: 0.52,
-    padAngle: 1,
-    color: tipoValues.map((d) => d.fill),
-    pie: { style: { cornerRadius: 4 } },
-    label: { visible: false },
-    legends: [{
-      visible: true,
-      orient: 'bottom',
-      padding: { top: 10 },
-      maxRow: 3,
-      item: {
-        label: { style: { fontSize: 11, fill: '#64748b' } },
-        value: { visible: false },
+    xField: 'name',
+    yField: 'value',
+    bar: {
+      style: {
+        cornerRadius: [8, 8, 0, 0],
+        fill: (d: Record<string, unknown>) => String(d['fill']),
       },
-    }],
+    },
+    axes: [
+      { orient: 'bottom', domainLine: { visible: false }, tick: { visible: false }, label: { style: { fontSize: 12, fill: '#64748b' } } },
+      {
+        orient: 'left',
+        grid: { style: { stroke: '#f1f5f9', lineDash: [3, 3] } },
+        domainLine: { visible: false },
+        tick: { visible: false },
+        label: {
+          style: { fontSize: 11, fill: '#94a3b8' },
+          formatMethod: (v: number) => v === 0 ? 'R$0' : `R$${(v / 1000).toFixed(0)}k`,
+        },
+      },
+    ],
     tooltip: {
       mark: {
         title: { visible: false },
@@ -663,7 +666,7 @@ export default function TabContas({ mes, ano }: Props) {
           <p className="font-semibold text-slate-700 text-sm mb-3">Por Tipo de Conta</p>
           {tipoValues.length > 0 ? (
             <div style={{ height: 240 }}>
-              <VChart key={`tipo-${tipoValues.reduce((s, v) => s + v.value, 0).toFixed(0)}-${tipoValues.length}`} spec={tipoDonutSpec as any} />
+              <VChart key={`tipo-bar-${tipoValues.reduce((s, v) => s + v.value, 0).toFixed(0)}-${tipoValues.length}`} spec={tipoBarSpec as any} />
             </div>
           ) : (
             <div className="h-[240px] flex flex-col items-center justify-center text-slate-400 gap-2">

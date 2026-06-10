@@ -10,9 +10,8 @@ import {
   getComprasHistorico,
   getCustosEmpresaHistorico,
   getCategoriasContas,
-  getCategorias,
 } from '@/lib/firestore';
-import type { CategoriaContaConfig, CategoriaCompra } from '@/lib/types';
+import type { CategoriaContaConfig } from '@/lib/types';
 
 const VChart = dynamic(
   () => import('@visactor/react-vchart').then((m) => m.VChart),
@@ -76,14 +75,13 @@ export default function TabVisaoGeral({ mes, ano }: Props) {
   useEffect(() => {
     async function load() {
       setLoading(true);
-      const [entradas, contas, distribuicoes, compras, custosEmpresa, catContas, catCartoes] = await Promise.all([
+      const [entradas, contas, distribuicoes, compras, custosEmpresa, catContas] = await Promise.all([
         getEntradasHistorico(),
         getContasHistorico(),
         getDistribuicoesHistorico(),
         getComprasHistorico(),
         getCustosEmpresaHistorico(),
         getCategoriasContas() as Promise<CategoriaContaConfig[]>,
-        getCategorias() as Promise<CategoriaCompra[]>,
       ]);
 
       const meses = getLast12Months(mes, ano);
@@ -111,13 +109,12 @@ export default function TabVisaoGeral({ mes, ano }: Props) {
           const prev = catMap.get(c.categoria) ?? { total: 0, fill: cc?.cor ?? '#94a3b8' };
           catMap.set(c.categoria, { total: prev.total + c.valor, fill: prev.fill });
         });
-      compras
+      const gastoCartoesAtual = compras
         .filter((c) => c.mes === mes && c.ano === ano)
-        .forEach((c) => {
-          const cc = catCartoes.find((x) => x.nome === c.tipo);
-          const prev = catMap.get(c.tipo) ?? { total: 0, fill: cc?.cor ?? '#94a3b8' };
-          catMap.set(c.tipo, { total: prev.total + c.valorParcela, fill: prev.fill });
-        });
+        .reduce((s, c) => s + c.valorParcela, 0);
+      if (gastoCartoesAtual > 0) {
+        catMap.set('Cartões', { total: gastoCartoesAtual, fill: '#ec4899' });
+      }
       const gastoEmpresaAtual = custosEmpresa
         .filter((c) => c.mes === mes && c.ano === ano)
         .reduce((s, c) => s + c.valorParcela, 0);
