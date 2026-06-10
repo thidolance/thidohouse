@@ -8,6 +8,8 @@ import TabCartoes from '@/components/tabs/TabCartoes';
 import TabEmpresa from '@/components/tabs/TabEmpresa';
 import MonthPicker from '@/components/ui/MonthPicker';
 import { LayoutGrid, TrendingUp, Receipt, CreditCard, Building } from '@/components/ui/Icons';
+import { LogOut } from 'lucide-react';
+import { logout } from '@/app/actions/auth';
 
 const TABS = [
   { id: 'visao',    label: 'Visão Geral',   icon: <LayoutGrid /> },
@@ -35,7 +37,18 @@ export default function Home() {
               <span className="text-indigo-600 font-bold text-lg tracking-tight">ThidoHouse</span>
               <span className="text-slate-400 text-sm hidden sm:block">· Controle Financeiro</span>
             </div>
-            <MonthPicker mes={mes} ano={ano} onChange={(m, a) => { setMes(m); setAno(a); }} />
+            <div className="flex items-center gap-2">
+              <MonthPicker mes={mes} ano={ano} onChange={(m, a) => { setMes(m); setAno(a); }} />
+              <form action={logout}>
+                <button
+                  type="submit"
+                  title="Sair"
+                  className="flex items-center justify-center h-9 w-9 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors"
+                >
+                  <LogOut className="h-4 w-4" />
+                </button>
+              </form>
+            </div>
           </div>
 
           {/* Tabs */}
