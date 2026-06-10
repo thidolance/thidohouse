@@ -374,7 +374,7 @@ export default function TabCartoes({ mes, ano }: Props) {
       </div>
 
       {/* Cards visuais dos cartões (seletor) */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {cartoes.map((c) => {
           const dado     = totalPorCartao.find((t) => t.id === c.id)!;
           const isSelected = cartaoSelecionado === c.id;
