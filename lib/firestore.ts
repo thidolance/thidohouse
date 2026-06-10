@@ -121,7 +121,7 @@ export async function updateContaStatus(id: string, status: 'pago' | 'pendente')
 
 // Ativa/desativa fixa: cria 24 cópias ou apaga todas as futuras do mesmo grupoId
 export async function toggleContaFixa(id: string, conta: Conta, tornarFixa: boolean): Promise<void> {
-  const { id: _id, ...data } = conta;
+  const { id: _id, grupoId: _grupoId, ...data } = conta;
   if (tornarFixa) {
     const grupoId = makeGrupoId();
     await Promise.all([

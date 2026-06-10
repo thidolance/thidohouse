@@ -68,9 +68,10 @@ const AXIS_LEFT = (formatMethod: (v: number) => string) => ({
 });
 
 export default function TabVisaoGeral({ mes, ano }: Props) {
-  const [dados, setDados]             = useState<MesDashboard[]>([]);
+  const [dados, setDados]               = useState<MesDashboard[]>([]);
   const [gastosPorCat, setGastosPorCat] = useState<CatGasto[]>([]);
-  const [loading, setLoading]         = useState(true);
+  const [gastosPorTipo, setGastosPorTipo] = useState<CatGasto[]>([]);
+  const [loading, setLoading]           = useState(true);
 
   useEffect(() => {
     async function load() {
@@ -129,8 +130,18 @@ export default function TabVisaoGeral({ mes, ano }: Props) {
         .filter((c) => c.total > 0)
         .sort((a, b) => b.total - a.total);
 
+      // Gastos por tipo de conta — mês atual
+      const contasAtual = contas.filter((c) => c.mes === mes && c.ano === ano);
+      const gpt: CatGasto[] = [
+        { nome: 'Contas Fixas',   total: contasAtual.filter((c) => c.fixa).reduce((s, c) => s + c.valor, 0),  fill: '#f59e0b' },
+        { nome: 'Conta Rotativa', total: contasAtual.filter((c) => !c.fixa).reduce((s, c) => s + c.valor, 0), fill: '#6366f1' },
+        { nome: 'Cartões',        total: compras.filter((c) => c.mes === mes && c.ano === ano).reduce((s, c) => s + c.valorParcela, 0), fill: '#ec4899' },
+        { nome: 'Empresa',        total: gastoEmpresaAtual, fill: '#38bdf8' },
+      ].filter((c) => c.total > 0);
+
       setDados(result);
       setGastosPorCat(gpc);
+      setGastosPorTipo(gpt);
       setLoading(false);
     }
     load();
@@ -179,50 +190,6 @@ export default function TabVisaoGeral({ mes, ano }: Props) {
     },
   }), [dados]);
 
-  const gastosSpec = useMemo(() => ({
-    type: 'bar',
-    autoFit: true,
-    background: 'transparent',
-    data: [{ id: 'gastos', values: dados }],
-    xField: 'label',
-    yField: 'gastos',
-    bar: {
-      style: {
-        cornerRadius: [6, 6, 0, 0],
-        fill: (d: Record<string, unknown>) => d['isAtual'] ? '#f43f5e' : '#fda4af',
-      },
-    },
-    axes: [AXIS_BOTTOM, AXIS_LEFT(fmtK)],
-    tooltip: {
-      mark: {
-        title: { visible: false },
-        content: [{ key: () => 'Gastos', value: (d: Record<string, unknown>) => fmt(Number(d['gastos'])) }],
-      },
-    },
-  }), [dados]);
-
-  const ganhosSpec = useMemo(() => ({
-    type: 'bar',
-    autoFit: true,
-    background: 'transparent',
-    data: [{ id: 'ganhos', values: dados }],
-    xField: 'label',
-    yField: 'ganhos',
-    bar: {
-      style: {
-        cornerRadius: [6, 6, 0, 0],
-        fill: (d: Record<string, unknown>) => d['isAtual'] ? '#6366f1' : '#a5b4fc',
-      },
-    },
-    axes: [AXIS_BOTTOM, AXIS_LEFT(fmtK)],
-    tooltip: {
-      mark: {
-        title: { visible: false },
-        content: [{ key: () => 'Ganhos', value: (d: Record<string, unknown>) => fmt(Number(d['ganhos'])) }],
-      },
-    },
-  }), [dados]);
-
   const catDonutSpec = useMemo(() => ({
     type: 'pie',
     autoFit: true,
@@ -253,6 +220,37 @@ export default function TabVisaoGeral({ mes, ano }: Props) {
       },
     },
   }), [gastosPorCat]);
+
+  const tipoDonutSpec = useMemo(() => ({
+    type: 'pie',
+    autoFit: true,
+    background: 'transparent',
+    data: [{ id: 'tipo', values: gastosPorTipo }],
+    valueField: 'total',
+    categoryField: 'nome',
+    outerRadius: 0.75,
+    innerRadius: 0.52,
+    padAngle: 0.8,
+    color: gastosPorTipo.map((d) => d.fill),
+    pie: { style: { cornerRadius: 4 } },
+    label: { visible: false },
+    legends: [{
+      visible: true,
+      orient: 'bottom',
+      padding: { top: 8 },
+      maxRow: 3,
+      item: {
+        label: { style: { fontSize: 11, fill: '#64748b' } },
+        value: { visible: false },
+      },
+    }],
+    tooltip: {
+      mark: {
+        title: { visible: false },
+        content: [{ key: (d: Record<string, unknown>) => String(d['nome']), value: (d: Record<string, unknown>) => fmt(Number(d['total'])) }],
+      },
+    },
+  }), [gastosPorTipo]);
 
   const guardadoSpec = useMemo(() => {
     const vals = dados.flatMap((d) => [
@@ -364,28 +362,6 @@ export default function TabVisaoGeral({ mes, ano }: Props) {
         </div>
       </Card>
 
-      {/* ── Evolução dos Gastos + Ganhos (lado a lado) ── */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <Card>
-          <div className="mb-3">
-            <p className="font-semibold text-slate-700 text-sm">Evolução dos Gastos</p>
-            <p className="text-xs text-slate-400">Contas + Cartões + Empresa — 12 meses</p>
-          </div>
-          <div style={{ height: 200 }}>
-            <VChart key={`gastos-${dataKey}`} spec={gastosSpec as any} />
-          </div>
-        </Card>
-        <Card>
-          <div className="mb-3">
-            <p className="font-semibold text-slate-700 text-sm">Evolução dos Ganhos</p>
-            <p className="text-xs text-slate-400">Entradas — 12 meses</p>
-          </div>
-          <div style={{ height: 200 }}>
-            <VChart key={`ganhos-${dataKey}`} spec={ganhosSpec as any} />
-          </div>
-        </Card>
-      </div>
-
       {/* ── Gastos por Categoria (mês atual) ── */}
       <Card>
         <div className="mb-3">
@@ -399,6 +375,46 @@ export default function TabVisaoGeral({ mes, ano }: Props) {
             </div>
             <div className="space-y-2">
               {gastosPorCat.map((c) => {
+                const pct = atual ? (c.total / (atual.gastos || 1)) * 100 : 0;
+                return (
+                  <div key={c.nome} className="flex items-center gap-3">
+                    <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: c.fill }} />
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between mb-0.5">
+                        <span className="text-xs font-medium text-slate-600 truncate">{c.nome}</span>
+                        <span className="text-xs text-slate-400 ml-2 flex-shrink-0">{pct.toFixed(0)}%</span>
+                      </div>
+                      <div className="w-full bg-slate-100 rounded-full h-1.5">
+                        <div className="h-1.5 rounded-full transition-all" style={{ width: `${pct}%`, backgroundColor: c.fill }} />
+                      </div>
+                    </div>
+                    <span className="text-xs font-semibold text-slate-700 flex-shrink-0 tabular-nums">{fmt(c.total)}</span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        ) : (
+          <div className="h-[200px] flex flex-col items-center justify-center text-slate-400 gap-2">
+            <span className="text-3xl">📊</span>
+            <p className="text-sm">Sem gastos neste mês</p>
+          </div>
+        )}
+      </Card>
+
+      {/* ── Gastos por Tipo de Conta (mês atual) ── */}
+      <Card>
+        <div className="mb-3">
+          <p className="font-semibold text-slate-700 text-sm">Gastos por Tipo de Conta</p>
+          <p className="text-xs text-slate-400">Contas Fixas, Conta Rotativa, Cartões e Empresa — mês atual</p>
+        </div>
+        {gastosPorTipo.length > 0 ? (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-center">
+            <div style={{ height: 260 }}>
+              <VChart key={`tipo-${gastosPorTipo.map((c) => c.total).join('-')}`} spec={tipoDonutSpec as any} />
+            </div>
+            <div className="space-y-2">
+              {gastosPorTipo.map((c) => {
                 const pct = atual ? (c.total / (atual.gastos || 1)) * 100 : 0;
                 return (
                   <div key={c.nome} className="flex items-center gap-3">

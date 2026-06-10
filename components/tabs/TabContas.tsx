@@ -533,7 +533,6 @@ export default function TabContas({ mes, ano }: Props) {
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-1.5 flex-wrap">
             <p className={`font-semibold text-sm leading-tight ${pago ? 'line-through text-slate-400' : 'text-slate-800'}`}>{c.descricao}</p>
-            {c.fixa && <span className="text-[10px] bg-amber-100 text-amber-600 px-1.5 py-0.5 rounded-md font-bold uppercase tracking-wide">fixa</span>}
           </div>
           <div className="flex items-center gap-2 mt-0.5 flex-wrap">
             <span className="text-[11px] px-1.5 py-0.5 rounded-md font-semibold" style={{ backgroundColor: `${cor}18`, color: cor }}>{c.categoria}</span>
@@ -759,7 +758,7 @@ export default function TabContas({ mes, ano }: Props) {
             {mostrarContas && contasRegulares.length > 0 && (
               <div>
                 {(filtroTipo === 'todos' || contasFixas.length > 0) && (
-                  <SectionHeader label="Contas" count={contasRegulares.length} total={contasRegulares.reduce((s, c) => s + c.valor, 0)} />
+                  <SectionHeader label="Contas Rotativas" count={contasRegulares.length} total={contasRegulares.reduce((s, c) => s + c.valor, 0)} />
                 )}
                 {contasRegulares.map((c) => <ContaRow key={c.id} c={c} />)}
               </div>
