@@ -386,18 +386,29 @@ export async function deleteCustoEmpresa(id: string): Promise<void> {
   await deleteDoc(doc(db, 'custos_empresa', id));
 }
 
-// Apaga o custo e todos os meses futuros com o mesmo grupoId
+// Apaga o custo e todos os meses futuros da mesma série.
+// Séries novas têm grupoId; séries antigas (criadas antes desse campo existir)
+// são identificadas por categoria + descrição + valor + total de parcelas.
 export async function deleteCustoEmpresaAndFuture(id: string, custo: CustoEmpresa): Promise<void> {
   await deleteDoc(doc(db, 'custos_empresa', id));
-  if (custo.grupoId) {
-    const snap = await getDocs(query(collection(db, 'custos_empresa'), where('grupoId', '==', custo.grupoId)));
-    const currentAbs = custo.ano * 12 + custo.mes;
-    await Promise.all(
-      snap.docs
-        .filter((d) => { const x = d.data(); return d.id !== id && (x.ano * 12 + x.mes) > currentAbs; })
-        .map((d) => deleteDoc(d.ref)),
-    );
-  }
+  const currentAbs = custo.ano * 12 + custo.mes;
+
+  const snap = custo.grupoId
+    ? await getDocs(query(collection(db, 'custos_empresa'), where('grupoId', '==', custo.grupoId)))
+    : await getDocs(collection(db, 'custos_empresa'));
+
+  await Promise.all(
+    snap.docs
+      .filter((d) => {
+        if (d.id === id) return false;
+        const x = d.data() as CustoEmpresa;
+        if ((x.ano * 12 + x.mes) <= currentAbs) return false;
+        if (custo.grupoId) return true;
+        return x.categoriaId === custo.categoriaId && x.descricao === custo.descricao
+          && x.valor === custo.valor && x.totalParcelas === custo.totalParcelas;
+      })
+      .map((d) => deleteDoc(d.ref)),
+  );
 }
 
 export async function getCustosEmpresaHistorico(): Promise<CustoEmpresa[]> {

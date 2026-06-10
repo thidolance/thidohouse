@@ -119,7 +119,7 @@ export default function TabEmpresa({ mes, ano }: Props) {
   }
 
   function iniciarDeleteCusto(c: CustoEmpresa) {
-    if (c.grupoId) {
+    if (c.totalParcelas > c.parcelaAtual) {
       setDeleteCustoDialog(c);
     } else {
       deleteCustoEmpresa(c.id!).then(loadCustos);
