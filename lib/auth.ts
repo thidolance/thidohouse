@@ -12,5 +12,15 @@ function getUsers(): User[] {
 
 export function validateCredentials(username: string, password: string): boolean {
   const user = getUsers().find((u) => u.username === username);
+
+  // DEBUG temporário — remover depois de diagnosticar o login na Vercel
+  console.log('[auth debug]', {
+    username,
+    userEncontrado: Boolean(user),
+    envPasswordLen: user?.password.length ?? 0,
+    inputPasswordLen: password.length,
+    sessionSecretDefinido: Boolean(process.env.SESSION_SECRET),
+  });
+
   return Boolean(user && user.password && user.password === password);
 }
