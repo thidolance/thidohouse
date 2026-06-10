@@ -78,6 +78,13 @@ export async function getContas(mes: number, ano: number): Promise<Conta[]> {
   return snap.docs.map((d) => ({ id: d.id, ...d.data() } as Conta));
 }
 
+// Todas as parcelas de uma conta parcelada/fixa, para acompanhamento
+export async function getContasPorGrupo(grupoId: string): Promise<Conta[]> {
+  const q = query(collection(db, 'contas'), where('grupoId', '==', grupoId));
+  const snap = await getDocs(q);
+  return snap.docs.map((d) => ({ id: d.id, ...d.data() } as Conta));
+}
+
 function makeGrupoId() {
   return `${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
 }

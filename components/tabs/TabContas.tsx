@@ -4,11 +4,11 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import dynamic from 'next/dynamic';
 import Modal from '../ui/Modal';
 import Card from '../ui/Card';
-import { Plus, Trash, Check, Pencil } from '../ui/Icons';
+import { Plus, Trash, Check, Pencil, ChevronRight } from '../ui/Icons';
 import {
   getContas, addConta, updateConta, updateContaAndFuture,
   deleteConta, deleteContaAndFuture,
-  updateContaStatus, toggleContaFixa,
+  updateContaStatus, toggleContaFixa, getContasPorGrupo,
   getCategoriasContas, addCategoriaContas, deleteCategoriaContas,
   getCompras, getFaturasCartao, setFaturaCartaoStatus, getCartoes,
   getCustosEmpresa, getFaturasEmpresa, setFaturaEmpresaStatus, getCategoriasEmpresa,
@@ -52,6 +52,24 @@ function SortIcon() {
   return (
     <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
       <path strokeLinecap="round" strokeLinejoin="round" d="M3 4h13M3 8h9m-9 4h6m4 0l4-4m0 0l4 4m-4-4v12" />
+    </svg>
+  );
+}
+
+const MESES_CURTOS = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
+
+function CircularProgress({ percent, size = 88, stroke = 8 }: { percent: number; size?: number; stroke?: number }) {
+  const r = (size - stroke) / 2;
+  const circ = 2 * Math.PI * r;
+  const offset = circ * (1 - Math.min(Math.max(percent, 0), 100) / 100);
+  return (
+    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="-rotate-90">
+      <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="#f1f5f9" strokeWidth={stroke} />
+      <circle
+        cx={size / 2} cy={size / 2} r={r} fill="none" stroke="#10b981" strokeWidth={stroke}
+        strokeDasharray={circ} strokeDashoffset={offset} strokeLinecap="round"
+        style={{ transition: 'stroke-dashoffset 0.6s ease' }}
+      />
     </svg>
   );
 }
@@ -137,6 +155,11 @@ export default function TabContas({ mes, ano }: Props) {
   // dialogs escopo
   const [deleteDialog, setDeleteDialog]       = useState<DeleteDialog | null>(null);
   const [editScopeDialog, setEditScopeDialog] = useState<EditScopeDialog | null>(null);
+
+  // acompanhamento de parcelas
+  const [acompanhar, setAcompanhar]               = useState<Conta | null>(null);
+  const [parcelasGrupo, setParcelasGrupo]         = useState<Conta[]>([]);
+  const [loadingAcompanhar, setLoadingAcompanhar] = useState(false);
 
   // filtros
   const [busca, setBusca]                     = useState('');
@@ -388,6 +411,28 @@ export default function TabContas({ mes, ano }: Props) {
     },
   }), [tipoValues]);
 
+  // ── acompanhamento de parcelas ──────────────────────────────────────────────
+
+  const acompanhamentoStats = useMemo(() => {
+    if (!acompanhar) return null;
+    const totalParcelas = acompanhar.totalParcelas!;
+    const valorParcela  = acompanhar.valor;
+    const ordenado      = [...parcelasGrupo].sort((a, b) => (a.parcelaAtual ?? 0) - (b.parcelaAtual ?? 0));
+    const minParcela    = ordenado.length > 0 ? ordenado[0].parcelaAtual! : acompanhar.parcelaAtual!;
+
+    const trackedPagas     = ordenado.filter((p) => p.status === 'pago');
+    const trackedPendentes = ordenado.filter((p) => p.status === 'pendente');
+
+    const numAntesDoTracking = minParcela - 1; // parcelas já encerradas antes de começar o controle
+    const countPago    = numAntesDoTracking + trackedPagas.length;
+    const valorPago    = numAntesDoTracking * valorParcela + trackedPagas.reduce((s, p) => s + p.valor, 0);
+    const countRestante = trackedPendentes.length;
+    const valorRestante = trackedPendentes.reduce((s, p) => s + p.valor, 0);
+    const percent = (countPago / totalParcelas) * 100;
+
+    return { totalParcelas, valorParcela, ordenado, minParcela, countPago, valorPago, countRestante, valorRestante, percent };
+  }, [acompanhar, parcelasGrupo]);
+
   // ── form helpers ──────────────────────────────────────────────────────────
 
   const isParcelada = !!(form.parcelaAtual || form.totalParcelas);
@@ -481,6 +526,13 @@ export default function TabContas({ mes, ano }: Props) {
     load();
   }
 
+  async function abrirAcompanhamento(c: Conta) {
+    setAcompanhar(c);
+    setLoadingAcompanhar(true);
+    setParcelasGrupo(c.grupoId ? await getContasPorGrupo(c.grupoId) : []);
+    setLoadingAcompanhar(false);
+  }
+
   function iniciarDelete(c: Conta) {
     if (c.grupoId) {
       setDeleteDialog({ conta: c });
@@ -558,7 +610,10 @@ export default function TabContas({ mes, ano }: Props) {
             <span className="text-[11px] text-slate-400">dia {c.vencimento}</span>
           </div>
           {c.totalParcelas && c.parcelaAtual && (
-            <div className="mt-1.5 flex items-center gap-2">
+            <button
+              onClick={() => abrirAcompanhamento(c)}
+              className="mt-1.5 flex items-center gap-2 w-full max-w-[180px] group/prog"
+            >
               <div className="flex-1 max-w-[100px] bg-slate-100 rounded-full h-1.5">
                 <div
                   className="h-1.5 rounded-full transition-all"
@@ -566,7 +621,8 @@ export default function TabContas({ mes, ano }: Props) {
                 />
               </div>
               <span className="text-[10px] text-slate-400 tabular-nums">{c.parcelaAtual}/{c.totalParcelas}</span>
-            </div>
+              <span className="text-slate-300 group-hover/prog:text-indigo-400 transition-colors"><ChevronRight /></span>
+            </button>
           )}
         </div>
         <div className="flex items-center gap-2 flex-shrink-0">
@@ -958,6 +1014,77 @@ export default function TabContas({ mes, ano }: Props) {
               </form>
             )}
           </div>
+        </Modal>
+      )}
+
+      {/* ── Modal acompanhamento de parcelas ── */}
+      {acompanhar && (
+        <Modal title="Acompanhamento da Conta" onClose={() => setAcompanhar(null)}>
+          {loadingAcompanhar || !acompanhamentoStats ? (
+            <p className="text-slate-400 text-sm text-center py-8">Carregando...</p>
+          ) : (
+            <div className="space-y-5">
+              <div>
+                <p className="font-bold text-slate-800 text-base leading-tight">{acompanhar.descricao}</p>
+                <span
+                  className="inline-block mt-1.5 text-[11px] px-2 py-0.5 rounded-md font-semibold"
+                  style={{ backgroundColor: `${catCor(acompanhar.categoria)}18`, color: catCor(acompanhar.categoria) }}
+                >
+                  {acompanhar.categoria}
+                </span>
+              </div>
+
+              {/* Progresso circular + valor da parcela */}
+              <div className="flex items-center gap-5">
+                <div className="relative flex-shrink-0">
+                  <CircularProgress percent={acompanhamentoStats.percent} />
+                  <div className="absolute inset-0 flex flex-col items-center justify-center">
+                    <span className="text-lg font-bold text-slate-800 tabular-nums">{acompanhamentoStats.countPago}</span>
+                    <span className="text-[10px] text-slate-400">de {acompanhamentoStats.totalParcelas}</span>
+                  </div>
+                </div>
+                <div className="flex-1 space-y-1">
+                  <p className="text-[11px] text-slate-400 uppercase tracking-wide font-medium">Valor da parcela</p>
+                  <p className="text-2xl font-bold text-slate-800 tabular-nums">{fmt(acompanhamentoStats.valorParcela)}</p>
+                  <p className="text-xs text-slate-400">{acompanhamentoStats.percent.toFixed(0)}% concluído</p>
+                </div>
+              </div>
+
+              {/* Já pago vs restante */}
+              <div className="grid grid-cols-2 gap-3">
+                <div className="bg-emerald-50 border border-emerald-100 rounded-2xl p-3.5">
+                  <p className="text-emerald-600 text-[11px] font-semibold uppercase tracking-wide">Já pago</p>
+                  <p className="text-lg font-bold text-emerald-700 mt-1 tabular-nums">{fmt(acompanhamentoStats.valorPago)}</p>
+                  <p className="text-[11px] text-emerald-500 mt-0.5">{acompanhamentoStats.countPago} parcela(s)</p>
+                </div>
+                <div className="bg-indigo-50 border border-indigo-100 rounded-2xl p-3.5">
+                  <p className="text-indigo-600 text-[11px] font-semibold uppercase tracking-wide">Para quitar</p>
+                  <p className="text-lg font-bold text-indigo-700 mt-1 tabular-nums">{fmt(acompanhamentoStats.valorRestante)}</p>
+                  <p className="text-[11px] text-indigo-500 mt-0.5">{acompanhamentoStats.countRestante} parcela(s)</p>
+                </div>
+              </div>
+
+              {/* Linha do tempo das parcelas */}
+              <div>
+                <p className="text-[11px] text-slate-400 uppercase tracking-wide font-medium mb-2">Linha do tempo</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {Array.from({ length: acompanhamentoStats.totalParcelas }, (_, i) => {
+                    const num = i + 1;
+                    const doc = acompanhamentoStats.ordenado.find((p) => p.parcelaAtual === num);
+                    const paga = doc ? doc.status === 'pago' : num < acompanhamentoStats.minParcela;
+                    const atual = num === acompanhar.parcelaAtual;
+                    return (
+                      <div
+                        key={num}
+                        title={`Parcela ${num}/${acompanhamentoStats.totalParcelas}${doc ? ` · ${MESES_CURTOS[doc.mes - 1]}/${String(doc.ano).slice(2)}` : ''} · ${paga ? 'paga' : 'pendente'}`}
+                        className={`h-6 flex-1 min-w-[16px] rounded-md transition-colors ${paga ? 'bg-emerald-400' : 'bg-slate-100'} ${atual ? 'ring-2 ring-indigo-500 ring-offset-1' : ''}`}
+                      />
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          )}
         </Modal>
       )}
     </div>
