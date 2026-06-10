@@ -424,7 +424,7 @@ export default function TabContas({ mes, ano }: Props) {
         setEditScopeDialog({ conta: atual, data: { ...data, grupoId: atual.grupoId } });
         return;
       }
-      await updateConta(editId, { ...data, grupoId: atual.grupoId });
+      await updateConta(editId, data);
     } else {
       await addConta(data);
     }
