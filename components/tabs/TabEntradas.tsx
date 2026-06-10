@@ -249,29 +249,12 @@ export default function TabEntradas({ mes, ano }: Props) {
         </button>
       </div>
 
-      {/* ── Cards resumo ── */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-        <div className="relative overflow-hidden bg-gradient-to-br from-indigo-600 to-violet-700 rounded-2xl p-4 text-white shadow-md shadow-indigo-200">
-          <div className="absolute -top-4 -right-4 w-20 h-20 bg-white/10 rounded-full" />
-          <p className="text-indigo-200 text-xs font-medium uppercase tracking-wide relative">Total do Mês</p>
-          <p className="text-xl font-bold mt-1 tabular-nums relative">{fmt(totalMes)}</p>
-          <p className="text-indigo-200 text-[11px] mt-1 relative">{entradas.length} entrada(s)</p>
-        </div>
-        <div className="bg-white border border-slate-100 rounded-2xl p-4 shadow-sm">
-          <p className="text-slate-400 text-[11px] font-medium uppercase tracking-wide">Entradas</p>
-          <p className="text-xl font-bold text-slate-800 mt-1">{entradas.length}</p>
-          <div className="flex items-center gap-1.5 mt-2">
-            <TrendingUp />
-            <p className="text-[11px] text-slate-400">neste mês</p>
-          </div>
-        </div>
-        <div className="bg-white border border-slate-100 rounded-2xl p-4 shadow-sm">
-          <p className="text-slate-400 text-[11px] font-medium uppercase tracking-wide">Média</p>
-          <p className="text-xl font-bold text-slate-800 mt-1 tabular-nums">
-            {entradas.length > 0 ? fmt(totalMes / entradas.length) : 'R$ 0,00'}
-          </p>
-          <p className="text-[11px] text-slate-400 mt-2">por entrada</p>
-        </div>
+      {/* ── Card resumo ── */}
+      <div className="relative overflow-hidden bg-gradient-to-br from-indigo-600 to-violet-700 rounded-2xl p-4 text-white shadow-md shadow-indigo-200">
+        <div className="absolute -top-4 -right-4 w-20 h-20 bg-white/10 rounded-full" />
+        <p className="text-indigo-200 text-xs font-medium uppercase tracking-wide relative">Total do Mês</p>
+        <p className="text-xl font-bold mt-1 tabular-nums relative">{fmt(totalMes)}</p>
+        <p className="text-indigo-200 text-[11px] mt-1 relative">{entradas.length} entrada(s)</p>
       </div>
 
       {/* ── Gráficos ── */}
