@@ -8,6 +8,7 @@ import {
   getContasHistorico,
   getDistribuicoesHistorico,
   getComprasHistorico,
+  getCustosEmpresaHistorico,
   getCategoriasContas,
   getCategorias,
 } from '@/lib/firestore';
@@ -74,11 +75,12 @@ export default function TabVisaoGeral({ mes, ano }: Props) {
   useEffect(() => {
     async function load() {
       setLoading(true);
-      const [entradas, contas, distribuicoes, compras, catContas, catCartoes] = await Promise.all([
+      const [entradas, contas, distribuicoes, compras, custosEmpresa, catContas, catCartoes] = await Promise.all([
         getEntradasHistorico(),
         getContasHistorico(),
         getDistribuicoesHistorico(),
         getComprasHistorico(),
+        getCustosEmpresaHistorico(),
         getCategoriasContas() as Promise<CategoriaContaConfig[]>,
         getCategorias() as Promise<CategoriaCompra[]>,
       ]);
@@ -89,7 +91,8 @@ export default function TabVisaoGeral({ mes, ano }: Props) {
         const ganhos = entradas.filter((e) => e.mes === m && e.ano === a).reduce((s, e) => s + e.valor, 0);
         const gastoContas = contas.filter((c) => c.mes === m && c.ano === a).reduce((s, c) => s + c.valor, 0);
         const gastoCartoes = compras.filter((c) => c.mes === m && c.ano === a).reduce((s, c) => s + c.valorParcela, 0);
-        const gastos = gastoContas + gastoCartoes;
+        const gastoEmpresa = custosEmpresa.filter((c) => c.mes === m && c.ano === a).reduce((s, c) => s + c.valorParcela, 0);
+        const gastos = gastoContas + gastoCartoes + gastoEmpresa;
         const dist = distribuicoes.find((d) => d.mes === m && d.ano === a);
         const ferias = ganhos * (dist?.ferias ?? 0) / 100;
         const investimento = ganhos * (dist?.investimento ?? 0) / 100;
@@ -114,6 +117,13 @@ export default function TabVisaoGeral({ mes, ano }: Props) {
           const prev = catMap.get(c.tipo) ?? { total: 0, fill: cc?.cor ?? '#94a3b8' };
           catMap.set(c.tipo, { total: prev.total + c.valorParcela, fill: prev.fill });
         });
+      const gastoEmpresaAtual = custosEmpresa
+        .filter((c) => c.mes === mes && c.ano === ano)
+        .reduce((s, c) => s + c.valorParcela, 0);
+      if (gastoEmpresaAtual > 0) {
+        const prev = catMap.get('Empresa') ?? { total: 0, fill: '#38bdf8' };
+        catMap.set('Empresa', { total: prev.total + gastoEmpresaAtual, fill: prev.fill });
+      }
       const gpc: CatGasto[] = Array.from(catMap.entries())
         .map(([nome, { total, fill }]) => ({ nome, total, fill }))
         .filter((c) => c.total > 0)
@@ -359,7 +369,7 @@ export default function TabVisaoGeral({ mes, ano }: Props) {
         <Card>
           <div className="mb-3">
             <p className="font-semibold text-slate-700 text-sm">Evolução dos Gastos</p>
-            <p className="text-xs text-slate-400">Contas + Cartões — 12 meses</p>
+            <p className="text-xs text-slate-400">Contas + Cartões + Empresa — 12 meses</p>
           </div>
           <div style={{ height: 200 }}>
             <VChart key={`gastos-${dataKey}`} spec={gastosSpec as any} />

@@ -378,6 +378,11 @@ export async function deleteCustoEmpresa(id: string): Promise<void> {
   await deleteDoc(doc(db, 'custos_empresa', id));
 }
 
+export async function getCustosEmpresaHistorico(): Promise<CustoEmpresa[]> {
+  const snap = await getDocs(collection(db, 'custos_empresa'));
+  return snap.docs.map((d) => ({ id: d.id, ...d.data() } as CustoEmpresa));
+}
+
 // ─── Faturas Empresa ─────────────────────────────────────────────────────────
 
 export async function getFaturasEmpresa(mes: number, ano: number): Promise<FaturaEmpresa[]> {
