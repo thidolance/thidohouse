@@ -6,7 +6,7 @@ import Modal from '../ui/Modal';
 import Card from '../ui/Card';
 import { Plus, Trash, Pencil } from '../ui/Icons';
 import {
-  getCustosEmpresa, addCustoEmpresa, updateCustoEmpresa, deleteCustoEmpresa,
+  getCustosEmpresa, addCustoEmpresa, updateCustoEmpresa, deleteCustoEmpresa, deleteCustoEmpresaAndFuture,
   getCategoriasEmpresa, addCategoriaEmpresa, deleteCategoriaEmpresa,
 } from '@/lib/firestore';
 import type { CustoEmpresa, CategoriaEmpresa } from '@/lib/types';
@@ -50,6 +50,7 @@ export default function TabEmpresa({ mes, ano }: Props) {
 
   const [editCustoId, setEditCustoId] = useState<string | null>(null);
   const [formCusto, setFormCusto]     = useState<FormCusto>(CUSTO_EMPTY);
+  const [deleteCustoDialog, setDeleteCustoDialog] = useState<CustoEmpresa | null>(null);
 
   const [formCat, setFormCat]         = useState<FormCat>(CAT_EMPTY);
   const [showCatForm, setShowCatForm] = useState(false);
@@ -117,8 +118,22 @@ export default function TabEmpresa({ mes, ano }: Props) {
     setShowCustoModal(true);
   }
 
-  async function handleDeleteCusto(id: string) {
-    await deleteCustoEmpresa(id);
+  function iniciarDeleteCusto(c: CustoEmpresa) {
+    if (c.grupoId) {
+      setDeleteCustoDialog(c);
+    } else {
+      deleteCustoEmpresa(c.id!).then(loadCustos);
+    }
+  }
+
+  async function confirmarDeleteCusto(scope: 'this' | 'future') {
+    const c = deleteCustoDialog!;
+    setDeleteCustoDialog(null);
+    if (scope === 'future') {
+      await deleteCustoEmpresaAndFuture(c.id!, c);
+    } else {
+      await deleteCustoEmpresa(c.id!);
+    }
     loadCustos();
   }
 
@@ -336,7 +351,7 @@ export default function TabEmpresa({ mes, ano }: Props) {
                   <div className="flex items-center gap-2">
                     <span className="font-semibold text-sm text-violet-600">{fmt(c.valorParcela)}</span>
                     <button onClick={() => abrirEditCusto(c)} className="p-1.5 rounded-lg opacity-100 sm:opacity-0 sm:group-hover:opacity-100 hover:bg-violet-100 text-slate-300 hover:text-violet-500 transition-all"><Pencil /></button>
-                    <button onClick={() => handleDeleteCusto(c.id!)} className="p-1.5 rounded-lg opacity-100 sm:opacity-0 sm:group-hover:opacity-100 hover:bg-red-50 text-slate-300 hover:text-red-400 transition-all"><Trash /></button>
+                    <button onClick={() => iniciarDeleteCusto(c)} className="p-1.5 rounded-lg opacity-100 sm:opacity-0 sm:group-hover:opacity-100 hover:bg-red-50 text-slate-300 hover:text-red-400 transition-all"><Trash /></button>
                   </div>
                 </div>
               );
@@ -445,6 +460,32 @@ export default function TabEmpresa({ mes, ano }: Props) {
             )}
           </div>
         </Modal>
+      )}
+
+      {/* ── Dialog exclusão de custos futuros ── */}
+      {deleteCustoDialog && (
+        <div className="fixed inset-0 z-[200] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 space-y-4">
+            <h3 className="font-bold text-slate-800">Remover custo da empresa</h3>
+            <p className="text-sm text-slate-500 leading-relaxed">
+              <strong>&quot;{deleteCustoDialog.descricao}&quot;</strong> tem parcelas em meses seguintes. Deseja remover só esta parcela ou todas as parcelas restantes?
+            </p>
+            <div className="space-y-2 pt-1">
+              <button onClick={() => confirmarDeleteCusto('future')}
+                className="w-full py-2.5 rounded-xl text-sm font-semibold bg-red-500 text-white hover:bg-red-600 transition-colors">
+                Remover esta e as seguintes
+              </button>
+              <button onClick={() => confirmarDeleteCusto('this')}
+                className="w-full py-2.5 rounded-xl text-sm font-medium bg-slate-700 text-white hover:bg-slate-800 transition-colors">
+                Só esta parcela
+              </button>
+              <button onClick={() => setDeleteCustoDialog(null)}
+                className="w-full py-2.5 rounded-xl text-sm text-slate-500 border border-slate-200 hover:bg-slate-50 transition-colors">
+                Cancelar
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

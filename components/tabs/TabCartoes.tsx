@@ -374,7 +374,7 @@ export default function TabCartoes({ mes, ano }: Props) {
       </div>
 
       {/* Cards visuais dos cartões (seletor) */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {cartoes.map((c) => {
           const dado     = totalPorCartao.find((t) => t.id === c.id)!;
           const isSelected = cartaoSelecionado === c.id;
@@ -382,8 +382,8 @@ export default function TabCartoes({ mes, ano }: Props) {
             <button
               key={c.id}
               onClick={() => setCartaoSelecionado(isSelected ? null : c.id!)}
-              className={`relative overflow-hidden rounded-2xl p-5 text-left transition-all text-white shadow-lg hover:scale-105 ${isSelected ? 'ring-4 ring-white/40 scale-105' : ''}`}
-              style={{ backgroundColor: c.cor, aspectRatio: '1.6 / 1', minHeight: 120 }}
+              className={`relative overflow-hidden rounded-2xl p-5 text-left transition-all text-white shadow-lg hover:scale-105 flex flex-col justify-between ${isSelected ? 'ring-4 ring-white/40 scale-105' : ''}`}
+              style={{ backgroundColor: c.cor, minHeight: 120 }}
             >
               <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-black/25 pointer-events-none" />
               <div className="relative flex items-start justify-between">
@@ -391,7 +391,7 @@ export default function TabCartoes({ mes, ano }: Props) {
                 {c.bandeira === 'Visa' && <VisaLogo />}
                 {c.bandeira === 'Mastercard' && <MastercardLogo />}
               </div>
-              <div className="relative absolute bottom-4 left-5 right-5 flex items-end justify-between mt-4">
+              <div className="relative flex items-end justify-between mt-4">
                 <div>
                   <p className="text-white/60 text-xs">Mês atual</p>
                   <p className="text-base font-bold">{fmt(dado?.total ?? 0)}</p>

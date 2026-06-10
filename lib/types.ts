@@ -67,6 +67,7 @@ export interface CustoEmpresa {
   parcelaAtual: number;
   mes: number;
   ano: number;
+  grupoId?: string;
 }
 
 export interface FaturaEmpresa {

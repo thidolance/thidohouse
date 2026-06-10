@@ -368,11 +368,12 @@ export async function getCustosEmpresa(mes: number, ano: number): Promise<CustoE
 }
 
 export async function addCustoEmpresa(c: Omit<CustoEmpresa, 'id'>): Promise<void> {
+  const grupoId = makeGrupoId();
   const remaining = c.totalParcelas - c.parcelaAtual + 1;
   await Promise.all(
     Array.from({ length: remaining }, (_, i) => {
       const { mes, ano } = addMonths(c.mes, c.ano, i);
-      return addDoc(collection(db, 'custos_empresa'), { ...c, parcelaAtual: c.parcelaAtual + i, mes, ano });
+      return addDoc(collection(db, 'custos_empresa'), { ...c, grupoId, parcelaAtual: c.parcelaAtual + i, mes, ano });
     }),
   );
 }
@@ -383,6 +384,20 @@ export async function updateCustoEmpresa(id: string, c: Omit<CustoEmpresa, 'id'>
 
 export async function deleteCustoEmpresa(id: string): Promise<void> {
   await deleteDoc(doc(db, 'custos_empresa', id));
+}
+
+// Apaga o custo e todos os meses futuros com o mesmo grupoId
+export async function deleteCustoEmpresaAndFuture(id: string, custo: CustoEmpresa): Promise<void> {
+  await deleteDoc(doc(db, 'custos_empresa', id));
+  if (custo.grupoId) {
+    const snap = await getDocs(query(collection(db, 'custos_empresa'), where('grupoId', '==', custo.grupoId)));
+    const currentAbs = custo.ano * 12 + custo.mes;
+    await Promise.all(
+      snap.docs
+        .filter((d) => { const x = d.data(); return d.id !== id && (x.ano * 12 + x.mes) > currentAbs; })
+        .map((d) => deleteDoc(d.ref)),
+    );
+  }
 }
 
 export async function getCustosEmpresaHistorico(): Promise<CustoEmpresa[]> {
