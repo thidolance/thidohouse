@@ -347,14 +347,15 @@ export default function TabContas({ mes, ano }: Props) {
     data: [{ id: 'tipo', values: tipoValues }],
     xField: 'name',
     yField: 'value',
+    seriesField: 'name',
+    color: tipoValues.map((d) => d.fill),
     bar: {
       style: {
         cornerRadius: [8, 8, 0, 0],
-        fill: (d: Record<string, unknown>) => String(d['fill']),
       },
     },
     axes: [
-      { orient: 'bottom', domainLine: { visible: false }, tick: { visible: false }, label: { style: { fontSize: 12, fill: '#64748b' } } },
+      { orient: 'bottom', domainLine: { visible: false }, tick: { visible: false }, label: { visible: false } },
       {
         orient: 'left',
         grid: { style: { stroke: '#f1f5f9', lineDash: [3, 3] } },
@@ -366,6 +367,16 @@ export default function TabContas({ mes, ano }: Props) {
         },
       },
     ],
+    legends: [{
+      visible: true,
+      orient: 'bottom',
+      padding: { top: 8 },
+      maxRow: 3,
+      item: {
+        label: { style: { fontSize: 11, fill: '#64748b' } },
+        value: { visible: false },
+      },
+    }],
     tooltip: {
       mark: {
         title: { visible: false },
