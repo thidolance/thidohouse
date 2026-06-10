@@ -7,7 +7,7 @@ import TabContas from '@/components/tabs/TabContas';
 import TabCartoes from '@/components/tabs/TabCartoes';
 import TabEmpresa from '@/components/tabs/TabEmpresa';
 import MonthPicker from '@/components/ui/MonthPicker';
-import { LayoutGrid, TrendingUp, Receipt, CreditCard, Building } from '@/components/ui/Icons';
+import { LayoutGrid, TrendingUp, Receipt, CreditCard, Building, FamilyIcon } from '@/components/ui/Icons';
 import { LogOut } from 'lucide-react';
 import { logout } from '@/app/actions/auth';
 
@@ -34,7 +34,10 @@ export default function Home() {
         <div className="max-w-5xl mx-auto px-4">
           <div className="flex items-center justify-between h-14">
             <div className="flex items-center gap-2">
-              <span className="text-indigo-600 font-bold text-lg tracking-tight">ThidoHouse</span>
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-600 text-white">
+                <FamilyIcon className="h-4 w-4" />
+              </div>
+              <span className="text-indigo-600 font-bold text-lg tracking-tight">Thidinho</span>
               <span className="text-slate-400 text-sm hidden sm:block">· Controle Financeiro</span>
             </div>
             <div className="flex items-center gap-2">

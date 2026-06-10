@@ -1,8 +1,8 @@
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
-import { Wallet } from 'lucide-react';
 
 import { LoginForm } from '@/components/login-form';
+import { FamilyIcon } from '@/components/ui/Icons';
 import { decryptSession, SESSION_COOKIE_NAME } from '@/lib/session';
 
 export default async function LoginPage() {
@@ -22,16 +22,16 @@ export default async function LoginPage() {
 
         <div className="relative flex items-center gap-3">
           <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white/15 ring-1 ring-white/20 backdrop-blur-sm">
-            <Wallet className="h-6 w-6" />
+            <FamilyIcon className="h-6 w-6" />
           </div>
-          <span className="text-xl font-bold tracking-tight">ThidoHouse</span>
+          <span className="text-xl font-bold tracking-tight">Thidinho</span>
         </div>
 
         <div className="relative">
           <h1 className="text-4xl font-bold leading-tight tracking-tight">
             Controle financeiro
             <br />
-            sob controle.
+            do Thidinho.
           </h1>
           <p className="mt-4 max-w-md text-indigo-100/80">
             Acompanhe entradas, contas, cartões e investimentos em um só lugar.
@@ -39,7 +39,7 @@ export default async function LoginPage() {
         </div>
 
         <p className="relative text-sm text-indigo-100/60">
-          © {new Date().getFullYear()} ThidoHouse
+          © {new Date().getFullYear()} Thidinho
         </p>
       </div>
 
@@ -48,9 +48,9 @@ export default async function LoginPage() {
         <div className="w-full max-w-sm">
           <div className="mb-8 flex items-center gap-3 lg:hidden">
             <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-indigo-600 text-white">
-              <Wallet className="h-6 w-6" />
+              <FamilyIcon className="h-6 w-6" />
             </div>
-            <span className="text-xl font-bold tracking-tight text-slate-900">ThidoHouse</span>
+            <span className="text-xl font-bold tracking-tight text-slate-900">Thidinho</span>
           </div>
 
           <div className="rounded-2xl border border-slate-100 bg-white p-8 shadow-sm">
