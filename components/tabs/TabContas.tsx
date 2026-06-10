@@ -328,46 +328,51 @@ export default function TabContas({ mes, ano }: Props) {
     },
   }), [pieValues]);
 
-  const barSpec = useMemo(() => ({
-    type: 'bar',
+  const tipoValues = useMemo(() => {
+    const fixaTotal     = contas.filter((c) => c.fixa).reduce((s, c) => s + c.valor, 0);
+    const rotativaTotal = contas.filter((c) => !c.fixa).reduce((s, c) => s + c.valor, 0);
+    const cartoesTotal  = itensCartao.reduce((s, c) => s + c.valor, 0);
+    return [
+      { name: 'Contas Fixas',   value: fixaTotal,     fill: '#f59e0b' },
+      { name: 'Conta Rotativa', value: rotativaTotal, fill: '#6366f1' },
+      { name: 'Cartões',        value: cartoesTotal,  fill: '#ec4899' },
+      { name: 'Empresa',        value: empresaSum,    fill: '#38bdf8' },
+    ].filter((d) => d.value > 0);
+  }, [contas, itensCartao, empresaSum]);
+
+  const tipoDonutSpec = useMemo(() => ({
+    type: 'pie',
     autoFit: true,
     background: 'transparent',
-    data: [{ id: 'bar', values: [
-      { name: 'Pago',     valor: totalPago,     fill: '#10b981' },
-      { name: 'Pendente', valor: totalPendente, fill: '#f59e0b' },
-    ]}],
-    xField: 'name',
-    yField: 'valor',
-    color: ['#10b981', '#f59e0b'],
-    bar: {
-      style: {
-        cornerRadius: [8, 8, 0, 0],
-        fill: (d: Record<string, unknown>) => String(d['fill']),
+    data: [{ id: 'tipo', values: tipoValues }],
+    valueField: 'value',
+    categoryField: 'name',
+    outerRadius: 0.75,
+    innerRadius: 0.52,
+    padAngle: 1,
+    color: tipoValues.map((d) => d.fill),
+    pie: { style: { cornerRadius: 4 } },
+    label: { visible: false },
+    legends: [{
+      visible: true,
+      orient: 'bottom',
+      padding: { top: 10 },
+      maxRow: 3,
+      item: {
+        label: { style: { fontSize: 11, fill: '#64748b' } },
+        value: { visible: false },
       },
-    },
-    axes: [
-      { orient: 'bottom', domainLine: { visible: false }, tick: { visible: false }, label: { style: { fontSize: 12, fill: '#64748b' } } },
-      {
-        orient: 'left',
-        grid: { style: { stroke: '#f1f5f9', lineDash: [3, 3] } },
-        domainLine: { visible: false },
-        tick: { visible: false },
-        label: {
-          style: { fontSize: 11, fill: '#94a3b8' },
-          formatMethod: (v: number) => v === 0 ? 'R$0' : `R$${(v / 1000).toFixed(0)}k`,
-        },
-      },
-    ],
+    }],
     tooltip: {
       mark: {
         title: { visible: false },
         content: [{
           key: (d: Record<string, unknown>) => String(d['name']),
-          value: (d: Record<string, unknown>) => fmt(Number(d['valor'])),
+          value: (d: Record<string, unknown>) => fmt(Number(d['value'])),
         }],
       },
     },
-  }), [totalPago, totalPendente]);
+  }), [tipoValues]);
 
   // ── form helpers ──────────────────────────────────────────────────────────
 
@@ -655,10 +660,17 @@ export default function TabContas({ mes, ano }: Props) {
           )}
         </Card>
         <Card>
-          <p className="font-semibold text-slate-700 text-sm mb-3">Pago vs Pendente</p>
-          <div style={{ height: 240 }}>
-            <VChart key={`bar-${totalPago.toFixed(0)}-${totalPendente.toFixed(0)}`} spec={barSpec as any} />
-          </div>
+          <p className="font-semibold text-slate-700 text-sm mb-3">Por Tipo de Conta</p>
+          {tipoValues.length > 0 ? (
+            <div style={{ height: 240 }}>
+              <VChart key={`tipo-${tipoValues.reduce((s, v) => s + v.value, 0).toFixed(0)}-${tipoValues.length}`} spec={tipoDonutSpec as any} />
+            </div>
+          ) : (
+            <div className="h-[240px] flex flex-col items-center justify-center text-slate-400 gap-2">
+              <span className="text-3xl">📊</span>
+              <p className="text-sm">Nenhum dado ainda</p>
+            </div>
+          )}
         </Card>
       </div>
 
