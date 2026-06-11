@@ -9,6 +9,11 @@ export async function POST(request: Request) {
 
   const result = streamText({
     model: google('gemini-2.5-flash'),
+    providerOptions: {
+      google: {
+        thinkingConfig: { thinkingBudget: 0 },
+      },
+    },
     system: `Você é o assistente financeiro do ThidoHouse, um app de controle financeiro pessoal e familiar.
 Responda sempre em português, de forma curta e direta, com base nos dados do mês abaixo. Use R$ para valores.
 
