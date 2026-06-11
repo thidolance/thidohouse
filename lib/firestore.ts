@@ -287,8 +287,19 @@ export async function getCompras(mes: number, ano: number): Promise<CompraParcel
   return snap.docs.map((d) => ({ id: d.id, ...d.data() } as CompraParcelada));
 }
 
-// Grava uma doc por parcela restante, cada uma no mês correto
+// Grava uma doc por parcela restante, cada uma no mês correto; fixas propagam 24 meses à frente
 export async function addCompra(c: Omit<CompraParcelada, 'id'>): Promise<void> {
+  if (c.fixa) {
+    const grupoId = makeGrupoId();
+    await Promise.all([
+      addDoc(collection(db, 'compras'), { ...c, grupoId }),
+      ...Array.from({ length: 24 }, (_, i) => {
+        const { mes, ano } = addMonths(c.mes, c.ano, i + 1);
+        return addDoc(collection(db, 'compras'), { ...c, grupoId, mes, ano });
+      }),
+    ]);
+    return;
+  }
   const grupoId = makeGrupoId();
   const remaining = c.totalParcelas - c.parcelaAtual + 1;
   await Promise.all(
@@ -301,6 +312,32 @@ export async function addCompra(c: Omit<CompraParcelada, 'id'>): Promise<void> {
 
 export async function updateCompra(id: string, c: Omit<CompraParcelada, 'id'>): Promise<void> {
   await setDoc(doc(db, 'compras', id), c);
+}
+
+// Ativa/desativa fixa: cria 24 cópias ou apaga todas as futuras do mesmo grupoId
+export async function toggleCompraFixa(id: string, compra: CompraParcelada, tornarFixa: boolean): Promise<void> {
+  const { id: _id, grupoId: _grupoId, ...data } = compra;
+  if (tornarFixa) {
+    const grupoId = makeGrupoId();
+    await Promise.all([
+      setDoc(doc(db, 'compras', id), { ...data, fixa: true, grupoId }),
+      ...Array.from({ length: 24 }, (_, i) => {
+        const { mes, ano } = addMonths(compra.mes, compra.ano, i + 1);
+        return addDoc(collection(db, 'compras'), { ...data, fixa: true, grupoId, mes, ano });
+      }),
+    ]);
+  } else {
+    await setDoc(doc(db, 'compras', id), { ...data, fixa: false });
+    if (compra.grupoId) {
+      const snap = await getDocs(query(collection(db, 'compras'), where('grupoId', '==', compra.grupoId)));
+      const currentAbs = compra.ano * 12 + compra.mes;
+      await Promise.all(
+        snap.docs
+          .filter((d) => { const x = d.data(); return d.id !== id && (x.ano * 12 + x.mes) > currentAbs; })
+          .map((d) => deleteDoc(d.ref)),
+      );
+    }
+  }
 }
 
 export async function deleteCompra(id: string): Promise<void> {

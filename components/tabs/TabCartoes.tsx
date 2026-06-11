@@ -11,7 +11,7 @@ import Modal from '../ui/Modal';
 import Card from '../ui/Card';
 import { Plus, Trash, Pencil } from '../ui/Icons';
 import {
-  getCompras, addCompra, updateCompra, deleteCompra, deleteCompraAndFuture,
+  getCompras, addCompra, updateCompra, deleteCompra, deleteCompraAndFuture, toggleCompraFixa,
   getCartoes, addCartao, updateCartao, deleteCartao,
   getCategorias, addCategoria, deleteCategoria,
 } from '@/lib/firestore';
@@ -46,17 +46,25 @@ function GearIcon() {
   );
 }
 
+function PinIcon({ filled }: { filled?: boolean }) {
+  return (
+    <svg className="w-3.5 h-3.5" fill={filled ? 'currentColor' : 'none'} viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
+    </svg>
+  );
+}
+
 const INPUT = 'w-full border border-slate-200 rounded-xl px-3 py-2 text-sm text-slate-900 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-300';
 
 interface Props { mes: number; ano: number; }
 
 type FormCompra = {
   cartaoId: string; descricao: string; tipo: string;
-  valorTotal: string; totalParcelas: string; parcelaAtual: string;
+  valorTotal: string; totalParcelas: string; parcelaAtual: string; fixa: boolean;
 };
 const COMPRA_EMPTY: FormCompra = {
   cartaoId: '', descricao: '', tipo: '',
-  valorTotal: '', totalParcelas: '', parcelaAtual: '1',
+  valorTotal: '', totalParcelas: '', parcelaAtual: '1', fixa: false,
 };
 
 type FormCartao = { nome: string; cor: string; bandeira: 'Visa' | 'Mastercard' };
@@ -128,6 +136,7 @@ export default function TabCartoes({ mes, ano }: Props) {
       totalParcelas: parcelas,
       parcelaAtual:  parseInt(formCompra.parcelaAtual),
       mes, ano,
+      fixa: formCompra.fixa && parcelas <= 1,
     };
     if (editCompraId) await updateCompra(editCompraId, data);
     else              await addCompra(data);
@@ -156,6 +165,7 @@ export default function TabCartoes({ mes, ano }: Props) {
       valorTotal:    p.valorTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2 }),
       totalParcelas: String(p.totalParcelas),
       parcelaAtual:  String(p.parcelaAtual),
+      fixa:          p.fixa ?? false,
     });
     setShowCompraModal(true);
   }
@@ -176,6 +186,11 @@ export default function TabCartoes({ mes, ano }: Props) {
     } else {
       await deleteCompra(p.id!);
     }
+    loadCompras();
+  }
+
+  async function handleToggleFixa(p: CompraParcelada) {
+    await toggleCompraFixa(p.id!, p, !p.fixa);
     loadCompras();
   }
 
@@ -242,6 +257,8 @@ export default function TabCartoes({ mes, ano }: Props) {
     : [];
 
   const cartaoAtivo = cartoes.find((c) => c.id === cartaoSelecionado);
+
+  const isParcelada = parseInt(formCompra.totalParcelas || '0') > 1;
 
   // ── specs VChart ──────────────────────────────────────────────────────────
 
@@ -437,6 +454,10 @@ export default function TabCartoes({ mes, ano }: Props) {
                   </div>
                   <div className="flex items-center gap-2">
                     <span className="font-semibold text-sm" style={{ color: cartaoAtivo.cor }}>{fmt(p.valorParcela)}</span>
+                    <button onClick={() => handleToggleFixa(p)} title={p.fixa ? 'Remover recorrência' : 'Marcar como fixa'}
+                      className={`p-1.5 rounded-lg transition-colors ${p.fixa ? 'text-amber-500 bg-amber-50' : 'text-slate-300 hover:text-amber-500 hover:bg-amber-50'}`}>
+                      <PinIcon filled={p.fixa} />
+                    </button>
                     <button onClick={() => abrirEditCompra(p)} className="p-1.5 rounded-lg hover:bg-indigo-50 text-slate-300 hover:text-indigo-400 transition-colors"><Pencil /></button>
                     <button onClick={() => iniciarDeleteCompra(p)} className="p-1.5 rounded-lg hover:bg-red-50 text-slate-300 hover:text-red-400 transition-colors"><Trash /></button>
                   </div>
@@ -473,6 +494,10 @@ export default function TabCartoes({ mes, ano }: Props) {
                     </div>
                     <div className="flex items-center gap-2">
                       <span className="font-semibold text-sm text-slate-700">{fmt(p.valorParcela)}</span>
+                      <button onClick={() => handleToggleFixa(p)} title={p.fixa ? 'Remover recorrência' : 'Marcar como fixa'}
+                        className={`p-1.5 rounded-lg transition-colors ${p.fixa ? 'text-amber-500 bg-amber-50' : 'text-slate-300 hover:text-amber-500 hover:bg-amber-50'}`}>
+                        <PinIcon filled={p.fixa} />
+                      </button>
                       <button onClick={() => abrirEditCompra(p)} className="p-1.5 rounded-lg hover:bg-indigo-50 text-slate-300 hover:text-indigo-400 transition-colors"><Pencil /></button>
                       <button onClick={() => iniciarDeleteCompra(p)} className="p-1.5 rounded-lg hover:bg-red-50 text-slate-300 hover:text-red-400 transition-colors"><Trash /></button>
                     </div>
@@ -543,11 +568,11 @@ export default function TabCartoes({ mes, ano }: Props) {
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1">Parcela Atual</label>
-                <input required type="number" min={1} value={formCompra.parcelaAtual} onChange={(e) => setFormCompra({ ...formCompra, parcelaAtual: e.target.value })} className={INPUT} placeholder="1" />
+                <input required type="number" min={1} value={formCompra.parcelaAtual} onChange={(e) => setFormCompra({ ...formCompra, parcelaAtual: e.target.value, fixa: false })} className={INPUT} placeholder="1" />
               </div>
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1">Total de Parcelas</label>
-                <input required type="number" min={1} value={formCompra.totalParcelas} onChange={(e) => setFormCompra({ ...formCompra, totalParcelas: e.target.value })} className={INPUT} placeholder="12" />
+                <input required type="number" min={1} value={formCompra.totalParcelas} onChange={(e) => setFormCompra({ ...formCompra, totalParcelas: e.target.value, fixa: false })} className={INPUT} placeholder="12" />
               </div>
             </div>
 
@@ -555,6 +580,19 @@ export default function TabCartoes({ mes, ano }: Props) {
               <p className="text-xs text-slate-500 bg-slate-50 rounded-lg p-2">
                 Valor por parcela: <strong>{fmt(parseFloat(formCompra.valorTotal.replace(',', '.')) / parseInt(formCompra.totalParcelas) || 0)}</strong>
               </p>
+            )}
+
+            {!editCompraId && !isParcelada && (
+              <label className="flex items-center gap-3 cursor-pointer select-none p-3 rounded-xl border border-slate-100 hover:bg-slate-50 transition-colors">
+                <div onClick={() => setFormCompra({ ...formCompra, fixa: !formCompra.fixa })}
+                  className={`w-11 h-6 rounded-full transition-colors flex items-center flex-shrink-0 ${formCompra.fixa ? 'bg-amber-400' : 'bg-slate-200'}`}>
+                  <span className={`w-5 h-5 bg-white rounded-full shadow transition-transform mx-0.5 ${formCompra.fixa ? 'translate-x-5' : 'translate-x-0'}`} />
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-slate-700">Compra Fixa</p>
+                  <p className="text-xs text-slate-400">Repete automaticamente todo mês</p>
+                </div>
+              </label>
             )}
 
             <div className="flex gap-3 pt-2">
@@ -693,18 +731,18 @@ export default function TabCartoes({ mes, ano }: Props) {
       {deleteCompraDialog && (
         <div className="fixed inset-0 z-[200] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 space-y-4">
-            <h3 className="font-bold text-slate-800">Remover compra parcelada</h3>
+            <h3 className="font-bold text-slate-800">Remover compra</h3>
             <p className="text-sm text-slate-500 leading-relaxed">
-              <strong>"{deleteCompraDialog.descricao}"</strong> tem parcelas em meses seguintes. Deseja remover só esta parcela ou todas as parcelas restantes?
+              <strong>"{deleteCompraDialog.descricao}"</strong> aparece em meses seguintes. Deseja remover só este mês ou todos os meses a partir deste?
             </p>
             <div className="space-y-2 pt-1">
               <button onClick={() => confirmarDeleteCompra('future')}
                 className="w-full py-2.5 rounded-xl text-sm font-semibold bg-red-500 text-white hover:bg-red-600 transition-colors">
-                Remover esta e as seguintes
+                Remover este e os seguintes
               </button>
               <button onClick={() => confirmarDeleteCompra('this')}
                 className="w-full py-2.5 rounded-xl text-sm font-medium bg-slate-700 text-white hover:bg-slate-800 transition-colors">
-                Só esta parcela
+                Só este mês
               </button>
               <button onClick={() => setDeleteCompraDialog(null)}
                 className="w-full py-2.5 rounded-xl text-sm text-slate-500 border border-slate-200 hover:bg-slate-50 transition-colors">

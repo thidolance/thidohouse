@@ -98,4 +98,5 @@ export interface CompraParcelada {
   mes: number;
   ano: number;
   grupoId?: string;
+  fixa?: boolean;
 }
