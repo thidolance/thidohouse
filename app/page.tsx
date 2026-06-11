@@ -6,8 +6,9 @@ import TabEntradas from '@/components/tabs/TabEntradas';
 import TabContas from '@/components/tabs/TabContas';
 import TabCartoes from '@/components/tabs/TabCartoes';
 import TabEmpresa from '@/components/tabs/TabEmpresa';
+import TabAssistente from '@/components/tabs/TabAssistente';
 import MonthPicker from '@/components/ui/MonthPicker';
-import { LayoutGrid, TrendingUp, Receipt, CreditCard, Building, FamilyIcon } from '@/components/ui/Icons';
+import { LayoutGrid, TrendingUp, Receipt, CreditCard, Building, FamilyIcon, MessageCircle } from '@/components/ui/Icons';
 import { LogOut } from 'lucide-react';
 import { logout } from '@/app/actions/auth';
 
@@ -17,6 +18,7 @@ const TABS = [
   { id: 'contas',   label: 'Contas do Mês',  icon: <Receipt /> },
   { id: 'cartoes',  label: 'Cartões',        icon: <CreditCard /> },
   { id: 'empresa',  label: 'Empresa',        icon: <Building /> },
+  { id: 'assistente', label: 'Assistente',   icon: <MessageCircle /> },
 ] as const;
 
 type TabId = (typeof TABS)[number]['id'];
@@ -81,6 +83,7 @@ export default function Home() {
         {tab === 'contas'   && <TabContas     mes={mes} ano={ano} />}
         {tab === 'cartoes'  && <TabCartoes    mes={mes} ano={ano} />}
         {tab === 'empresa'  && <TabEmpresa    mes={mes} ano={ano} />}
+        {tab === 'assistente' && <TabAssistente mes={mes} ano={ano} />}
       </main>
     </div>
   );
