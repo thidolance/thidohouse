@@ -13,7 +13,7 @@ import { db } from './firebase';
 import type {
   Entrada, Distribuicao, Conta, CategoriaContaConfig,
   Cartao, CategoriaCompra, CompraParcelada, FaturaCartao,
-  CategoriaEmpresa, CustoEmpresa, FaturaEmpresa,
+  CategoriaEmpresa, CustoEmpresa, FaturaEmpresa, Meta,
 } from './types';
 import { DEFAULT_CARTOES, DEFAULT_CATEGORIAS } from './cartoes';
 
@@ -466,4 +466,24 @@ export async function setFaturaEmpresaStatus(
 ): Promise<void> {
   const docId = `${categoriaId}_${String(mes).padStart(2, '0')}_${ano}`;
   await setDoc(doc(db, 'faturas_empresa', docId), { categoriaId, mes, ano, status });
+}
+
+// ─── Metas do Ano ────────────────────────────────────────────────────────────
+
+export async function getMetas(ano: number): Promise<Meta[]> {
+  const q = query(collection(db, 'metas'), where('ano', '==', ano));
+  const snap = await getDocs(q);
+  return snap.docs.map((d) => ({ id: d.id, ...d.data() } as Meta));
+}
+
+export async function addMeta(m: Omit<Meta, 'id'>): Promise<void> {
+  await addDoc(collection(db, 'metas'), m);
+}
+
+export async function updateMeta(id: string, m: Omit<Meta, 'id'>): Promise<void> {
+  await setDoc(doc(db, 'metas', id), m);
+}
+
+export async function deleteMeta(id: string): Promise<void> {
+  await deleteDoc(doc(db, 'metas', id));
 }

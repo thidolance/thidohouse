@@ -252,9 +252,13 @@ export default function TabCartoes({ mes, ano }: Props) {
     total: compras.filter((p) => p.tipo === cat.nome).reduce((s, p) => s + p.valorParcela, 0),
   })).filter((c) => c.total > 0);
 
+  const porFixaPrimeiro = (a: CompraParcelada, b: CompraParcelada) => (b.fixa ? 1 : 0) - (a.fixa ? 1 : 0);
+
   const comprasDoCartao = cartaoSelecionado
-    ? compras.filter((c) => c.cartaoId === cartaoSelecionado)
+    ? compras.filter((c) => c.cartaoId === cartaoSelecionado).sort(porFixaPrimeiro)
     : [];
+
+  const comprasOrdenadas = [...compras].sort(porFixaPrimeiro);
 
   const cartaoAtivo = cartoes.find((c) => c.id === cartaoSelecionado);
 
@@ -478,7 +482,7 @@ export default function TabCartoes({ mes, ano }: Props) {
             <p className="text-slate-400 text-sm text-center py-8">Clique em um cartão para filtrar ou adicione uma compra</p>
           ) : (
             <div className="space-y-2">
-              {compras.map((p) => {
+              {comprasOrdenadas.map((p) => {
                 const c = cartoes.find((c) => c.id === p.cartaoId);
                 return (
                   <div key={p.id} className="flex items-center justify-between p-3 rounded-xl hover:bg-slate-50 transition-colors">

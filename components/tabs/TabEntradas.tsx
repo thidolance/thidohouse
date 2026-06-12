@@ -29,6 +29,10 @@ function parseBRL(formatted: string): number {
   return parseFloat(formatted.replace(/\./g, '').replace(',', '.')) || 0;
 }
 
+function toInt(value: string): number {
+  return parseInt(value) || 0;
+}
+
 function GearIcon() {
   return (
     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -74,7 +78,7 @@ export default function TabEntradas({ mes, ano }: Props) {
   const [showDistModal, setShowDistModal] = useState(false);
   const [loading, setLoading]           = useState(false);
   const [form, setForm]                 = useState({ descricao: '', valor: '', data: '' });
-  const [distForm, setDistForm]         = useState({ contas: 50, ferias: 10, investimento: 20, planosFuturos: 20 });
+  const [distForm, setDistForm]         = useState<Record<DistKey, string>>({ contas: '50', ferias: '10', investimento: '20', planosFuturos: '20' });
   const [distColors, setDistColors]     = useState<DistColors>(DEFAULT_DIST_COLORS);
   const [distColorForm, setDistColorForm] = useState<DistColors>(DEFAULT_DIST_COLORS);
 
@@ -111,11 +115,11 @@ export default function TabEntradas({ mes, ano }: Props) {
 
     if (dist) {
       setDistribuicao(dist);
-      setDistForm({ contas: dist.contas, ferias: dist.ferias, investimento: dist.investimento, planosFuturos: dist.planosFuturos });
+      setDistForm({ contas: String(dist.contas), ferias: String(dist.ferias), investimento: String(dist.investimento), planosFuturos: String(dist.planosFuturos) });
     } else {
       const d = { mes, ano, contas: 50, ferias: 10, investimento: 20, planosFuturos: 20 };
       setDistribuicao(d);
-      setDistForm({ contas: 50, ferias: 10, investimento: 20, planosFuturos: 20 });
+      setDistForm({ contas: '50', ferias: '10', investimento: '20', planosFuturos: '20' });
     }
     setLoading(false);
   }, [mes, ano]);
@@ -142,9 +146,15 @@ export default function TabEntradas({ mes, ano }: Props) {
 
   async function handleSaveDistribuicao(e: React.SubmitEvent<HTMLFormElement>) {
     e.preventDefault();
-    const soma = distForm.contas + distForm.ferias + distForm.investimento + distForm.planosFuturos;
+    const parsed = {
+      contas: toInt(distForm.contas),
+      ferias: toInt(distForm.ferias),
+      investimento: toInt(distForm.investimento),
+      planosFuturos: toInt(distForm.planosFuturos),
+    };
+    const soma = parsed.contas + parsed.ferias + parsed.investimento + parsed.planosFuturos;
     if (soma !== 100) return alert('Os percentuais devem somar 100%');
-    await saveDistribuicao({ ...distForm, mes, ano }, distribuicao.id);
+    await saveDistribuicao({ ...parsed, mes, ano }, distribuicao.id);
     setDistColors(distColorForm);
     localStorage.setItem(LS_COLORS_KEY, JSON.stringify(distColorForm));
     setShowDistModal(false);
@@ -160,7 +170,7 @@ export default function TabEntradas({ mes, ano }: Props) {
     fill: distColors[key],
   }));
 
-  const distSoma = distForm.contas + distForm.ferias + distForm.investimento + distForm.planosFuturos;
+  const distSoma = toInt(distForm.contas) + toInt(distForm.ferias) + toInt(distForm.investimento) + toInt(distForm.planosFuturos);
 
   // ── specs VChart ──────────────────────────────────────────────────────────
 
@@ -396,7 +406,7 @@ export default function TabEntradas({ mes, ano }: Props) {
                 </label>
                 <input type="number" min={0} max={100}
                   value={distForm[key]}
-                  onChange={(e) => setDistForm({ ...distForm, [key]: parseInt(e.target.value) || 0 })}
+                  onChange={(e) => setDistForm({ ...distForm, [key]: e.target.value })}
                   className={INPUT} />
               </div>
             ))}

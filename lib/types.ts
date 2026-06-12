@@ -100,3 +100,12 @@ export interface CompraParcelada {
   grupoId?: string;
   fixa?: boolean;
 }
+
+export interface Meta {
+  id?: string;
+  ano: number;
+  nome: string;
+  valor: number;
+  concluida: boolean;
+  link?: string;
+}
