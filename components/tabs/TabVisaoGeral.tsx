@@ -32,7 +32,7 @@ interface MesDashboard {
 
 interface CatGasto { nome: string; total: number; fill: string; }
 
-interface Props { mes: number; ano: number; }
+interface Props { mes: number; ano: number; onNavigate: (tab: 'entradas' | 'contas') => void; }
 
 const MESES_CURTOS = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
 
@@ -66,7 +66,7 @@ const AXIS_LEFT = (formatMethod: (v: number) => string) => ({
   label: { style: { fontSize: 11, fill: '#94a3b8' }, formatMethod },
 });
 
-export default function TabVisaoGeral({ mes, ano }: Props) {
+export default function TabVisaoGeral({ mes, ano, onNavigate }: Props) {
   const [dados, setDados]               = useState<MesDashboard[]>([]);
   const [gastosPorCat, setGastosPorCat] = useState<CatGasto[]>([]);
   const [gastosPorTipo, setGastosPorTipo] = useState<CatGasto[]>([]);
@@ -292,27 +292,27 @@ export default function TabVisaoGeral({ mes, ano }: Props) {
     <div className="space-y-5">
       {/* ── Cards do mês atual ── */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        <div className="relative overflow-hidden bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-2xl p-4 text-white shadow-sm">
+        <button type="button" onClick={() => onNavigate('entradas')} className="relative overflow-hidden bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-2xl p-4 text-white shadow-sm text-left cursor-pointer hover:brightness-110 transition-all">
           <div className="absolute -top-3 -right-3 w-16 h-16 bg-white/10 rounded-full" />
           <p className="text-indigo-100 text-xs relative">Ganhos do mês</p>
           <p className="text-xl font-bold mt-1 tabular-nums relative">{fmt(atual?.ganhos ?? 0)}</p>
-        </div>
-        <div className="relative overflow-hidden bg-gradient-to-br from-rose-500 to-rose-600 rounded-2xl p-4 text-white shadow-sm">
+        </button>
+        <button type="button" onClick={() => onNavigate('contas')} className="relative overflow-hidden bg-gradient-to-br from-rose-500 to-rose-600 rounded-2xl p-4 text-white shadow-sm text-left cursor-pointer hover:brightness-110 transition-all">
           <div className="absolute -top-3 -right-3 w-16 h-16 bg-white/10 rounded-full" />
           <p className="text-rose-100 text-xs relative">Gastos do mês</p>
           <p className="text-xl font-bold mt-1 tabular-nums relative">{fmt(atual?.gastos ?? 0)}</p>
-        </div>
+        </button>
         <div className={`relative overflow-hidden rounded-2xl p-4 text-white shadow-sm bg-gradient-to-br ${(atual?.saldo ?? 0) >= 0 ? 'from-emerald-500 to-emerald-600' : 'from-amber-500 to-amber-600'}`}>
           <div className="absolute -top-3 -right-3 w-16 h-16 bg-white/10 rounded-full" />
           <p className="text-white/80 text-xs relative">Saldo do mês</p>
           <p className="text-xl font-bold mt-1 tabular-nums relative">{fmt(atual?.saldo ?? 0)}</p>
         </div>
-        <div className="relative overflow-hidden bg-gradient-to-br from-violet-500 to-violet-600 rounded-2xl p-4 text-white shadow-sm">
+        <button type="button" onClick={() => onNavigate('entradas')} className="relative overflow-hidden bg-gradient-to-br from-violet-500 to-violet-600 rounded-2xl p-4 text-white shadow-sm text-left cursor-pointer hover:brightness-110 transition-all">
           <div className="absolute -top-3 -right-3 w-16 h-16 bg-white/10 rounded-full" />
           <p className="text-violet-100 text-xs relative">Guardado no mês</p>
           <p className="text-xl font-bold mt-1 tabular-nums relative">{fmt(totalGuardado)}</p>
           <p className="text-violet-200 text-[11px] mt-0.5 relative">{pctGuardado.toFixed(0)}% dos ganhos</p>
-        </div>
+        </button>
       </div>
 
       {/* ── Evolução Ganhos vs Gastos ── */}

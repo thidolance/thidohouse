@@ -80,7 +80,7 @@ export default function Home() {
 
       {/* Conteúdo */}
       <main className="max-w-5xl mx-auto px-4 py-6">
-        {tab === 'visao'    && <TabVisaoGeral mes={mes} ano={ano} />}
+        {tab === 'visao'    && <TabVisaoGeral mes={mes} ano={ano} onNavigate={setTab} />}
         {tab === 'entradas' && <TabEntradas   mes={mes} ano={ano} />}
         {tab === 'contas'   && <TabContas     mes={mes} ano={ano} />}
         {tab === 'cartoes'  && <TabCartoes    mes={mes} ano={ano} />}
