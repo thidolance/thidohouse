@@ -43,6 +43,7 @@ export interface Cartao {
   nome: string;
   cor: string;
   bandeira?: 'Visa' | 'Mastercard';
+  limite?: number;
 }
 
 export interface CategoriaCompra {

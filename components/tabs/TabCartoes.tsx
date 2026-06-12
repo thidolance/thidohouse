@@ -67,8 +67,8 @@ const COMPRA_EMPTY: FormCompra = {
   valorTotal: '', totalParcelas: '', parcelaAtual: '1', fixa: false,
 };
 
-type FormCartao = { nome: string; cor: string; bandeira: 'Visa' | 'Mastercard' };
-const CARTAO_EMPTY: FormCartao = { nome: '', cor: '#6366f1', bandeira: 'Visa' };
+type FormCartao = { nome: string; cor: string; bandeira: 'Visa' | 'Mastercard'; limite: string };
+const CARTAO_EMPTY: FormCartao = { nome: '', cor: '#6366f1', bandeira: 'Visa', limite: '' };
 
 type FormCategoria = { nome: string; cor: string };
 const CAT_EMPTY: FormCategoria = { nome: '', cor: '#10b981' };
@@ -203,14 +203,20 @@ export default function TabCartoes({ mes, ano }: Props) {
 
   function abrirEditCartao(c: Cartao) {
     setEditCartaoId(c.id!);
-    setFormCartao({ nome: c.nome, cor: c.cor, bandeira: c.bandeira ?? 'Visa' });
+    setFormCartao({ nome: c.nome, cor: c.cor, bandeira: c.bandeira ?? 'Visa', limite: c.limite ? String(c.limite) : '' });
     setShowCartaoForm(true);
   }
 
   async function handleSaveCartao(e: React.SubmitEvent<HTMLFormElement>) {
     e.preventDefault();
-    if (editCartaoId) await updateCartao(editCartaoId, formCartao);
-    else              await addCartao(formCartao);
+    const data: Omit<Cartao, 'id'> = {
+      nome: formCartao.nome,
+      cor: formCartao.cor,
+      bandeira: formCartao.bandeira,
+      limite: parseFloat(formCartao.limite.replace(',', '.')) || 0,
+    };
+    if (editCartaoId) await updateCartao(editCartaoId, data);
+    else              await addCartao(data);
     setShowCartaoForm(false);
     setEditCartaoId(null);
     setFormCartao(CARTAO_EMPTY);
@@ -419,6 +425,17 @@ export default function TabCartoes({ mes, ano }: Props) {
                 </div>
                 <p className="text-white/60 text-xs">{dado?.count ?? 0} compra(s)</p>
               </div>
+              {!!c.limite && c.limite > 0 && (
+                <div className="relative mt-3">
+                  <div className="w-full bg-white/20 rounded-full h-1.5">
+                    <div
+                      className="h-1.5 rounded-full bg-white transition-all"
+                      style={{ width: `${Math.min(100, ((dado?.total ?? 0) / c.limite) * 100)}%` }}
+                    />
+                  </div>
+                  <p className="text-white/60 text-[11px] mt-1">{fmt(dado?.total ?? 0)} de {fmt(c.limite)}</p>
+                </div>
+              )}
             </button>
           );
         })}
@@ -673,6 +690,10 @@ export default function TabCartoes({ mes, ano }: Props) {
                         ))}
                       </div>
                     </div>
+                  </div>
+                  <div>
+                    <label className="block text-xs text-slate-500 mb-1">Limite (R$)</label>
+                    <input value={formCartao.limite} onChange={(e) => setFormCartao({ ...formCartao, limite: e.target.value })} className={INPUT} placeholder="0,00" inputMode="decimal" />
                   </div>
                   {/* Preview */}
                   <div className="relative overflow-hidden rounded-xl h-14 flex items-center px-4" style={{ backgroundColor: formCartao.cor }}>
