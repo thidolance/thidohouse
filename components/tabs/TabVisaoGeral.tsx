@@ -253,7 +253,7 @@ export default function TabVisaoGeral({ mes, ano, onNavigate }: Props) {
     const vals = dados.flatMap((d) => [
       { label: d.label, valor: d.ferias, tipo: 'Férias', isAtual: d.isAtual },
       { label: d.label, valor: d.investimento, tipo: 'Investimento', isAtual: d.isAtual },
-      { label: d.label, valor: d.planosFuturos, tipo: 'Planos Futuros', isAtual: d.isAtual },
+      { label: d.label, valor: d.planosFuturos, tipo: 'Metas do Ano', isAtual: d.isAtual },
     ]).filter((d) => d.valor > 0);
     return {
       type: 'bar',
@@ -434,7 +434,7 @@ export default function TabVisaoGeral({ mes, ano, onNavigate }: Props) {
                 {[
                   { label: 'Férias', valor: atual?.ferias ?? 0, color: '#22d3ee', bg: 'bg-cyan-50' },
                   { label: 'Investimento', valor: atual?.investimento ?? 0, color: '#a78bfa', bg: 'bg-violet-50' },
-                  { label: 'Planos Futuros', valor: atual?.planosFuturos ?? 0, color: '#34d399', bg: 'bg-emerald-50' },
+                  { label: 'Metas do Ano', valor: atual?.planosFuturos ?? 0, color: '#34d399', bg: 'bg-emerald-50' },
                 ].map((item) => (
                   <div key={item.label} className={`${item.bg} rounded-xl p-3`}>
                     <div className="flex items-center gap-1.5 mb-1">

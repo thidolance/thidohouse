@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import Modal from '../ui/Modal';
 import Card from '../ui/Card';
 import { Plus, Trash, Pencil, Check, LinkIcon } from '../ui/Icons';
-import { getMetas, addMeta, updateMeta, deleteMeta } from '@/lib/firestore';
+import { getMetas, addMeta, updateMeta, deleteMeta, getEntradasHistorico, getDistribuicoesHistorico } from '@/lib/firestore';
 import type { Meta } from '@/lib/types';
 
 const fmt = (v: number) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
@@ -21,10 +21,25 @@ export default function TabMetas({ ano }: Props) {
   const [showModal, setShowModal] = useState(false);
   const [editId, setEditId]   = useState<string | null>(null);
   const [form, setForm]       = useState<FormMeta>(META_EMPTY);
+  const [valorGuardado, setValorGuardado] = useState(0);
 
   const load = useCallback(async () => {
     setLoading(true);
-    setMetas(await getMetas(ano));
+    const [lista, entradas, distribuicoes] = await Promise.all([
+      getMetas(ano),
+      getEntradasHistorico(),
+      getDistribuicoesHistorico(),
+    ]);
+    setMetas(lista);
+
+    let guardado = 0;
+    for (let m = 1; m <= 12; m++) {
+      const ganhos = entradas.filter((e) => e.mes === m && e.ano === ano).reduce((s, e) => s + e.valor, 0);
+      const dist = distribuicoes.find((d) => d.mes === m && d.ano === ano);
+      guardado += ganhos * (dist?.planosFuturos ?? 0) / 100;
+    }
+    setValorGuardado(guardado);
+
     setLoading(false);
   }, [ano]);
 
@@ -77,6 +92,7 @@ export default function TabMetas({ ano }: Props) {
   const totalGeral     = metas.reduce((s, m) => s + m.valor, 0);
   const totalConcluido = metas.filter((m) => m.concluida).reduce((s, m) => s + m.valor, 0);
   const totalFaltante  = totalGeral - totalConcluido;
+  const saldoGuardado  = valorGuardado - totalConcluido;
 
   const metasOrdenadas = [...metas].sort((a, b) => {
     if (a.concluida !== b.concluida) return a.concluida ? 1 : -1;
@@ -95,6 +111,16 @@ export default function TabMetas({ ano }: Props) {
           className="inline-flex items-center gap-1.5 px-3 py-2 bg-indigo-600 text-white rounded-xl text-sm font-medium hover:bg-indigo-700 transition-colors shadow-sm">
           <Plus /><span className="hidden sm:inline">Nova Meta</span>
         </button>
+      </div>
+
+      {/* ── Saldo guardado (categoria Metas do Ano) ── */}
+      <div className="relative overflow-hidden bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-2xl p-4 text-white shadow-sm">
+        <div className="absolute -top-3 -right-3 w-16 h-16 bg-white/10 rounded-full" />
+        <p className="text-emerald-100 text-xs relative">Saldo guardado em {ano} · categoria Metas do Ano</p>
+        <p className="text-xl font-bold mt-1 tabular-nums relative">{fmt(saldoGuardado)}</p>
+        {totalConcluido > 0 && (
+          <p className="text-emerald-100 text-[11px] mt-0.5 relative">{fmt(valorGuardado)} guardado − {fmt(totalConcluido)} em metas realizadas</p>
+        )}
       </div>
 
       {/* ── Lista ── */}
