@@ -113,10 +113,10 @@ export default function TabMetas({ ano }: Props) {
         </button>
       </div>
 
-      {/* ── Saldo guardado (categoria Metas do Ano) ── */}
+      {/* ── Saldo guardado (categoria Planos Futuros) ── */}
       <div className="relative overflow-hidden bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-2xl p-4 text-white shadow-sm">
         <div className="absolute -top-3 -right-3 w-16 h-16 bg-white/10 rounded-full" />
-        <p className="text-emerald-100 text-xs relative">Saldo guardado em {ano} · categoria Metas do Ano</p>
+        <p className="text-emerald-100 text-xs relative">Saldo guardado em {ano} · categoria Planos Futuros</p>
         <p className="text-xl font-bold mt-1 tabular-nums relative">{fmt(saldoGuardado)}</p>
         {totalConcluido > 0 && (
           <p className="text-emerald-100 text-[11px] mt-0.5 relative">{fmt(valorGuardado)} guardado − {fmt(totalConcluido)} em metas realizadas</p>

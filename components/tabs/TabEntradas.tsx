@@ -58,7 +58,7 @@ const DIST_LABELS: { key: DistKey; label: string }[] = [
   { key: 'contas',        label: 'Contas' },
   { key: 'ferias',        label: 'Férias' },
   { key: 'investimento',  label: 'Investimento' },
-  { key: 'planosFuturos', label: 'Metas do Ano' },
+  { key: 'planosFuturos', label: 'Planos Futuros' },
 ];
 
 const LS_COLORS_KEY = 'thidohouse-dist-colors';
