@@ -78,6 +78,11 @@ export default function TabMetas({ ano }: Props) {
   const totalConcluido = metas.filter((m) => m.concluida).reduce((s, m) => s + m.valor, 0);
   const totalFaltante  = totalGeral - totalConcluido;
 
+  const metasOrdenadas = [...metas].sort((a, b) => {
+    if (a.concluida !== b.concluida) return a.concluida ? 1 : -1;
+    return b.valor - a.valor;
+  });
+
   return (
     <div className="space-y-5">
       {/* ── Header ── */}
@@ -110,7 +115,7 @@ export default function TabMetas({ ano }: Props) {
           </div>
         ) : (
           <div className="divide-y divide-slate-50">
-            {metas.map((m) => (
+            {metasOrdenadas.map((m) => (
               <div key={m.id} className={`group flex items-center gap-3 px-4 py-3.5 transition-all ${m.concluida ? 'bg-emerald-50/70' : 'hover:bg-slate-50/80'}`}>
                 <button
                   onClick={() => handleToggle(m)}
