@@ -258,13 +258,13 @@ export default function TabCartoes({ mes, ano }: Props) {
     total: compras.filter((p) => p.tipo === cat.nome).reduce((s, p) => s + p.valorParcela, 0),
   })).filter((c) => c.total > 0);
 
-  const porFixaPrimeiro = (a: CompraParcelada, b: CompraParcelada) => (b.fixa ? 1 : 0) - (a.fixa ? 1 : 0);
+  const porFixaPorUltimo = (a: CompraParcelada, b: CompraParcelada) => (a.fixa ? 1 : 0) - (b.fixa ? 1 : 0);
 
   const comprasDoCartao = cartaoSelecionado
-    ? compras.filter((c) => c.cartaoId === cartaoSelecionado).sort(porFixaPrimeiro)
+    ? compras.filter((c) => c.cartaoId === cartaoSelecionado).sort(porFixaPorUltimo)
     : [];
 
-  const comprasOrdenadas = [...compras].sort(porFixaPrimeiro);
+  const comprasOrdenadas = [...compras].sort(porFixaPorUltimo);
 
   const cartaoAtivo = cartoes.find((c) => c.id === cartaoSelecionado);
 
