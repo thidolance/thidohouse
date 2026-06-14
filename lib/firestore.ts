@@ -315,27 +315,30 @@ export async function updateCompra(id: string, c: Omit<CompraParcelada, 'id'>, o
   await setDoc(doc(db, 'compras', id), grupoId ? { ...c, grupoId } : c);
 }
 
-// Busca compras "irmãs" em meses posteriores: pelo grupoId quando existir, ou (compras antigas que
-// perderam o grupoId) pelas mesmas características (cartão + descrição + fixa/parcelas)
+// Busca compras "irmãs" em meses posteriores: pelo grupoId (quando existir) e também pelas mesmas
+// características (cartão + descrição + fixa), cobrindo compras antigas que perderam o grupoId
+// ou cujo grupoId ficou inconsistente entre as parcelas
 export async function getComprasFuturasDoGrupo(original: CompraParcelada): Promise<CompraParcelada[]> {
   const currentAbs = original.ano * 12 + original.mes;
-  let candidatas: CompraParcelada[];
+  const candidatas = new Map<string, CompraParcelada>();
 
   if (original.grupoId) {
     const snap = await getDocs(query(collection(db, 'compras'), where('grupoId', '==', original.grupoId)));
-    candidatas = snap.docs.map((d) => ({ id: d.id, ...d.data() } as CompraParcelada));
-  } else {
-    const snap = await getDocs(query(
-      collection(db, 'compras'),
-      where('cartaoId', '==', original.cartaoId),
-      where('descricao', '==', original.descricao),
-    ));
-    candidatas = snap.docs
-      .map((d) => ({ id: d.id, ...d.data() } as CompraParcelada))
-      .filter((d) => (d.fixa ?? false) === (original.fixa ?? false) && d.totalParcelas === original.totalParcelas);
+    snap.docs.forEach((d) => candidatas.set(d.id, { id: d.id, ...d.data() } as CompraParcelada));
   }
 
-  return candidatas.filter((d) => d.id !== original.id && (d.ano * 12 + d.mes) > currentAbs);
+  const snap = await getDocs(query(
+    collection(db, 'compras'),
+    where('cartaoId', '==', original.cartaoId),
+    where('descricao', '==', original.descricao),
+  ));
+  snap.docs
+    .map((d) => ({ id: d.id, ...d.data() } as CompraParcelada))
+    .filter((d) => (d.fixa ?? false) === (original.fixa ?? false))
+    .forEach((d) => candidatas.set(d.id!, d));
+
+  return Array.from(candidatas.values())
+    .filter((d) => d.id !== original.id && (d.ano * 12 + d.mes) > currentAbs);
 }
 
 // Atualiza a compra e propaga descrição/valor/tipo/cartão/fixa para os meses futuros relacionados,
