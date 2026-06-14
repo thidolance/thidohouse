@@ -310,8 +310,21 @@ export async function addCompra(c: Omit<CompraParcelada, 'id'>): Promise<void> {
   );
 }
 
-export async function updateCompra(id: string, c: Omit<CompraParcelada, 'id'>): Promise<void> {
-  await setDoc(doc(db, 'compras', id), c);
+// Atualiza a compra; se for fixa, propaga descrição/valor/tipo/cartão para os meses futuros do mesmo grupo
+export async function updateCompra(id: string, c: Omit<CompraParcelada, 'id'>, original?: CompraParcelada): Promise<void> {
+  const grupoId = original?.grupoId;
+  await setDoc(doc(db, 'compras', id), grupoId ? { ...c, grupoId } : c);
+
+  if (c.fixa && original?.fixa && grupoId) {
+    const snap = await getDocs(query(collection(db, 'compras'), where('grupoId', '==', grupoId)));
+    const currentAbs = original.ano * 12 + original.mes;
+    const { mes: _mes, ano: _ano, parcelaAtual: _parcelaAtual, ...resto } = c;
+    await Promise.all(
+      snap.docs
+        .filter((d) => { const x = d.data(); return d.id !== id && (x.ano * 12 + x.mes) > currentAbs; })
+        .map((d) => setDoc(d.ref, { ...resto, mes: d.data().mes, ano: d.data().ano, parcelaAtual: d.data().parcelaAtual, grupoId }, { merge: true })),
+    );
+  }
 }
 
 // Ativa/desativa fixa: cria 24 cópias ou apaga todas as futuras do mesmo grupoId

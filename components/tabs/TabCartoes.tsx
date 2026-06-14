@@ -138,8 +138,12 @@ export default function TabCartoes({ mes, ano }: Props) {
       mes, ano,
       fixa: formCompra.fixa && parcelas <= 1,
     };
-    if (editCompraId) await updateCompra(editCompraId, data);
-    else              await addCompra(data);
+    if (editCompraId) {
+      const original = compras.find((c) => c.id === editCompraId);
+      await updateCompra(editCompraId, data, original);
+    } else {
+      await addCompra(data);
+    }
     setShowCompraModal(false);
     setEditCompraId(null);
     setFormCompra({ ...COMPRA_EMPTY, cartaoId: cartoes[0]?.id ?? '', tipo: categorias[0]?.nome ?? '' });

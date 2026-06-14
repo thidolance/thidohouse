@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import dynamic from 'next/dynamic';
 import Card from '../ui/Card';
+import TabAssistente from './TabAssistente';
 import {
   getEntradasHistorico,
   getContasHistorico,
@@ -450,6 +451,8 @@ export default function TabVisaoGeral({ mes, ano, onNavigate }: Props) {
         )}
       </Card>
 
+      {/* ── Assistente ── */}
+      <TabAssistente mes={mes} ano={ano} />
     </div>
   );
 }

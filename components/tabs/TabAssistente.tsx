@@ -84,12 +84,17 @@ export default function TabAssistente({ mes, ano }: Props) {
   return (
     <div className="space-y-5">
       {/* ── Header ── */}
-      <div>
-        <h2 className="text-lg font-bold text-slate-800">Assistente</h2>
-        <p className="text-xs text-slate-400">Pergunte sobre seus gastos de {MESES[mes - 1]}/{ano}</p>
+      <div className="flex items-center gap-3">
+        <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-indigo-50 text-indigo-500 flex-shrink-0">
+          <MessageCircle />
+        </div>
+        <div>
+          <h2 className="text-lg font-bold text-slate-800">Assistente Financeiro</h2>
+          <p className="text-xs text-slate-400">Pergunte sobre seus gastos de {MESES[mes - 1]}/{ano}</p>
+        </div>
       </div>
 
-      <Card className="flex flex-col h-[65vh]">
+      <Card className="flex flex-col h-[480px]">
         {/* ── Mensagens ── */}
         <div className="flex-1 overflow-y-auto space-y-3 pr-1">
           {mensagens.length === 0 && (
