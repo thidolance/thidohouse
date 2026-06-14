@@ -11,7 +11,8 @@ import Modal from '../ui/Modal';
 import Card from '../ui/Card';
 import { Plus, Trash, Pencil } from '../ui/Icons';
 import {
-  getCompras, addCompra, updateCompra, deleteCompra, deleteCompraAndFuture, toggleCompraFixa,
+  getCompras, addCompra, updateCompra, updateCompraAndFuture, getComprasFuturasDoGrupo,
+  deleteCompra, deleteCompraAndFuture, toggleCompraFixa,
   getCartoes, addCartao, updateCartao, deleteCartao,
   getCategorias, addCategoria, deleteCategoria,
 } from '@/lib/firestore';
@@ -101,6 +102,9 @@ export default function TabCartoes({ mes, ano }: Props) {
   // dialog exclusão de compra
   const [deleteCompraDialog, setDeleteCompraDialog] = useState<CompraParcelada | null>(null);
 
+  // dialog escopo de edição (este mês ou também os seguintes)
+  const [editCompraDialog, setEditCompraDialog] = useState<{ id: string; data: Omit<CompraParcelada, 'id'>; original: CompraParcelada } | null>(null);
+
   const loadConfig = useCallback(async () => {
     const [c, cat] = await Promise.all([getCartoes(), getCategorias()]);
     setCartoes(c);
@@ -140,11 +144,27 @@ export default function TabCartoes({ mes, ano }: Props) {
     };
     if (editCompraId) {
       const original = compras.find((c) => c.id === editCompraId);
+      const futuras = original?.grupoId ? await getComprasFuturasDoGrupo(original.grupoId, original.mes, original.ano) : [];
+      if (futuras.length > 0) {
+        setShowCompraModal(false);
+        setEditCompraDialog({ id: editCompraId, data, original: original! });
+        return;
+      }
       await updateCompra(editCompraId, data, original);
     } else {
       await addCompra(data);
     }
     setShowCompraModal(false);
+    setEditCompraId(null);
+    setFormCompra({ ...COMPRA_EMPTY, cartaoId: cartoes[0]?.id ?? '', tipo: categorias[0]?.nome ?? '' });
+    loadCompras();
+  }
+
+  async function confirmarEditCompra(scope: 'this' | 'future') {
+    const { id, data, original } = editCompraDialog!;
+    setEditCompraDialog(null);
+    if (scope === 'future') await updateCompraAndFuture(id, data, original);
+    else                    await updateCompra(id, data, original);
     setEditCompraId(null);
     setFormCompra({ ...COMPRA_EMPTY, cartaoId: cartoes[0]?.id ?? '', tipo: categorias[0]?.nome ?? '' });
     loadCompras();
@@ -774,6 +794,32 @@ export default function TabCartoes({ mes, ano }: Props) {
                 Só este mês
               </button>
               <button onClick={() => setDeleteCompraDialog(null)}
+                className="w-full py-2.5 rounded-xl text-sm text-slate-500 border border-slate-200 hover:bg-slate-50 transition-colors">
+                Cancelar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Dialog escopo de edição: este mês ou também os seguintes ── */}
+      {editCompraDialog && (
+        <div className="fixed inset-0 z-[200] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 space-y-4">
+            <h3 className="font-bold text-slate-800">Aplicar alteração</h3>
+            <p className="text-sm text-slate-500 leading-relaxed">
+              <strong>&ldquo;{editCompraDialog.original.descricao}&rdquo;</strong> também aparece em meses seguintes. Deseja aplicar essa alteração só a este mês ou também aos próximos?
+            </p>
+            <div className="space-y-2 pt-1">
+              <button onClick={() => confirmarEditCompra('future')}
+                className="w-full py-2.5 rounded-xl text-sm font-semibold bg-indigo-600 text-white hover:bg-indigo-700 transition-colors">
+                Este e os seguintes
+              </button>
+              <button onClick={() => confirmarEditCompra('this')}
+                className="w-full py-2.5 rounded-xl text-sm font-medium bg-slate-700 text-white hover:bg-slate-800 transition-colors">
+                Só este mês
+              </button>
+              <button onClick={() => { setEditCompraDialog(null); setEditCompraId(null); setFormCompra(COMPRA_EMPTY); }}
                 className="w-full py-2.5 rounded-xl text-sm text-slate-500 border border-slate-200 hover:bg-slate-50 transition-colors">
                 Cancelar
               </button>

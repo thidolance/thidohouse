@@ -310,21 +310,31 @@ export async function addCompra(c: Omit<CompraParcelada, 'id'>): Promise<void> {
   );
 }
 
-// Atualiza a compra; se for fixa, propaga descrição/valor/tipo/cartão para os meses futuros do mesmo grupo
 export async function updateCompra(id: string, c: Omit<CompraParcelada, 'id'>, original?: CompraParcelada): Promise<void> {
   const grupoId = original?.grupoId;
   await setDoc(doc(db, 'compras', id), grupoId ? { ...c, grupoId } : c);
+}
 
-  if (c.fixa && original?.fixa && grupoId) {
-    const snap = await getDocs(query(collection(db, 'compras'), where('grupoId', '==', grupoId)));
-    const currentAbs = original.ano * 12 + original.mes;
-    const { mes: _mes, ano: _ano, parcelaAtual: _parcelaAtual, ...resto } = c;
-    await Promise.all(
-      snap.docs
-        .filter((d) => { const x = d.data(); return d.id !== id && (x.ano * 12 + x.mes) > currentAbs; })
-        .map((d) => setDoc(d.ref, { ...resto, mes: d.data().mes, ano: d.data().ano, parcelaAtual: d.data().parcelaAtual, grupoId }, { merge: true })),
-    );
-  }
+// Busca as compras do mesmo grupo em meses posteriores ao informado
+export async function getComprasFuturasDoGrupo(grupoId: string, mes: number, ano: number): Promise<CompraParcelada[]> {
+  const snap = await getDocs(query(collection(db, 'compras'), where('grupoId', '==', grupoId)));
+  const currentAbs = ano * 12 + mes;
+  return snap.docs
+    .map((d) => ({ id: d.id, ...d.data() } as CompraParcelada))
+    .filter((d) => (d.ano * 12 + d.mes) > currentAbs);
+}
+
+// Atualiza a compra e propaga descrição/valor/tipo/cartão/fixa para os meses futuros do mesmo grupo,
+// mantendo o mês/ano e a parcela atual de cada um
+export async function updateCompraAndFuture(id: string, c: Omit<CompraParcelada, 'id'>, original: CompraParcelada): Promise<void> {
+  const grupoId = original.grupoId!;
+  await setDoc(doc(db, 'compras', id), { ...c, grupoId });
+
+  const { mes: _mes, ano: _ano, parcelaAtual: _parcelaAtual, ...resto } = c;
+  const futuras = await getComprasFuturasDoGrupo(grupoId, original.mes, original.ano);
+  await Promise.all(
+    futuras.map((f) => setDoc(doc(db, 'compras', f.id!), { ...resto, mes: f.mes, ano: f.ano, parcelaAtual: f.parcelaAtual, grupoId }, { merge: true })),
+  );
 }
 
 // Ativa/desativa fixa: cria 24 cópias ou apaga todas as futuras do mesmo grupoId
