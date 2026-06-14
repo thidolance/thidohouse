@@ -269,12 +269,17 @@ export default function TabCartoes({ mes, ano }: Props) {
   // ── dados derivados ────────────────────────────────────────────────────────
   const totalGeral = compras.reduce((s, c) => s + c.valorParcela, 0);
 
-  const totalPorCartao = cartoes.map((c) => ({
-    ...c,
-    fill: c.cor,
-    total: compras.filter((p) => p.cartaoId === c.id).reduce((s, p) => s + p.valorParcela, 0),
-    count: compras.filter((p) => p.cartaoId === c.id).length,
-  }));
+  const totalPorCartao = cartoes.map((c) => {
+    const comprasCartao = compras.filter((p) => p.cartaoId === c.id);
+    return {
+      ...c,
+      fill: c.cor,
+      total: comprasCartao.reduce((s, p) => s + p.valorParcela, 0),
+      count: comprasCartao.length,
+      // Limite usado: parcelas em aberto contam pelo valor restante (todas as parcelas futuras), não só a do mês
+      usado: comprasCartao.reduce((s, p) => s + p.valorParcela * Math.max(1, p.totalParcelas - p.parcelaAtual + 1), 0),
+    };
+  });
 
   const totalPorCategoria = categorias.map((cat) => ({
     ...cat,
@@ -454,10 +459,10 @@ export default function TabCartoes({ mes, ano }: Props) {
                   <div className="w-full bg-white/20 rounded-full h-1.5">
                     <div
                       className="h-1.5 rounded-full bg-white transition-all"
-                      style={{ width: `${Math.min(100, ((dado?.total ?? 0) / c.limite) * 100)}%` }}
+                      style={{ width: `${Math.min(100, ((dado?.usado ?? 0) / c.limite) * 100)}%` }}
                     />
                   </div>
-                  <p className="text-white/60 text-[11px] mt-1">{fmt(dado?.total ?? 0)} de {fmt(c.limite)}</p>
+                  <p className="text-white/60 text-[11px] mt-1">{fmt(dado?.usado ?? 0)} de {fmt(c.limite)}</p>
                 </div>
               )}
             </button>
