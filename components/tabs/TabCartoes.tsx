@@ -144,7 +144,7 @@ export default function TabCartoes({ mes, ano }: Props) {
     };
     if (editCompraId) {
       const original = compras.find((c) => c.id === editCompraId);
-      const futuras = original?.grupoId ? await getComprasFuturasDoGrupo(original.grupoId, original.mes, original.ano) : [];
+      const futuras = original ? await getComprasFuturasDoGrupo(original) : [];
       if (futuras.length > 0) {
         setShowCompraModal(false);
         setEditCompraDialog({ id: editCompraId, data, original: original! });

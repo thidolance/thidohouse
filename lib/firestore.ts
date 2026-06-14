@@ -315,23 +315,37 @@ export async function updateCompra(id: string, c: Omit<CompraParcelada, 'id'>, o
   await setDoc(doc(db, 'compras', id), grupoId ? { ...c, grupoId } : c);
 }
 
-// Busca as compras do mesmo grupo em meses posteriores ao informado
-export async function getComprasFuturasDoGrupo(grupoId: string, mes: number, ano: number): Promise<CompraParcelada[]> {
-  const snap = await getDocs(query(collection(db, 'compras'), where('grupoId', '==', grupoId)));
-  const currentAbs = ano * 12 + mes;
-  return snap.docs
-    .map((d) => ({ id: d.id, ...d.data() } as CompraParcelada))
-    .filter((d) => (d.ano * 12 + d.mes) > currentAbs);
+// Busca compras "irmãs" em meses posteriores: pelo grupoId quando existir, ou (compras antigas que
+// perderam o grupoId) pelas mesmas características (cartão + descrição + fixa/parcelas)
+export async function getComprasFuturasDoGrupo(original: CompraParcelada): Promise<CompraParcelada[]> {
+  const currentAbs = original.ano * 12 + original.mes;
+  let candidatas: CompraParcelada[];
+
+  if (original.grupoId) {
+    const snap = await getDocs(query(collection(db, 'compras'), where('grupoId', '==', original.grupoId)));
+    candidatas = snap.docs.map((d) => ({ id: d.id, ...d.data() } as CompraParcelada));
+  } else {
+    const snap = await getDocs(query(
+      collection(db, 'compras'),
+      where('cartaoId', '==', original.cartaoId),
+      where('descricao', '==', original.descricao),
+    ));
+    candidatas = snap.docs
+      .map((d) => ({ id: d.id, ...d.data() } as CompraParcelada))
+      .filter((d) => (d.fixa ?? false) === (original.fixa ?? false) && d.totalParcelas === original.totalParcelas);
+  }
+
+  return candidatas.filter((d) => d.id !== original.id && (d.ano * 12 + d.mes) > currentAbs);
 }
 
-// Atualiza a compra e propaga descrição/valor/tipo/cartão/fixa para os meses futuros do mesmo grupo,
-// mantendo o mês/ano e a parcela atual de cada um
+// Atualiza a compra e propaga descrição/valor/tipo/cartão/fixa para os meses futuros relacionados,
+// mantendo o mês/ano e a parcela atual de cada um. Compras antigas sem grupoId recebem um novo grupoId.
 export async function updateCompraAndFuture(id: string, c: Omit<CompraParcelada, 'id'>, original: CompraParcelada): Promise<void> {
-  const grupoId = original.grupoId!;
+  const futuras = await getComprasFuturasDoGrupo(original);
+  const grupoId = original.grupoId ?? makeGrupoId();
   await setDoc(doc(db, 'compras', id), { ...c, grupoId });
 
   const { mes: _mes, ano: _ano, parcelaAtual: _parcelaAtual, ...resto } = c;
-  const futuras = await getComprasFuturasDoGrupo(grupoId, original.mes, original.ano);
   await Promise.all(
     futuras.map((f) => setDoc(doc(db, 'compras', f.id!), { ...resto, mes: f.mes, ano: f.ano, parcelaAtual: f.parcelaAtual, grupoId }, { merge: true })),
   );
