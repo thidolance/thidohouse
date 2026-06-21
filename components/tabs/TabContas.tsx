@@ -271,8 +271,18 @@ export default function TabContas({ mes, ano }: Props) {
     let list = [...itensCartao];
     if (filtroStatus !== 'todos') list = list.filter((c) => c.status === filtroStatus);
     if (busca.trim())             list = list.filter((c) => c.cartaoNome.toLowerCase().includes(busca.toLowerCase()));
-    return list;
-  }, [itensCartao, filtroStatus, busca]);
+    return list.sort((a, b) => {
+      // Pago sempre vai para o final, igual à lista de contas
+      if (a.status !== b.status) return a.status === 'pendente' ? -1 : 1;
+      switch (ordenacao) {
+        case 'valor-asc':  return a.valor - b.valor;
+        case 'valor-desc': return b.valor - a.valor;
+        case 'nome-az':     return a.cartaoNome.localeCompare(b.cartaoNome);
+        case 'nome-za':     return b.cartaoNome.localeCompare(a.cartaoNome);
+        default:            return b.valor - a.valor;
+      }
+    });
+  }, [itensCartao, filtroStatus, busca, ordenacao]);
 
   const mostrarContas  = filtroTipo === 'todos' || filtroTipo === 'contas';
   const mostrarCartoes = filtroTipo === 'todos' || filtroTipo === 'cartoes';
