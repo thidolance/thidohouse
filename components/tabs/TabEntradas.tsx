@@ -5,6 +5,7 @@ import dynamic from 'next/dynamic';
 import Modal from '../ui/Modal';
 import Card from '../ui/Card';
 import { Plus, Trash, TrendingUp } from '../ui/Icons';
+import { useRefetchOnFocus } from '@/lib/useRefetchOnFocus';
 import {
   getEntradas, addEntrada, deleteEntrada,
   getEntradasHistorico, getDistribuicao, saveDistribuicao,
@@ -125,6 +126,7 @@ export default function TabEntradas({ mes, ano }: Props) {
   }, [mes, ano]);
 
   useEffect(() => { load(); }, [load]);
+  useRefetchOnFocus(load);
 
   const totalMes = entradas.reduce((s, e) => s + e.valor, 0);
 

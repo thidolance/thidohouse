@@ -29,7 +29,8 @@ export default function TabAssistente({ mes, ano }: Props) {
   const fimRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    fimRef.current?.scrollIntoView({ behavior: 'smooth' });
+    if (mensagens.length === 0) return;
+    fimRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   }, [mensagens]);
 
   async function enviarMensagem(texto: string) {

@@ -10,6 +10,7 @@ const VChart = dynamic(
 import Modal from '../ui/Modal';
 import Card from '../ui/Card';
 import { Plus, Trash, Pencil } from '../ui/Icons';
+import { useRefetchOnFocus } from '@/lib/useRefetchOnFocus';
 import {
   getCompras, addCompra, updateCompra, updateCompraAndFuture, getComprasFuturasDoGrupo,
   deleteCompra, deleteCompraAndFuture, toggleCompraFixa,
@@ -120,6 +121,8 @@ export default function TabCartoes({ mes, ano }: Props) {
 
   useEffect(() => { loadConfig(); }, [loadConfig]);
   useEffect(() => { loadCompras(); }, [loadCompras]);
+  useRefetchOnFocus(loadConfig);
+  useRefetchOnFocus(loadCompras);
 
   // ── helpers de cor ─────────────────────────────────────────────────────────
   function catCor(nome: string) {

@@ -5,6 +5,7 @@ import dynamic from 'next/dynamic';
 import Modal from '../ui/Modal';
 import Card from '../ui/Card';
 import { Plus, Trash, Check, Pencil, ChevronRight } from '../ui/Icons';
+import { useRefetchOnFocus } from '@/lib/useRefetchOnFocus';
 import {
   getContas, addConta, updateConta, updateContaAndFuture,
   deleteConta, deleteContaAndFuture,
@@ -219,6 +220,7 @@ export default function TabContas({ mes, ano }: Props) {
 
   useEffect(() => { loadCats().then((c) => setForm(makeEmpty(c))); }, [loadCats, makeEmpty]);
   useEffect(() => { load(); }, [load]);
+  useRefetchOnFocus(load);
 
   // ── empresa sum ───────────────────────────────────────────────────────────
 

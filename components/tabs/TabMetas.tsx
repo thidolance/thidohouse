@@ -5,6 +5,7 @@ import Modal from '../ui/Modal';
 import Card from '../ui/Card';
 import { Plus, Trash, Pencil, Check, LinkIcon } from '../ui/Icons';
 import { getMetas, addMeta, updateMeta, deleteMeta } from '@/lib/firestore';
+import { useRefetchOnFocus } from '@/lib/useRefetchOnFocus';
 import type { Meta } from '@/lib/types';
 
 const fmt = (v: number) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
@@ -29,6 +30,7 @@ export default function TabMetas({ ano }: Props) {
   }, [ano]);
 
   useEffect(() => { load(); }, [load]);
+  useRefetchOnFocus(load);
 
   function abrirNova() {
     setEditId(null);

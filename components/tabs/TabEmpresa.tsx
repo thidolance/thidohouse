@@ -5,6 +5,7 @@ import dynamic from 'next/dynamic';
 import Modal from '../ui/Modal';
 import Card from '../ui/Card';
 import { Plus, Trash, Pencil } from '../ui/Icons';
+import { useRefetchOnFocus } from '@/lib/useRefetchOnFocus';
 import {
   getCustosEmpresa, addCustoEmpresa, updateCustoEmpresa, deleteCustoEmpresa, deleteCustoEmpresaAndFuture,
   getCategoriasEmpresa, addCategoriaEmpresa, deleteCategoriaEmpresa,
@@ -76,6 +77,7 @@ export default function TabEmpresa({ mes, ano }: Props) {
   }, [loadCategorias]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => { loadCustos(); }, [loadCustos]);
+  useRefetchOnFocus(loadCustos);
 
   function catPorId(id: string) { return categorias.find((c) => c.id === id); }
 
