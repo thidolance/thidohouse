@@ -150,6 +150,9 @@ export default function TabVisaoGeral({ mes, ano, onNavigate }: Props) {
   const totalGuardado = (atual?.ferias ?? 0) + (atual?.investimento ?? 0) + (atual?.planosFuturos ?? 0);
   const pctGuardado = atual?.ganhos ? (totalGuardado / atual.ganhos) * 100 : 0;
   const totalAcumulado = dados.reduce((s, d) => s + d.ferias + d.investimento + d.planosFuturos, 0);
+  const feriasAcumulado = dados.reduce((s, d) => s + d.ferias, 0);
+  const investimentoAcumulado = dados.reduce((s, d) => s + d.investimento, 0);
+  const planosFuturosAcumulado = dados.reduce((s, d) => s + d.planosFuturos, 0);
 
   // ── specs VChart ──────────────────────────────────────────────────────────
 
@@ -444,6 +447,24 @@ export default function TabVisaoGeral({ mes, ano, onNavigate }: Props) {
                       <span className="text-xs text-slate-500">{item.label}</span>
                     </div>
                     <p className="font-bold text-slate-700 text-sm tabular-nums">{fmt(item.valor)}</p>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {totalAcumulado > 0 && (
+              <div className="mt-3 grid grid-cols-3 gap-3">
+                {[
+                  { label: 'Férias', valor: feriasAcumulado, color: '#22d3ee' },
+                  { label: 'Investimento', valor: investimentoAcumulado, color: '#a78bfa' },
+                  { label: 'Planos Futuros', valor: planosFuturosAcumulado, color: '#34d399' },
+                ].map((item) => (
+                  <div key={item.label} className="rounded-xl px-3 py-1.5 text-center">
+                    <div className="flex items-center justify-center gap-1.5">
+                      <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: item.color }} />
+                      <span className="text-[10px] text-slate-400">Acumulado 12m</span>
+                    </div>
+                    <p className="font-semibold text-slate-500 text-xs tabular-nums mt-0.5">{fmt(item.valor)}</p>
                   </div>
                 ))}
               </div>
