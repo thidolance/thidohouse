@@ -4,10 +4,10 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import dynamic from 'next/dynamic';
 import Modal from '../ui/Modal';
 import Card from '../ui/Card';
-import { Plus, Trash, TrendingUp } from '../ui/Icons';
+import { Plus, Trash, Pencil, TrendingUp } from '../ui/Icons';
 import { useRefetchOnFocus } from '@/lib/useRefetchOnFocus';
 import {
-  getEntradas, addEntrada, deleteEntrada,
+  getEntradas, addEntrada, updateEntrada, deleteEntrada,
   getEntradasHistorico, getDistribuicao, saveDistribuicao,
 } from '@/lib/firestore';
 import type { Entrada, Distribuicao } from '@/lib/types';
@@ -78,6 +78,7 @@ export default function TabEntradas({ mes, ano }: Props) {
   const [showModal, setShowModal]       = useState(false);
   const [showDistModal, setShowDistModal] = useState(false);
   const [loading, setLoading]           = useState(false);
+  const [editId, setEditId]             = useState<string | null>(null);
   const [form, setForm]                 = useState({ descricao: '', valor: '', data: '' });
   const [distForm, setDistForm]         = useState<Record<DistKey, string>>({ contas: '50', ferias: '10', investimento: '20', planosFuturos: '20' });
   const [distColors, setDistColors]     = useState<DistColors>(DEFAULT_DIST_COLORS);
@@ -132,13 +133,22 @@ export default function TabEntradas({ mes, ano }: Props) {
 
   // ── handlers ─────────────────────────────────────────────────────────────
 
-  async function handleAddEntrada(e: React.SubmitEvent<HTMLFormElement>) {
+  async function handleSaveEntrada(e: React.SubmitEvent<HTMLFormElement>) {
     e.preventDefault();
     const [y, m] = form.data.split('-').map(Number);
-    await addEntrada({ descricao: form.descricao, valor: parseBRL(form.valor), data: form.data, mes: m, ano: y });
+    const data = { descricao: form.descricao, valor: parseBRL(form.valor), data: form.data, mes: m, ano: y };
+    if (editId) await updateEntrada(editId, data);
+    else        await addEntrada(data);
     setForm({ descricao: '', valor: '', data: '' });
+    setEditId(null);
     setShowModal(false);
     load();
+  }
+
+  function handleEdit(e: Entrada) {
+    setEditId(e.id!);
+    setForm({ descricao: e.descricao, valor: e.valor.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }), data: e.data });
+    setShowModal(true);
   }
 
   async function handleDelete(id: string) {
@@ -255,7 +265,7 @@ export default function TabEntradas({ mes, ano }: Props) {
           <h2 className="text-lg font-bold text-slate-800">Entradas</h2>
           <p className="text-xs text-slate-400">{entradas.length} entrada(s) · {fmt(totalMes)}</p>
         </div>
-        <button onClick={() => setShowModal(true)}
+        <button onClick={() => { setEditId(null); setForm({ descricao: '', valor: '', data: '' }); setShowModal(true); }}
           className="inline-flex items-center gap-1.5 px-3 py-2 bg-indigo-600 text-white rounded-xl text-sm font-medium hover:bg-indigo-700 transition-colors shadow-sm">
           <Plus /><span className="hidden sm:inline">Nova Entrada</span>
         </button>
@@ -355,6 +365,10 @@ export default function TabEntradas({ mes, ano }: Props) {
                 </div>
                 <div className="flex items-center gap-2">
                   <span className="font-bold text-indigo-600 tabular-nums">{fmt(e.valor)}</span>
+                  <button onClick={() => handleEdit(e)}
+                    className="p-1.5 rounded-lg text-slate-300 hover:text-indigo-500 hover:bg-indigo-50 transition-colors opacity-100 sm:opacity-0 sm:group-hover:opacity-100">
+                    <Pencil />
+                  </button>
                   <button onClick={() => handleDelete(e.id!)}
                     className="p-1.5 rounded-lg text-slate-300 hover:text-red-400 hover:bg-red-50 transition-colors opacity-100 sm:opacity-0 sm:group-hover:opacity-100">
                     <Trash />
@@ -366,10 +380,10 @@ export default function TabEntradas({ mes, ano }: Props) {
         )}
       </Card>
 
-      {/* ── Modal Nova Entrada ── */}
+      {/* ── Modal Nova/Editar Entrada ── */}
       {showModal && (
-        <Modal title="Nova Entrada" onClose={() => setShowModal(false)}>
-          <form onSubmit={handleAddEntrada} className="space-y-4">
+        <Modal title={editId ? 'Editar Entrada' : 'Nova Entrada'} onClose={() => { setShowModal(false); setEditId(null); }}>
+          <form onSubmit={handleSaveEntrada} className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1">Descrição</label>
               <input required value={form.descricao} onChange={(e) => setForm({ ...form, descricao: e.target.value })} className={INPUT} placeholder="Ex: Salário" />
@@ -383,7 +397,7 @@ export default function TabEntradas({ mes, ano }: Props) {
               <input required type="date" value={form.data} onChange={(e) => setForm({ ...form, data: e.target.value })} className={INPUT} />
             </div>
             <div className="flex gap-3 pt-1">
-              <button type="button" onClick={() => setShowModal(false)} className="flex-1 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-600 hover:bg-slate-50">Cancelar</button>
+              <button type="button" onClick={() => { setShowModal(false); setEditId(null); }} className="flex-1 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-600 hover:bg-slate-50">Cancelar</button>
               <button type="submit" className="flex-1 py-2.5 bg-indigo-600 text-white rounded-xl text-sm font-semibold hover:bg-indigo-700 shadow-sm">Salvar</button>
             </div>
           </form>

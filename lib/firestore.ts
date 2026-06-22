@@ -40,6 +40,10 @@ export async function addEntrada(e: Omit<Entrada, 'id'>): Promise<void> {
   await addDoc(collection(db, 'entradas'), e);
 }
 
+export async function updateEntrada(id: string, e: Omit<Entrada, 'id'>): Promise<void> {
+  await setDoc(doc(db, 'entradas', id), e);
+}
+
 export async function deleteEntrada(id: string): Promise<void> {
   await deleteDoc(doc(db, 'entradas', id));
 }
