@@ -509,6 +509,7 @@ export default function TabCartoes({ mes, ano }: Props) {
                     </span>
                     <div>
                       <p className="font-medium text-slate-700 text-sm">{p.descricao}</p>
+                      {p.data && <p className="text-[11px] text-slate-400 leading-tight">{new Date(p.data + 'T12:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' })}</p>}
                       <p className="text-xs text-slate-400">{p.parcelaAtual}/{p.totalParcelas}x · total {fmt(p.valorTotal)}</p>
                     </div>
                   </div>
@@ -549,10 +550,8 @@ export default function TabCartoes({ mes, ano }: Props) {
                       </span>
                       <div>
                         <p className="font-medium text-slate-700 text-sm">{p.descricao}</p>
-                        <p className="text-xs text-slate-400">
-                          {c?.nome} · {p.parcelaAtual}/{p.totalParcelas}x
-                          {p.data && ` · ${new Date(p.data + 'T12:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' })}`}
-                        </p>
+                        {p.data && <p className="text-[11px] text-slate-400 leading-tight">{new Date(p.data + 'T12:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' })}</p>}
+                        <p className="text-xs text-slate-400">{c?.nome} · {p.parcelaAtual}/{p.totalParcelas}x</p>
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
