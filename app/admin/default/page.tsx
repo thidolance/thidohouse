@@ -1,170 +1,147 @@
 'use client';
-/*!
-  _   _  ___  ____  ___ ________  _   _   _   _ ___   
- | | | |/ _ \|  _ \|_ _|__  / _ \| \ | | | | | |_ _| 
- | |_| | | | | |_) || |  / / | | |  \| | | | | || | 
- |  _  | |_| |  _ < | | / /| |_| | |\  | | |_| || |
- |_| |_|\___/|_| \_\___/____\___/|_| \_|  \___/|___|
-                                                                                                                                                                                                                                                                                                                                       
-=========================================================
-* Horizon UI - v1.1.0
-=========================================================
 
-* Product Page: https://www.horizon-ui.com/
-* Copyright 2022 Horizon UI (https://www.horizon-ui.com/)
-
-* Designed and Coded by Simmmple
-
-=========================================================
-
-* The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
-
-*/
-
+import type { ApexOptions } from 'apexcharts';
+import { Box, Flex, Icon, SimpleGrid, Text } from '@chakra-ui/react';
 import {
-  Box,
-  Flex,
-  FormLabel,
-  Image,
-  Icon,
-  Select,
-  SimpleGrid,
-  useColorModeValue,
-} from '@chakra-ui/react';
-// Custom components
-// import MiniCalendar from 'components/calendar/MiniCalendar';
-import MiniStatistics from 'components/card/MiniStatistics';
-import IconBox from 'components/icons/IconBox';
-import {
-  MdAddTask,
   MdAttachMoney,
-  MdBarChart,
-  MdFileCopy,
+  MdTrendingDown,
+  MdAccountBalanceWallet,
+  MdSavings,
 } from 'react-icons/md';
-import CheckTable from 'views/admin/default/components/CheckTable';
-import ComplexTable from 'views/admin/default/components/ComplexTable';
-import DailyTraffic from 'views/admin/default/components/DailyTraffic';
-import PieCard from 'views/admin/default/components/PieCard';
-import Tasks from 'views/admin/default/components/Tasks';
-import TotalSpent from 'views/admin/default/components/TotalSpent';
-import WeeklyRevenue from 'views/admin/default/components/WeeklyRevenue';
-import tableDataCheck from 'views/admin/default/variables/tableDataCheck';
-import tableDataComplex from 'views/admin/default/variables/tableDataComplex';
-// Assets
-import Usa from 'img/dashboards/usa.png';
+import Card from 'components/card/Card';
+import IconBox from 'components/icons/IconBox';
+import MiniStatistics from 'components/card/MiniStatistics';
+import BarChart from 'components/charts/BarChart';
+import PieChart from 'components/charts/PieChart';
+import TabAssistente from '@/components/tabs/TabAssistente';
+import { useVisaoGeralData } from '@/lib/useVisaoGeralData';
 
-export default function Default() {
-  // Chakra Color Mode
+const fmt = (v: number) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 
-  const brandColor = useColorModeValue('brand.500', 'white');
-  const boxBg = useColorModeValue('secondaryGray.300', 'whiteAlpha.100');
+export default function VisaoGeralHorizonPreview() {
+  const now = new Date();
+  const mes = now.getMonth() + 1;
+  const ano = now.getFullYear();
+  const { dados, gastosPorCat, loading } = useVisaoGeralData(mes, ano);
+
+  const atual = dados.find((d) => d.isAtual);
+  const totalGuardado = (atual?.ferias ?? 0) + (atual?.investimento ?? 0) + (atual?.planosFuturos ?? 0);
+
+  const barOptions: ApexOptions = {
+    chart: { toolbar: { show: false } },
+    xaxis: {
+      categories: dados.map((d) => d.label),
+      labels: { style: { colors: '#A3AED0', fontSize: '12px', fontWeight: 500 } },
+      axisBorder: { show: false },
+      axisTicks: { show: false },
+    },
+    yaxis: { show: false },
+    grid: { show: false },
+    colors: ['#4318FF', '#EFF4FB'],
+    fill: { type: 'solid' },
+    dataLabels: { enabled: false },
+    legend: { show: true, position: 'top', horizontalAlign: 'right', fontSize: '13px' },
+    plotOptions: { bar: { borderRadius: 6, columnWidth: '55%' } },
+    tooltip: { theme: 'dark' },
+  };
+  const barData = [
+    { name: 'Ganhos', data: dados.map((d) => Math.round(d.ganhos)) },
+    { name: 'Gastos', data: dados.map((d) => Math.round(d.gastos)) },
+  ];
+
+  const pieOptions: ApexOptions = {
+    labels: gastosPorCat.map((c) => c.nome),
+    colors: gastosPorCat.map((c) => c.fill),
+    legend: { show: false },
+    dataLabels: { enabled: false },
+    states: { hover: { filter: { type: 'none' } } },
+    tooltip: { theme: 'dark' },
+  };
+  const pieData = gastosPorCat.map((c) => c.total);
+
+  if (loading) {
+    return (
+      <Flex h="50vh" align="center" justify="center">
+        <Text color="secondaryGray.600">Carregando...</Text>
+      </Flex>
+    );
+  }
 
   return (
-    <Box pt={{ base: '130px', md: '80px', xl: '80px' }}>
-      <SimpleGrid
-        columns={{ base: 1, md: 2, lg: 3, '2xl': 6 }}
-        gap="20px"
-        mb="20px"
-      >
+    <Box>
+      <SimpleGrid columns={{ base: 1, md: 2, xl: 4 }} gap="20px" mb="20px">
         <MiniStatistics
           startContent={
-            <IconBox
-              w="56px"
-              h="56px"
-              bg={boxBg}
-              icon={
-                <Icon w="32px" h="32px" as={MdBarChart} color={brandColor} />
-              }
-            />
+            <IconBox w="56px" h="56px" bg="#E9E3FF" icon={<Icon w="28px" h="28px" as={MdAttachMoney} color="#4318FF" />} />
           }
-          name="Earnings"
-          value="$350.4"
+          name="Ganhos do mês"
+          value={fmt(atual?.ganhos ?? 0)}
         />
         <MiniStatistics
           startContent={
-            <IconBox
-              w="56px"
-              h="56px"
-              bg={boxBg}
-              icon={
-                <Icon w="32px" h="32px" as={MdAttachMoney} color={brandColor} />
-              }
-            />
+            <IconBox w="56px" h="56px" bg="#FCE7E7" icon={<Icon w="28px" h="28px" as={MdTrendingDown} color="#E53E3E" />} />
           }
-          name="Spend this month"
-          value="$642.39"
-        />
-        <MiniStatistics growth="+23%" name="Sales" value="$574.34" />
-        <MiniStatistics
-          endContent={
-            <Flex me="-16px" mt="10px">
-              <FormLabel htmlFor="balance">
-                <Box boxSize={'12'}>
-                  <Image alt="" src={Usa.src} w={'100%'} h={'100%'} />
-                </Box>
-              </FormLabel>
-              <Select
-                id="balance"
-                variant="mini"
-                mt="5px"
-                me="0px"
-                defaultValue="usd"
-              >
-                <option value="usd">USD</option>
-                <option value="eur">EUR</option>
-                <option value="gba">GBA</option>
-              </Select>
-            </Flex>
-          }
-          name="Your balance"
-          value="$1,000"
+          name="Gastos do mês"
+          value={fmt(atual?.gastos ?? 0)}
         />
         <MiniStatistics
           startContent={
-            <IconBox
-              w="56px"
-              h="56px"
-              bg="linear-gradient(90deg, #4481EB 0%, #04BEFE 100%)"
-              icon={<Icon w="28px" h="28px" as={MdAddTask} color="white" />}
-            />
+            <IconBox w="56px" h="56px" bg="#E6FAF5" icon={<Icon w="28px" h="28px" as={MdAccountBalanceWallet} color="#01B574" />} />
           }
-          name="New Tasks"
-          value="154"
+          name="Saldo do mês"
+          value={fmt(atual?.saldo ?? 0)}
         />
         <MiniStatistics
           startContent={
-            <IconBox
-              w="56px"
-              h="56px"
-              bg={boxBg}
-              icon={
-                <Icon w="32px" h="32px" as={MdFileCopy} color={brandColor} />
-              }
-            />
+            <IconBox w="56px" h="56px" bg="#FFF6DA" icon={<Icon w="28px" h="28px" as={MdSavings} color="#FFB547" />} />
           }
-          name="Total Projects"
-          value="2935"
+          name="Guardado do mês"
+          value={fmt(totalGuardado)}
         />
       </SimpleGrid>
 
-      <SimpleGrid columns={{ base: 1, md: 2, xl: 2 }} gap="20px" mb="20px">
-        <TotalSpent />
-        <WeeklyRevenue />
+      <SimpleGrid columns={{ base: 1, xl: 2 }} gap="20px" mb="20px">
+        <Card>
+          <Text color="secondaryGray.900" fontSize="xl" fontWeight="700" mb="20px">
+            Ganhos x Gastos — últimos 12 meses
+          </Text>
+          <Box h="280px">
+            <BarChart chartData={barData} chartOptions={barOptions} />
+          </Box>
+        </Card>
+
+        <Card>
+          <Text color="secondaryGray.900" fontSize="xl" fontWeight="700" mb="20px">
+            Gastos por categoria — mês atual
+          </Text>
+          {gastosPorCat.length > 0 ? (
+            <>
+              <Box h="220px">
+                <PieChart chartData={pieData} chartOptions={pieOptions} />
+              </Box>
+              <Box mt="15px">
+                {gastosPorCat.map((c) => (
+                  <Flex key={c.nome} justify="space-between" align="center" py="4px">
+                    <Flex align="center" gap="8px">
+                      <Box w="8px" h="8px" borderRadius="50%" bg={c.fill} />
+                      <Text fontSize="sm" color="secondaryGray.600">{c.nome}</Text>
+                    </Flex>
+                    <Text fontSize="sm" fontWeight="700" color="secondaryGray.900">{fmt(c.total)}</Text>
+                  </Flex>
+                ))}
+              </Box>
+            </>
+          ) : (
+            <Flex h="220px" align="center" justify="center">
+              <Text color="secondaryGray.600" fontSize="sm">Sem gastos neste mês</Text>
+            </Flex>
+          )}
+        </Card>
       </SimpleGrid>
-      <SimpleGrid columns={{ base: 1, md: 1, xl: 2 }} gap="20px" mb="20px">
-        <CheckTable tableData={tableDataCheck} />
-        <SimpleGrid columns={{ base: 1, md: 2, xl: 2 }} gap="20px">
-          <DailyTraffic />
-          <PieCard />
-        </SimpleGrid>
-      </SimpleGrid>
-      <SimpleGrid columns={{ base: 1, md: 1, xl: 2 }} gap="20px" mb="20px">
-        <ComplexTable tableData={tableDataComplex} />
-        <SimpleGrid columns={{ base: 1, md: 2, xl: 2 }} gap="20px">
-          <Tasks />
-          {/* <MiniCalendar h="100%" minW="100%" selectRange={false} /> */}
-        </SimpleGrid>
-      </SimpleGrid>
+
+      <Box mt="20px">
+        <TabAssistente mes={mes} ano={ano} />
+      </Box>
     </Box>
   );
 }
