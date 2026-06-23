@@ -61,11 +61,11 @@ const INPUT = 'w-full border border-slate-200 rounded-xl px-3 py-2 text-sm text-
 interface Props { mes: number; ano: number; }
 
 type FormCompra = {
-  cartaoId: string; descricao: string; tipo: string;
+  cartaoId: string; descricao: string; tipo: string; data: string;
   valorTotal: string; totalParcelas: string; parcelaAtual: string; fixa: boolean;
 };
 const COMPRA_EMPTY: FormCompra = {
-  cartaoId: '', descricao: '', tipo: '',
+  cartaoId: '', descricao: '', tipo: '', data: '',
   valorTotal: '', totalParcelas: '', parcelaAtual: '1', fixa: false,
 };
 
@@ -138,6 +138,7 @@ export default function TabCartoes({ mes, ano }: Props) {
       cartaoId:      formCompra.cartaoId,
       descricao:     formCompra.descricao,
       tipo:          formCompra.tipo,
+      data:          formCompra.data,
       valorTotal:    total,
       valorParcela:  total / parcelas,
       totalParcelas: parcelas,
@@ -179,6 +180,7 @@ export default function TabCartoes({ mes, ano }: Props) {
       ...COMPRA_EMPTY,
       cartaoId: cartaoId ?? cartoes[0]?.id ?? '',
       tipo: categorias[0]?.nome ?? '',
+      data: new Date().toISOString().slice(0, 10),
     });
     setShowCompraModal(true);
   }
@@ -189,6 +191,7 @@ export default function TabCartoes({ mes, ano }: Props) {
       cartaoId:      p.cartaoId,
       descricao:     p.descricao,
       tipo:          p.tipo,
+      data:          p.data ?? '',
       valorTotal:    p.valorTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2 }),
       totalParcelas: String(p.totalParcelas),
       parcelaAtual:  String(p.parcelaAtual),
@@ -290,13 +293,17 @@ export default function TabCartoes({ mes, ano }: Props) {
     total: compras.filter((p) => p.tipo === cat.nome).reduce((s, p) => s + p.valorParcela, 0),
   })).filter((c) => c.total > 0);
 
-  const porFixaPorUltimo = (a: CompraParcelada, b: CompraParcelada) => (a.fixa ? 1 : 0) - (b.fixa ? 1 : 0);
+  // Ordena pela data da compra (mais recente primeiro); fixas sempre vão para o final
+  const porDataComFixaPorUltimo = (a: CompraParcelada, b: CompraParcelada) => {
+    if (!!a.fixa !== !!b.fixa) return a.fixa ? 1 : -1;
+    return (b.data ?? '').localeCompare(a.data ?? '');
+  };
 
   const comprasDoCartao = cartaoSelecionado
-    ? compras.filter((c) => c.cartaoId === cartaoSelecionado).sort(porFixaPorUltimo)
+    ? compras.filter((c) => c.cartaoId === cartaoSelecionado).sort(porDataComFixaPorUltimo)
     : [];
 
-  const comprasOrdenadas = [...compras].sort(porFixaPorUltimo);
+  const comprasOrdenadas = [...compras].sort(porDataComFixaPorUltimo);
 
   const cartaoAtivo = cartoes.find((c) => c.id === cartaoSelecionado);
 
@@ -542,7 +549,10 @@ export default function TabCartoes({ mes, ano }: Props) {
                       </span>
                       <div>
                         <p className="font-medium text-slate-700 text-sm">{p.descricao}</p>
-                        <p className="text-xs text-slate-400">{c?.nome} · {p.parcelaAtual}/{p.totalParcelas}x</p>
+                        <p className="text-xs text-slate-400">
+                          {c?.nome} · {p.parcelaAtual}/{p.totalParcelas}x
+                          {p.data && ` · ${new Date(p.data + 'T12:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' })}`}
+                        </p>
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
@@ -616,6 +626,11 @@ export default function TabCartoes({ mes, ano }: Props) {
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1">Valor Total (R$)</label>
               <input required value={formCompra.valorTotal} onChange={(e) => setFormCompra({ ...formCompra, valorTotal: e.target.value })} className={INPUT} placeholder="0,00" inputMode="decimal" />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">Data da Compra</label>
+              <input required type="date" value={formCompra.data} onChange={(e) => setFormCompra({ ...formCompra, data: e.target.value })} className={INPUT} />
             </div>
 
             <div className="grid grid-cols-2 gap-3">

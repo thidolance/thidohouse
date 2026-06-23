@@ -100,6 +100,7 @@ export interface CompraParcelada {
   ano: number;
   grupoId?: string;
   fixa?: boolean;
+  data?: string;
 }
 
 export interface Meta {
