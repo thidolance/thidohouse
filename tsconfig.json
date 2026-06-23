@@ -19,18 +19,7 @@
       }
     ],
     "paths": {
-      "@/*": ["./*"],
-      "components/*": ["./horizon/components/*"],
-      "contexts/*": ["./horizon/contexts/*"],
-      "layouts/*": ["./horizon/layouts/*"],
-      "theme/*": ["./horizon/theme/*"],
-      "types/*": ["./horizon/types/*"],
-      "utils/*": ["./horizon/utils/*"],
-      "variables/*": ["./horizon/variables/*"],
-      "views/*": ["./horizon/views/*"],
-      "img/*": ["./horizon/img/*"],
-      "styles/*": ["./horizon/styles/*"],
-      "routes": ["./horizon/routes.tsx"]
+      "@/*": ["./*"]
     }
   },
   "include": [
