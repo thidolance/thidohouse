@@ -8,6 +8,7 @@ import TabCartoes from '@/components/tabs/TabCartoes';
 import TabEmpresa from '@/components/tabs/TabEmpresa';
 import TabMetas from '@/components/tabs/TabMetas';
 import MonthPicker from '@/components/ui/MonthPicker';
+import NotasMes from '@/components/ui/NotasMes';
 import { LayoutGrid, TrendingUp, Receipt, CreditCard, Building, FamilyIcon, Target } from '@/components/ui/Icons';
 import { LogOut } from 'lucide-react';
 import { logout } from '@/app/actions/auth';
@@ -85,6 +86,8 @@ export default function Home() {
         {tab === 'empresa'  && <TabEmpresa    mes={mes} ano={ano} />}
         {tab === 'metas'    && <TabMetas      mes={mes} ano={ano} />}
       </main>
+
+      <NotasMes mes={mes} ano={ano} />
     </div>
   );
 }

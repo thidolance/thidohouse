@@ -111,3 +111,11 @@ export interface Meta {
   concluida: boolean;
   link?: string;
 }
+
+export interface NotaMes {
+  id?: string;
+  mes: number;
+  ano: number;
+  texto: string;
+  updatedAt: number;
+}

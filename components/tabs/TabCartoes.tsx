@@ -509,7 +509,12 @@ export default function TabCartoes({ mes, ano }: Props) {
                     </span>
                     <div>
                       <p className="font-medium text-slate-700 text-sm">{p.descricao}</p>
-                      <p className="text-xs text-slate-400">{p.parcelaAtual}/{p.totalParcelas}x · total {fmt(p.valorTotal)}</p>
+                      {p.data && <p className="text-[11px] text-slate-400 leading-tight">{new Date(p.data + 'T12:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' })}</p>}
+                      <div className="flex items-center gap-1.5 mt-0.5">
+                        <span className="text-[11px] px-1.5 py-0.5 rounded-full bg-slate-100 text-slate-500 font-medium">{p.parcelaAtual}/{p.totalParcelas}</span>
+                        <span className="text-slate-300 text-[11px]">·</span>
+                        <span className="text-[11px] text-slate-400">total {fmt(p.valorTotal)}</span>
+                      </div>
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
@@ -549,10 +554,12 @@ export default function TabCartoes({ mes, ano }: Props) {
                       </span>
                       <div>
                         <p className="font-medium text-slate-700 text-sm">{p.descricao}</p>
-                        <p className="text-xs text-slate-400">
-                          {c?.nome} · {p.parcelaAtual}/{p.totalParcelas}x
-                          {p.data && ` · ${new Date(p.data + 'T12:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' })}`}
-                        </p>
+                        {p.data && <p className="text-[11px] text-slate-400 leading-tight">{new Date(p.data + 'T12:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' })}</p>}
+                        <div className="flex items-center gap-1.5 mt-0.5">
+                          <span className="text-[11px] font-semibold" style={{ color: c?.cor ?? '#94a3b8' }}>{c?.nome}</span>
+                          <span className="text-slate-300 text-[11px]">·</span>
+                          <span className="text-[11px] px-1.5 py-0.5 rounded-full bg-slate-100 text-slate-500 font-medium">{p.parcelaAtual}/{p.totalParcelas}</span>
+                        </div>
                       </div>
                     </div>
                     <div className="flex items-center gap-2">

@@ -5,6 +5,7 @@ import {
   deleteDoc,
   doc,
   getDocs,
+  getDoc,
   query,
   where,
   setDoc,
@@ -13,7 +14,7 @@ import { db } from './firebase';
 import type {
   Entrada, Distribuicao, Conta, CategoriaContaConfig,
   Cartao, CategoriaCompra, CompraParcelada, FaturaCartao,
-  CategoriaEmpresa, CustoEmpresa, FaturaEmpresa, Meta,
+  CategoriaEmpresa, CustoEmpresa, FaturaEmpresa, Meta, NotaMes,
 } from './types';
 import { DEFAULT_CARTOES, DEFAULT_CATEGORIAS } from './cartoes';
 
@@ -530,4 +531,20 @@ export async function updateMeta(id: string, m: Omit<Meta, 'id'>): Promise<void>
 
 export async function deleteMeta(id: string): Promise<void> {
   await deleteDoc(doc(db, 'metas', id));
+}
+
+// ─── Notas do Mês ────────────────────────────────────────────────────────────
+
+function notaDocId(mes: number, ano: number): string {
+  return `${ano}_${String(mes).padStart(2, '0')}`;
+}
+
+export async function getNotaMes(mes: number, ano: number): Promise<NotaMes | null> {
+  const snap = await getDoc(doc(db, 'notas_mes', notaDocId(mes, ano)));
+  if (!snap.exists()) return null;
+  return { id: snap.id, ...snap.data() } as NotaMes;
+}
+
+export async function saveNotaMes(mes: number, ano: number, texto: string): Promise<void> {
+  await setDoc(doc(db, 'notas_mes', notaDocId(mes, ano)), { mes, ano, texto, updatedAt: Date.now() });
 }
