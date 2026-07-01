@@ -462,17 +462,26 @@ export default function TabCartoes({ mes, ano }: Props) {
                 </div>
                 <p className="text-white/60 text-xs">{dado?.count ?? 0} compra(s)</p>
               </div>
-              {!!c.limite && c.limite > 0 && (
-                <div className="relative mt-3">
-                  <div className="w-full bg-white/20 rounded-full h-1.5">
-                    <div
-                      className="h-1.5 rounded-full bg-white transition-all"
-                      style={{ width: `${Math.min(100, ((dado?.usado ?? 0) / c.limite) * 100)}%` }}
-                    />
+              {!!c.limite && c.limite > 0 && (() => {
+                const pctUso = Math.min(100, ((dado?.usado ?? 0) / c.limite!) * 100);
+                return (
+                  <div className="relative mt-3">
+                    <div className="w-full bg-white/20 rounded-full h-1.5 overflow-hidden relative">
+                      <div className="absolute inset-y-0 left-0 rounded-full overflow-hidden transition-all duration-700" style={{ width: `${pctUso}%` }}>
+                        {/* Gradiente verde→vermelho revelado conforme o limite é consumido */}
+                        <div
+                          className="h-full"
+                          style={{
+                            width: `${pctUso > 0 ? 10000 / pctUso : 100}%`,
+                            background: 'linear-gradient(to right, #22c55e, #eab308, #f97316, #ef4444)',
+                          }}
+                        />
+                      </div>
+                    </div>
+                    <p className="text-white/60 text-[11px] mt-1">{fmt(dado?.usado ?? 0)} de {fmt(c.limite)}</p>
                   </div>
-                  <p className="text-white/60 text-[11px] mt-1">{fmt(dado?.usado ?? 0)} de {fmt(c.limite)}</p>
-                </div>
-              )}
+                );
+              })()}
             </button>
           );
         })}
