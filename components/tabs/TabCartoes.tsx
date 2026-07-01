@@ -16,8 +16,9 @@ import {
   deleteCompra, deleteCompraAndFuture, toggleCompraFixa,
   getCartoes, addCartao, updateCartao, deleteCartao,
   getCategorias, addCategoria, deleteCategoria,
+  getFaturasCartao,
 } from '@/lib/firestore';
-import type { CompraParcelada, Cartao, CategoriaCompra } from '@/lib/types';
+import type { CompraParcelada, Cartao, CategoriaCompra, FaturaCartao } from '@/lib/types';
 
 const fmt = (v: number) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 
@@ -79,6 +80,7 @@ export default function TabCartoes({ mes, ano }: Props) {
   const [compras, setCompras]       = useState<CompraParcelada[]>([]);
   const [cartoes, setCartoes]       = useState<Cartao[]>([]);
   const [categorias, setCategorias] = useState<CategoriaCompra[]>([]);
+  const [faturas, setFaturas]       = useState<FaturaCartao[]>([]);
   const [loading, setLoading]       = useState(false);
   const [cartaoSelecionado, setCartaoSelecionado] = useState<string | null>(null);
 
@@ -115,7 +117,9 @@ export default function TabCartoes({ mes, ano }: Props) {
 
   const loadCompras = useCallback(async () => {
     setLoading(true);
-    setCompras(await getCompras(mes, ano));
+    const [c, f] = await Promise.all([getCompras(mes, ano), getFaturasCartao(mes, ano)]);
+    setCompras(c);
+    setFaturas(f);
     setLoading(false);
   }, [mes, ano]);
 
@@ -287,6 +291,12 @@ export default function TabCartoes({ mes, ano }: Props) {
     };
   });
 
+  // % pago: soma do total dos cartões cuja fatura do mês está paga
+  const totalPago = totalPorCartao
+    .filter((c) => faturas.find((f) => f.cartaoId === c.id)?.status === 'pago')
+    .reduce((s, c) => s + c.total, 0);
+  const pctPago = totalGeral > 0 ? (totalPago / totalGeral) * 100 : 0;
+
   const totalPorCategoria = categorias.map((cat) => ({
     ...cat,
     fill: cat.cor,
@@ -404,7 +414,19 @@ export default function TabCartoes({ mes, ano }: Props) {
       <div className="bg-gradient-to-br from-indigo-600 to-violet-700 rounded-2xl px-4 py-3 text-white shadow-lg shadow-indigo-200">
         <p className="text-indigo-100 text-xs font-medium uppercase tracking-wide">Total do Mês</p>
         <p className="text-2xl font-bold mt-0.5 tabular-nums">{fmt(totalGeral)}</p>
-        <p className="text-indigo-100 text-[11px] mt-1">{compras.length} compra(s) em {cartoes.length} cartão(s)</p>
+        <div className="mt-2 h-1.5 bg-white/25 rounded-full overflow-hidden relative">
+          <div className="absolute inset-y-0 left-0 rounded-full overflow-hidden transition-all duration-700" style={{ width: `${pctPago}%` }}>
+            {/* Elemento interno com o gradiente em largura da trilha inteira, revelado conforme a barra enche */}
+            <div
+              className="h-full"
+              style={{
+                width: `${pctPago > 0 ? 10000 / pctPago : 100}%`,
+                background: 'linear-gradient(to right, #ef4444, #f97316, #eab308, #22c55e)',
+              }}
+            />
+          </div>
+        </div>
+        <p className="text-indigo-100 text-[11px] mt-1">{pctPago.toFixed(0)}% pago · {compras.length} compra(s) em {cartoes.length} cartão(s)</p>
       </div>
 
       {/* ── Gráficos ── */}
