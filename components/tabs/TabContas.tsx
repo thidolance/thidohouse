@@ -699,7 +699,7 @@ export default function TabContas({ mes, ano }: Props) {
 
       {/* ── Cards resumo ── */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-        <div className="bg-gradient-to-br from-violet-700 via-purple-600 to-fuchsia-500 rounded-2xl px-4 py-3 text-white shadow-lg shadow-violet-300/50">
+        <div className="bg-gradient-to-br from-indigo-600 to-violet-700 rounded-2xl px-4 py-3 text-white shadow-lg shadow-indigo-200">
           <p className="text-white/70 text-xs font-medium uppercase tracking-wide">Total</p>
           <p className="text-2xl font-bold mt-0.5 tabular-nums">{fmt(total)}</p>
           <div className="mt-2 h-1.5 bg-white/25 rounded-full overflow-hidden">

@@ -257,12 +257,10 @@ export default function TabEmpresa({ mes, ano }: Props) {
       </div>
 
       {/* ── Card total ── */}
-      <div className="relative overflow-hidden bg-gradient-to-br from-violet-600 to-purple-700 rounded-2xl p-5 text-white shadow-md shadow-violet-200">
-        <div className="absolute -top-6 -right-6 w-28 h-28 bg-white/10 rounded-full" />
-        <div className="absolute -bottom-4 -left-4 w-20 h-20 bg-white/5 rounded-full" />
-        <p className="text-violet-200 text-xs font-medium uppercase tracking-wide relative">Total do Mês — Empresa</p>
-        <p className="text-3xl font-bold mt-1 tabular-nums relative">{fmt(totalGeral)}</p>
-        <p className="text-violet-200 text-[11px] mt-1 relative">{custos.length} custo(s) em {categorias.length} categoria(s)</p>
+      <div className="bg-gradient-to-br from-indigo-600 to-violet-700 rounded-2xl px-4 py-3 text-white shadow-lg shadow-indigo-200">
+        <p className="text-indigo-200 text-xs font-medium uppercase tracking-wide">Total do Mês — Empresa</p>
+        <p className="text-2xl font-bold mt-0.5 tabular-nums">{fmt(totalGeral)}</p>
+        <p className="text-indigo-200 text-[11px] mt-1">{custos.length} custo(s) em {categorias.length} categoria(s)</p>
       </div>
 
       {/* ── Gráficos ── */}

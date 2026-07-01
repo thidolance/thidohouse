@@ -297,26 +297,22 @@ export default function TabVisaoGeral({ mes, ano, onNavigate }: Props) {
     <div className="space-y-5">
       {/* ── Cards do mês atual ── */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        <button type="button" onClick={() => onNavigate('entradas')} className="relative overflow-hidden bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-2xl p-4 text-white shadow-sm text-left cursor-pointer hover:brightness-110 transition-all">
-          <div className="absolute -top-3 -right-3 w-16 h-16 bg-white/10 rounded-full" />
-          <p className="text-indigo-100 text-xs relative">Ganhos do mês</p>
-          <p className="text-xl font-bold mt-1 tabular-nums relative">{fmt(atual?.ganhos ?? 0)}</p>
+        <button type="button" onClick={() => onNavigate('entradas')} className="bg-gradient-to-br from-indigo-600 to-violet-700 rounded-2xl px-4 py-3 text-white shadow-lg shadow-indigo-200 text-left cursor-pointer hover:brightness-110 transition-all">
+          <p className="text-indigo-100 text-xs">Ganhos do mês</p>
+          <p className="text-xl font-bold mt-0.5 tabular-nums">{fmt(atual?.ganhos ?? 0)}</p>
         </button>
-        <button type="button" onClick={() => onNavigate('contas')} className="relative overflow-hidden bg-gradient-to-br from-rose-500 to-rose-600 rounded-2xl p-4 text-white shadow-sm text-left cursor-pointer hover:brightness-110 transition-all">
-          <div className="absolute -top-3 -right-3 w-16 h-16 bg-white/10 rounded-full" />
-          <p className="text-rose-100 text-xs relative">Gastos do mês</p>
-          <p className="text-xl font-bold mt-1 tabular-nums relative">{fmt(atual?.gastos ?? 0)}</p>
+        <button type="button" onClick={() => onNavigate('contas')} className="bg-gradient-to-br from-rose-500 to-rose-600 rounded-2xl px-4 py-3 text-white shadow-lg shadow-rose-200 text-left cursor-pointer hover:brightness-110 transition-all">
+          <p className="text-rose-100 text-xs">Gastos do mês</p>
+          <p className="text-xl font-bold mt-0.5 tabular-nums">{fmt(atual?.gastos ?? 0)}</p>
         </button>
-        <div className={`relative overflow-hidden rounded-2xl p-4 text-white shadow-sm bg-gradient-to-br ${(atual?.saldo ?? 0) >= 0 ? 'from-emerald-500 to-emerald-600' : 'from-amber-500 to-amber-600'}`}>
-          <div className="absolute -top-3 -right-3 w-16 h-16 bg-white/10 rounded-full" />
-          <p className="text-white/80 text-xs relative">Saldo do mês</p>
-          <p className="text-xl font-bold mt-1 tabular-nums relative">{fmt(atual?.saldo ?? 0)}</p>
+        <div className={`rounded-2xl px-4 py-3 text-white shadow-lg bg-gradient-to-br ${(atual?.saldo ?? 0) >= 0 ? 'from-emerald-500 to-emerald-600 shadow-emerald-200' : 'from-amber-500 to-amber-600 shadow-amber-200'}`}>
+          <p className="text-white/80 text-xs">Saldo do mês</p>
+          <p className="text-xl font-bold mt-0.5 tabular-nums">{fmt(atual?.saldo ?? 0)}</p>
         </div>
-        <button type="button" onClick={() => onNavigate('entradas')} className="relative overflow-hidden bg-gradient-to-br from-violet-500 to-violet-600 rounded-2xl p-4 text-white shadow-sm text-left cursor-pointer hover:brightness-110 transition-all">
-          <div className="absolute -top-3 -right-3 w-16 h-16 bg-white/10 rounded-full" />
-          <p className="text-violet-100 text-xs relative">Guardado no mês</p>
-          <p className="text-xl font-bold mt-1 tabular-nums relative">{fmt(totalGuardado)}</p>
-          <p className="text-violet-200 text-[11px] mt-0.5 relative">{pctGuardado.toFixed(0)}% dos ganhos</p>
+        <button type="button" onClick={() => onNavigate('entradas')} className="bg-gradient-to-br from-violet-500 to-violet-600 rounded-2xl px-4 py-3 text-white shadow-lg shadow-violet-200 text-left cursor-pointer hover:brightness-110 transition-all">
+          <p className="text-violet-100 text-xs">Guardado no mês</p>
+          <p className="text-xl font-bold mt-0.5 tabular-nums">{fmt(totalGuardado)}</p>
+          <p className="text-violet-200 text-[11px] mt-0.5">{pctGuardado.toFixed(0)}% dos ganhos</p>
         </button>
       </div>
 
