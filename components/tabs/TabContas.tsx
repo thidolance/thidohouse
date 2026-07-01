@@ -107,6 +107,12 @@ function ScopeDialog({ title, desc, labelFuture, onFuture, onThisOnly, onCancel 
 const INPUT = 'w-full border border-slate-200 rounded-xl px-3 py-2 text-sm text-slate-900 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-300';
 const fmt   = (v: number) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 
+// Cores por tipo de conta (mesmas do gráfico "Gastos por Tipo de Conta"),
+// usadas na barrinha lateral de cada linha da tabela
+const COR_FIXA     = '#f59e0b';
+const COR_ROTATIVA = '#6366f1';
+const COR_CARTOES  = '#ec4899';
+
 type OrdenacaoKey = 'vencimento-asc' | 'vencimento-desc' | 'valor-asc' | 'valor-desc' | 'nome-az' | 'nome-za' | 'status';
 const ORDENACAO_OPTS: { value: OrdenacaoKey; label: string }[] = [
   { value: 'vencimento-asc',  label: 'Vencimento ↑' },
@@ -599,12 +605,12 @@ export default function TabContas({ mes, ano }: Props) {
 
   // ── render helpers ────────────────────────────────────────────────────────
 
-  function ContaRow({ c }: { c: Conta }) {
+  function ContaRow({ c, barColor }: { c: Conta; barColor: string }) {
     const pago = c.status === 'pago';
     const cor  = catCor(c.categoria);
     return (
       <div className={`group flex items-center gap-3 px-4 py-3.5 transition-all ${pago ? 'bg-emerald-50/70' : 'hover:bg-slate-50/80'}`}>
-        <div className="w-0.5 h-10 rounded-full flex-shrink-0 opacity-60 transition-opacity group-hover:opacity-100" style={{ backgroundColor: cor }} />
+        <div className="w-0.5 h-10 rounded-full flex-shrink-0 opacity-60 transition-opacity group-hover:opacity-100" style={{ backgroundColor: barColor }} />
         <button
           onClick={() => handleTogglePago(c.id!, c.status)}
           className={`w-7 h-7 rounded-full border-2 flex items-center justify-center transition-all flex-shrink-0 shadow-sm ${
@@ -852,7 +858,7 @@ export default function TabContas({ mes, ano }: Props) {
             {mostrarContas && contasFixas.length > 0 && (
               <div>
                 <SectionHeader label="Contas Fixas" count={contasFixas.length} total={contasFixas.reduce((s, c) => s + c.valor, 0)} />
-                {contasFixas.map((c) => <ContaRow key={c.id} c={c} />)}
+                {contasFixas.map((c) => <ContaRow key={c.id} c={c} barColor={COR_FIXA} />)}
               </div>
             )}
 
@@ -862,7 +868,7 @@ export default function TabContas({ mes, ano }: Props) {
                 {(filtroTipo === 'todos' || contasFixas.length > 0) && (
                   <SectionHeader label="Contas Rotativas" count={contasRegulares.length} total={contasRegulares.reduce((s, c) => s + c.valor, 0)} />
                 )}
-                {contasRegulares.map((c) => <ContaRow key={c.id} c={c} />)}
+                {contasRegulares.map((c) => <ContaRow key={c.id} c={c} barColor={COR_ROTATIVA} />)}
               </div>
             )}
 
@@ -874,7 +880,7 @@ export default function TabContas({ mes, ano }: Props) {
                 )}
                 {cartoesFiltrados.map((c) => (
                   <div key={c.cartaoId} className={`group flex items-center gap-3 px-4 py-3.5 transition-all ${c.status === 'pago' ? 'bg-emerald-50/70' : 'hover:bg-slate-50/80'}`}>
-                    <div className="w-0.5 h-10 rounded-full flex-shrink-0" style={{ backgroundColor: c.cartaoCor }} />
+                    <div className="w-0.5 h-10 rounded-full flex-shrink-0" style={{ backgroundColor: COR_CARTOES }} />
                     <button onClick={() => handleToggleCartao(c.cartaoId, c.status)}
                       className={`w-7 h-7 rounded-full border-2 flex items-center justify-center transition-all flex-shrink-0 shadow-sm ${c.status === 'pago' ? 'bg-emerald-500 border-emerald-500 text-white' : 'border-slate-200 hover:border-emerald-400 hover:bg-emerald-50'}`}>
                       {c.status === 'pago' && <Check />}
