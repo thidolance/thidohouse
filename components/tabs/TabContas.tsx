@@ -702,8 +702,17 @@ export default function TabContas({ mes, ano }: Props) {
         <div className="bg-gradient-to-br from-indigo-600 to-violet-700 rounded-2xl px-4 py-3 text-white shadow-lg shadow-indigo-200">
           <p className="text-white/70 text-xs font-medium uppercase tracking-wide">Total</p>
           <p className="text-2xl font-bold mt-0.5 tabular-nums">{fmt(total)}</p>
-          <div className="mt-2 h-1.5 bg-white/25 rounded-full overflow-hidden">
-            <div className="h-full bg-white rounded-full transition-all duration-700" style={{ width: `${pctPago}%` }} />
+          <div className="mt-2 h-1.5 bg-white/25 rounded-full overflow-hidden relative">
+            <div className="absolute inset-y-0 left-0 rounded-full overflow-hidden transition-all duration-700" style={{ width: `${pctPago}%` }}>
+              {/* Elemento interno com o gradiente em largura da trilha inteira, revelado conforme a barra enche */}
+              <div
+                className="h-full"
+                style={{
+                  width: `${pctPago > 0 ? 10000 / pctPago : 100}%`,
+                  background: 'linear-gradient(to right, #ef4444, #f97316, #eab308, #22c55e)',
+                }}
+              />
+            </div>
           </div>
           <p className="text-white/70 text-[11px] mt-1">{pctPago.toFixed(0)}% pago</p>
         </div>
