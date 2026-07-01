@@ -699,32 +699,26 @@ export default function TabContas({ mes, ano }: Props) {
 
       {/* ── Cards resumo ── */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-        <div className="relative overflow-hidden bg-gradient-to-br from-violet-700 via-purple-600 to-fuchsia-500 rounded-3xl p-5 text-white shadow-lg shadow-violet-300/50">
-          <div className="absolute -top-6 -right-6 w-24 h-24 bg-white/15 rounded-full" />
-          <div className="absolute -bottom-8 -left-4 w-24 h-24 bg-white/10 rounded-full" />
-          <p className="text-white/70 text-xs font-medium uppercase tracking-wide relative">Total</p>
-          <p className="text-2xl font-bold mt-1 tabular-nums relative">{fmt(total)}</p>
-          <div className="mt-3 h-1.5 bg-white/25 rounded-full overflow-hidden relative">
+        <div className="bg-gradient-to-br from-violet-700 via-purple-600 to-fuchsia-500 rounded-2xl px-4 py-3 text-white shadow-lg shadow-violet-300/50">
+          <p className="text-white/70 text-xs font-medium uppercase tracking-wide">Total</p>
+          <p className="text-2xl font-bold mt-0.5 tabular-nums">{fmt(total)}</p>
+          <div className="mt-2 h-1.5 bg-white/25 rounded-full overflow-hidden">
             <div className="h-full bg-white rounded-full transition-all duration-700" style={{ width: `${pctPago}%` }} />
           </div>
-          <p className="text-white/70 text-[11px] mt-1.5 relative">{pctPago.toFixed(0)}% pago</p>
+          <p className="text-white/70 text-[11px] mt-1">{pctPago.toFixed(0)}% pago</p>
         </div>
-        <div className="relative overflow-hidden bg-gradient-to-br from-emerald-500 via-emerald-500 to-teal-400 rounded-3xl p-5 text-white shadow-lg shadow-emerald-200/60">
-          <div className="absolute -top-6 -right-6 w-24 h-24 bg-white/15 rounded-full" />
-          <div className="absolute -bottom-8 -left-4 w-24 h-24 bg-white/10 rounded-full" />
-          <p className="text-white/75 text-xs font-medium uppercase tracking-wide relative">Pago</p>
-          <p className="text-2xl font-bold mt-1 tabular-nums relative">{fmt(totalPago)}</p>
-          <div className="flex items-center gap-1.5 mt-3 relative">
+        <div className="bg-gradient-to-br from-emerald-500 via-emerald-500 to-teal-400 rounded-2xl px-4 py-3 text-white shadow-lg shadow-emerald-200/60">
+          <p className="text-white/75 text-xs font-medium uppercase tracking-wide">Pago</p>
+          <p className="text-2xl font-bold mt-0.5 tabular-nums">{fmt(totalPago)}</p>
+          <div className="flex items-center gap-1.5 mt-2">
             <span className="w-2 h-2 bg-white rounded-full" />
             <p className="text-[11px] text-white/75">{countPago} item(s)</p>
           </div>
         </div>
-        <div className="relative overflow-hidden bg-gradient-to-br from-amber-500 via-orange-500 to-orange-400 rounded-3xl p-5 text-white shadow-lg shadow-amber-200/60">
-          <div className="absolute -top-6 -right-6 w-24 h-24 bg-white/15 rounded-full" />
-          <div className="absolute -bottom-8 -left-4 w-24 h-24 bg-white/10 rounded-full" />
-          <p className="text-white/75 text-xs font-medium uppercase tracking-wide relative">Pendente</p>
-          <p className="text-2xl font-bold mt-1 tabular-nums relative">{fmt(totalPendente)}</p>
-          <div className="flex items-center gap-1.5 mt-3 relative">
+        <div className="bg-gradient-to-br from-amber-500 via-orange-500 to-orange-400 rounded-2xl px-4 py-3 text-white shadow-lg shadow-amber-200/60">
+          <p className="text-white/75 text-xs font-medium uppercase tracking-wide">Pendente</p>
+          <p className="text-2xl font-bold mt-0.5 tabular-nums">{fmt(totalPendente)}</p>
+          <div className="flex items-center gap-1.5 mt-2">
             <span className="w-2 h-2 bg-white rounded-full animate-pulse" />
             <p className="text-[11px] text-white/75">{countTotal - countPago} item(s)</p>
           </div>
