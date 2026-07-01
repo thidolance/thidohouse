@@ -700,7 +700,7 @@ export default function TabContas({ mes, ano }: Props) {
       {/* ── Cards resumo ── */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         <div className="bg-gradient-to-br from-indigo-600 to-violet-700 rounded-2xl px-4 py-3 text-white shadow-lg shadow-indigo-200">
-          <p className="text-white/70 text-xs font-medium uppercase tracking-wide">Total</p>
+          <p className="text-white/90 text-xs font-medium uppercase tracking-wide">Total</p>
           <p className="text-2xl font-bold mt-0.5 tabular-nums">{fmt(total)}</p>
           <div className="mt-2 h-1.5 bg-white/25 rounded-full overflow-hidden relative">
             <div className="absolute inset-y-0 left-0 rounded-full overflow-hidden transition-all duration-700" style={{ width: `${pctPago}%` }}>
@@ -714,22 +714,22 @@ export default function TabContas({ mes, ano }: Props) {
               />
             </div>
           </div>
-          <p className="text-white/70 text-[11px] mt-1">{pctPago.toFixed(0)}% pago</p>
+          <p className="text-white/90 text-[11px] mt-1">{pctPago.toFixed(0)}% pago</p>
         </div>
         <div className="bg-gradient-to-br from-emerald-500 via-emerald-500 to-teal-400 rounded-2xl px-4 py-3 text-white shadow-lg shadow-emerald-200/60">
-          <p className="text-white/75 text-xs font-medium uppercase tracking-wide">Pago</p>
+          <p className="text-white/90 text-xs font-medium uppercase tracking-wide">Pago</p>
           <p className="text-2xl font-bold mt-0.5 tabular-nums">{fmt(totalPago)}</p>
           <div className="flex items-center gap-1.5 mt-2">
             <span className="w-2 h-2 bg-white rounded-full" />
-            <p className="text-[11px] text-white/75">{countPago} item(s)</p>
+            <p className="text-[11px] text-white/90">{countPago} item(s)</p>
           </div>
         </div>
         <div className="bg-gradient-to-br from-amber-500 via-orange-500 to-orange-400 rounded-2xl px-4 py-3 text-white shadow-lg shadow-amber-200/60">
-          <p className="text-white/75 text-xs font-medium uppercase tracking-wide">Pendente</p>
+          <p className="text-white/90 text-xs font-medium uppercase tracking-wide">Pendente</p>
           <p className="text-2xl font-bold mt-0.5 tabular-nums">{fmt(totalPendente)}</p>
           <div className="flex items-center gap-1.5 mt-2">
             <span className="w-2 h-2 bg-white rounded-full animate-pulse" />
-            <p className="text-[11px] text-white/75">{countTotal - countPago} item(s)</p>
+            <p className="text-[11px] text-white/90">{countTotal - countPago} item(s)</p>
           </div>
         </div>
       </div>

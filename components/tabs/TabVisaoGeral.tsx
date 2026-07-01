@@ -306,13 +306,13 @@ export default function TabVisaoGeral({ mes, ano, onNavigate }: Props) {
           <p className="text-xl font-bold mt-0.5 tabular-nums">{fmt(atual?.gastos ?? 0)}</p>
         </button>
         <div className={`rounded-2xl px-4 py-3 text-white shadow-lg bg-gradient-to-br ${(atual?.saldo ?? 0) >= 0 ? 'from-emerald-500 to-emerald-600 shadow-emerald-200' : 'from-amber-500 to-amber-600 shadow-amber-200'}`}>
-          <p className="text-white/80 text-xs">Saldo do mês</p>
+          <p className="text-white/90 text-xs">Saldo do mês</p>
           <p className="text-xl font-bold mt-0.5 tabular-nums">{fmt(atual?.saldo ?? 0)}</p>
         </div>
         <button type="button" onClick={() => onNavigate('entradas')} className="bg-gradient-to-br from-violet-500 to-violet-600 rounded-2xl px-4 py-3 text-white shadow-lg shadow-violet-200 text-left cursor-pointer hover:brightness-110 transition-all">
           <p className="text-violet-100 text-xs">Guardado no mês</p>
           <p className="text-xl font-bold mt-0.5 tabular-nums">{fmt(totalGuardado)}</p>
-          <p className="text-violet-200 text-[11px] mt-0.5">{pctGuardado.toFixed(0)}% dos ganhos</p>
+          <p className="text-violet-100 text-[11px] mt-0.5">{pctGuardado.toFixed(0)}% dos ganhos</p>
         </button>
       </div>
 

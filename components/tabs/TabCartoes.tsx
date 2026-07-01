@@ -402,9 +402,9 @@ export default function TabCartoes({ mes, ano }: Props) {
 
       {/* ── Card total ── */}
       <div className="bg-gradient-to-br from-indigo-600 to-violet-700 rounded-2xl px-4 py-3 text-white shadow-lg shadow-indigo-200">
-        <p className="text-indigo-200 text-xs font-medium uppercase tracking-wide">Total do Mês</p>
+        <p className="text-indigo-100 text-xs font-medium uppercase tracking-wide">Total do Mês</p>
         <p className="text-2xl font-bold mt-0.5 tabular-nums">{fmt(totalGeral)}</p>
-        <p className="text-indigo-200 text-[11px] mt-1">{compras.length} compra(s) em {cartoes.length} cartão(s)</p>
+        <p className="text-indigo-100 text-[11px] mt-1">{compras.length} compra(s) em {cartoes.length} cartão(s)</p>
       </div>
 
       {/* ── Gráficos ── */}
