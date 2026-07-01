@@ -416,6 +416,11 @@ export async function getFaturasCartao(mes: number, ano: number): Promise<Fatura
   return snap.docs.map((d) => ({ id: d.id, ...d.data() } as FaturaCartao));
 }
 
+export async function getFaturasCartaoHistorico(): Promise<FaturaCartao[]> {
+  const snap = await getDocs(collection(db, 'faturas_cartao'));
+  return snap.docs.map((d) => ({ id: d.id, ...d.data() } as FaturaCartao));
+}
+
 export async function setFaturaCartaoStatus(
   cartaoId: string, mes: number, ano: number, status: 'pago' | 'pendente',
 ): Promise<void> {

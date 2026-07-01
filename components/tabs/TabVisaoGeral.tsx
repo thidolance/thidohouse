@@ -12,8 +12,25 @@ import {
   getComprasHistorico,
   getCustosEmpresaHistorico,
   getCategoriasContas,
+  getFaturasCartaoHistorico,
 } from '@/lib/firestore';
-import type { CategoriaContaConfig } from '@/lib/types';
+import type { CategoriaContaConfig, CompraParcelada, FaturaCartao } from '@/lib/types';
+
+// Gasto de cartões no mês considerando o valorAjustado da fatura (ex: imposto/itens
+// não lançados): por cartão usa o ajuste se houver, senão a soma das compras.
+function gastoCartoesDoMes(compras: CompraParcelada[], faturas: FaturaCartao[], m: number, a: number): number {
+  const somaPorCartao = new Map<string, number>();
+  compras
+    .filter((c) => c.mes === m && c.ano === a)
+    .forEach((c) => somaPorCartao.set(c.cartaoId, (somaPorCartao.get(c.cartaoId) ?? 0) + c.valorParcela));
+
+  let total = 0;
+  somaPorCartao.forEach((soma, cartaoId) => {
+    const fatura = faturas.find((f) => f.cartaoId === cartaoId && f.mes === m && f.ano === a);
+    total += fatura?.valorAjustado != null ? fatura.valorAjustado : soma;
+  });
+  return total;
+}
 
 const VChart = dynamic(
   () => import('@visactor/react-vchart').then((m) => m.VChart),
@@ -76,13 +93,14 @@ export default function TabVisaoGeral({ mes, ano, onNavigate }: Props) {
 
   const load = useCallback(async () => {
     setLoading(true);
-    const [entradas, contas, distribuicoes, compras, custosEmpresa, catContas] = await Promise.all([
+    const [entradas, contas, distribuicoes, compras, custosEmpresa, catContas, faturas] = await Promise.all([
       getEntradasHistorico(),
       getContasHistorico(),
       getDistribuicoesHistorico(),
       getComprasHistorico(),
       getCustosEmpresaHistorico(),
       getCategoriasContas() as Promise<CategoriaContaConfig[]>,
+      getFaturasCartaoHistorico(),
     ]);
 
     const meses = getLast12Months(mes, ano);
@@ -90,7 +108,7 @@ export default function TabVisaoGeral({ mes, ano, onNavigate }: Props) {
     const result: MesDashboard[] = meses.map(({ mes: m, ano: a, label, mesAno }) => {
       const ganhos = entradas.filter((e) => e.mes === m && e.ano === a).reduce((s, e) => s + e.valor, 0);
       const gastoContas = contas.filter((c) => c.mes === m && c.ano === a).reduce((s, c) => s + c.valor, 0);
-      const gastoCartoes = compras.filter((c) => c.mes === m && c.ano === a).reduce((s, c) => s + c.valorParcela, 0);
+      const gastoCartoes = gastoCartoesDoMes(compras, faturas, m, a);
       const gastoEmpresa = custosEmpresa.filter((c) => c.mes === m && c.ano === a).reduce((s, c) => s + c.valorParcela, 0);
       const gastos = gastoContas + gastoCartoes + gastoEmpresa;
       const dist = distribuicoes.find((d) => d.mes === m && d.ano === a);
@@ -110,9 +128,7 @@ export default function TabVisaoGeral({ mes, ano, onNavigate }: Props) {
         const prev = catMap.get(c.categoria) ?? { total: 0, fill: cc?.cor ?? '#94a3b8' };
         catMap.set(c.categoria, { total: prev.total + c.valor, fill: prev.fill });
       });
-    const gastoCartoesAtual = compras
-      .filter((c) => c.mes === mes && c.ano === ano)
-      .reduce((s, c) => s + c.valorParcela, 0);
+    const gastoCartoesAtual = gastoCartoesDoMes(compras, faturas, mes, ano);
     if (gastoCartoesAtual > 0) {
       catMap.set('Cartões', { total: gastoCartoesAtual, fill: '#ec4899' });
     }
@@ -133,7 +149,7 @@ export default function TabVisaoGeral({ mes, ano, onNavigate }: Props) {
     const gpt: CatGasto[] = [
       { nome: 'Contas Fixas',   total: contasAtual.filter((c) => c.fixa).reduce((s, c) => s + c.valor, 0),  fill: '#f59e0b' },
       { nome: 'Conta Rotativa', total: contasAtual.filter((c) => !c.fixa).reduce((s, c) => s + c.valor, 0), fill: '#6366f1' },
-      { nome: 'Cartões',        total: compras.filter((c) => c.mes === mes && c.ano === ano).reduce((s, c) => s + c.valorParcela, 0), fill: '#ec4899' },
+      { nome: 'Cartões',        total: gastoCartoesAtual, fill: '#ec4899' },
       { nome: 'Empresa',        total: gastoEmpresaAtual, fill: '#38bdf8' },
     ].filter((c) => c.total > 0);
 
