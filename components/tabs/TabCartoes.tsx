@@ -81,6 +81,7 @@ export default function TabCartoes({ mes, ano }: Props) {
   const [categorias, setCategorias] = useState<CategoriaCompra[]>([]);
   const [loading, setLoading]       = useState(false);
   const [cartaoSelecionado, setCartaoSelecionado] = useState<string | null>(null);
+  const [filtroCategoria, setFiltroCategoria]     = useState<string | null>(null);
 
   // modais
   const [showCompraModal, setShowCompraModal]   = useState(false);
@@ -303,7 +304,12 @@ export default function TabCartoes({ mes, ano }: Props) {
     ? compras.filter((c) => c.cartaoId === cartaoSelecionado).sort(porDataComFixaPorUltimo)
     : [];
 
-  const comprasOrdenadas = [...compras].sort(porDataComFixaPorUltimo);
+  const comprasOrdenadas = [...compras]
+    .filter((c) => !filtroCategoria || c.tipo === filtroCategoria)
+    .sort(porDataComFixaPorUltimo);
+
+  // Categorias que realmente têm compras no mês, para montar os chips do filtro
+  const categoriasComCompras = categorias.filter((cat) => compras.some((c) => c.tipo === cat.nome));
 
   const cartaoAtivo = cartoes.find((c) => c.id === cartaoSelecionado);
 
@@ -543,11 +549,38 @@ export default function TabCartoes({ mes, ano }: Props) {
       {/* Todas as compras */}
       {!cartaoSelecionado && (
         <Card>
-          <h3 className="font-semibold text-slate-700 mb-4">Todas as Compras do Mês</h3>
+          <h3 className="font-semibold text-slate-700 mb-3">Todas as Compras do Mês</h3>
+
+          {/* Filtro por categoria */}
+          {categoriasComCompras.length > 0 && (
+            <div className="flex flex-wrap gap-2 mb-4">
+              <button
+                onClick={() => setFiltroCategoria(null)}
+                className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all border ${!filtroCategoria ? 'bg-indigo-600 text-white border-indigo-600' : 'border-slate-200 text-slate-500 hover:border-indigo-300 hover:text-indigo-600'}`}
+              >
+                Todas
+              </button>
+              {categoriasComCompras.map((cat) => (
+                <button
+                  key={cat.id}
+                  onClick={() => setFiltroCategoria(filtroCategoria === cat.nome ? null : cat.nome)}
+                  className="px-3 py-1.5 rounded-full text-xs font-medium transition-all border"
+                  style={filtroCategoria === cat.nome
+                    ? { backgroundColor: cat.cor, color: '#fff', borderColor: cat.cor }
+                    : { borderColor: '#e2e8f0', color: '#64748b' }}
+                >
+                  {cat.nome}
+                </button>
+              ))}
+            </div>
+          )}
+
           {loading ? (
             <p className="text-slate-400 text-sm text-center py-8">Carregando...</p>
           ) : compras.length === 0 ? (
             <p className="text-slate-400 text-sm text-center py-8">Clique em um cartão para filtrar ou adicione uma compra</p>
+          ) : comprasOrdenadas.length === 0 ? (
+            <p className="text-slate-400 text-sm text-center py-8">Nenhuma compra nesta categoria</p>
           ) : (
             <div className="space-y-2">
               {comprasOrdenadas.map((p) => {
