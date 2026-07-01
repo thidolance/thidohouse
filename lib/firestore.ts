@@ -416,11 +416,25 @@ export async function getFaturasCartao(mes: number, ano: number): Promise<Fatura
   return snap.docs.map((d) => ({ id: d.id, ...d.data() } as FaturaCartao));
 }
 
+export async function getFaturasCartaoHistorico(): Promise<FaturaCartao[]> {
+  const snap = await getDocs(collection(db, 'faturas_cartao'));
+  return snap.docs.map((d) => ({ id: d.id, ...d.data() } as FaturaCartao));
+}
+
 export async function setFaturaCartaoStatus(
   cartaoId: string, mes: number, ano: number, status: 'pago' | 'pendente',
 ): Promise<void> {
   const docId = `${cartaoId}_${String(mes).padStart(2, '0')}_${ano}`;
-  await setDoc(doc(db, 'faturas_cartao', docId), { cartaoId, mes, ano, status });
+  // merge para preservar o valorAjustado eventualmente gravado
+  await setDoc(doc(db, 'faturas_cartao', docId), { cartaoId, mes, ano, status }, { merge: true });
+}
+
+// Ajuste manual do valor da fatura no mês (não altera as compras). null limpa o ajuste.
+export async function setFaturaCartaoValor(
+  cartaoId: string, mes: number, ano: number, valorAjustado: number | null,
+): Promise<void> {
+  const docId = `${cartaoId}_${String(mes).padStart(2, '0')}_${ano}`;
+  await setDoc(doc(db, 'faturas_cartao', docId), { cartaoId, mes, ano, valorAjustado }, { merge: true });
 }
 
 // ─── Categorias de Empresa ───────────────────────────────────────────────────

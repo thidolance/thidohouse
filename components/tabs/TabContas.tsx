@@ -11,7 +11,7 @@ import {
   deleteConta, deleteContaAndFuture,
   updateContaStatus, toggleContaFixa, getContasPorGrupo,
   getCategoriasContas, addCategoriaContas, deleteCategoriaContas,
-  getCompras, getFaturasCartao, setFaturaCartaoStatus, getCartoes,
+  getCompras, getFaturasCartao, setFaturaCartaoStatus, setFaturaCartaoValor, getCartoes,
   getCustosEmpresa, getFaturasEmpresa, setFaturaEmpresaStatus, getCategoriasEmpresa,
 } from '@/lib/firestore';
 import type { Conta, CategoriaContaConfig } from '@/lib/types';
@@ -133,7 +133,7 @@ type FormState = {
   parcelaAtual: string; totalParcelas: string; fixa: boolean;
 };
 
-type CartaoItem  = { tipo: 'cartao';  cartaoId: string; cartaoNome: string; cartaoCor: string; valor: number; status: 'pago' | 'pendente' };
+type CartaoItem  = { tipo: 'cartao';  cartaoId: string; cartaoNome: string; cartaoCor: string; valor: number; valorCalculado: number; status: 'pago' | 'pendente' };
 type EmpresaItem = { categoriaId: string; categoriaNome: string; categoriaCor: string; valor: number; status: 'pago' | 'pendente' };
 
 type DeleteDialog = { conta: Conta };
@@ -162,6 +162,10 @@ export default function TabContas({ mes, ano }: Props) {
   // dialogs escopo
   const [deleteDialog, setDeleteDialog]       = useState<DeleteDialog | null>(null);
   const [editScopeDialog, setEditScopeDialog] = useState<EditScopeDialog | null>(null);
+
+  // edição do valor da fatura de cartão (ajuste manual só na aba Contas)
+  const [editFatura, setEditFatura]     = useState<CartaoItem | null>(null);
+  const [editFaturaValor, setEditFaturaValor] = useState('');
 
   // acompanhamento de parcelas
   const [acompanhar, setAcompanhar]               = useState<Conta | null>(null);
@@ -210,7 +214,9 @@ export default function TabContas({ mes, ano }: Props) {
       const total = comprasList.filter((p) => p.cartaoId === c.id).reduce((s, p) => s + p.valorParcela, 0);
       if (total === 0) return [];
       const fatura = faturasList.find((f) => f.cartaoId === c.id);
-      return [{ tipo: 'cartao', cartaoId: c.id as string, cartaoNome: c.nome, cartaoCor: c.cor, valor: total, status: fatura?.status ?? 'pendente' }];
+      // valorAjustado sobrepõe a soma das compras, se definido
+      const valor = fatura?.valorAjustado != null ? fatura.valorAjustado : total;
+      return [{ tipo: 'cartao', cartaoId: c.id as string, cartaoNome: c.nome, cartaoCor: c.cor, valor, valorCalculado: total, status: fatura?.status ?? 'pendente' }];
     });
     setItensCartao(cards);
 
@@ -576,6 +582,29 @@ export default function TabContas({ mes, ano }: Props) {
     await setFaturaCartaoStatus(cartaoId, mes, ano, newStatus);
   }
 
+  function abrirEditFatura(c: CartaoItem) {
+    setEditFatura(c);
+    setEditFaturaValor(String(c.valor).replace('.', ','));
+  }
+
+  async function handleSaveFaturaValor(e: React.SubmitEvent<HTMLFormElement>) {
+    e.preventDefault();
+    const { cartaoId } = editFatura!;
+    const novo = parseFloat(editFaturaValor.replace(',', '.'));
+    if (isNaN(novo)) return;
+    setItensCartao((prev) => prev.map((c) => c.cartaoId === cartaoId ? { ...c, valor: novo } : c));
+    setEditFatura(null);
+    await setFaturaCartaoValor(cartaoId, mes, ano, novo);
+  }
+
+  // Volta a usar a soma das compras (limpa o ajuste manual)
+  async function handleResetFaturaValor() {
+    const { cartaoId, valorCalculado } = editFatura!;
+    setItensCartao((prev) => prev.map((c) => c.cartaoId === cartaoId ? { ...c, valor: valorCalculado } : c));
+    setEditFatura(null);
+    await setFaturaCartaoValor(cartaoId, mes, ano, null);
+  }
+
   async function handleToggleEmpresaAll() {
     const newStatus = empresaStatus === 'pago' ? 'pendente' : 'pago';
     setItensEmpresa((prev) => prev.map((c) => ({ ...c, status: newStatus })));
@@ -887,11 +916,18 @@ export default function TabContas({ mes, ano }: Props) {
                     </button>
                     <div className="flex-1 min-w-0">
                       <p className={`font-semibold text-sm ${c.status === 'pago' ? 'line-through text-slate-400' : 'text-slate-800'}`}>Fatura {c.cartaoNome}</p>
-                      <span className="text-[11px] px-1.5 py-0.5 rounded-md font-semibold mt-0.5 inline-block" style={{ backgroundColor: `${c.cartaoCor}18`, color: c.cartaoCor }}>{c.cartaoNome}</span>
+                      <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
+                        <span className="text-[11px] px-1.5 py-0.5 rounded-md font-semibold inline-block" style={{ backgroundColor: `${c.cartaoCor}18`, color: c.cartaoCor }}>{c.cartaoNome}</span>
+                        {c.valor !== c.valorCalculado && (
+                          <span className="text-[11px] text-amber-600" title={`Soma das compras: ${fmt(c.valorCalculado)}`}>valor ajustado</span>
+                        )}
+                      </div>
                     </div>
                     <div className="flex items-center gap-2 flex-shrink-0">
                       <span className={`font-bold text-sm tabular-nums ${c.status === 'pago' ? 'text-emerald-600' : 'text-slate-800'}`}>{fmt(c.valor)}</span>
-                      <div className="w-[5.5rem]" />
+                      <div className="w-[5.5rem] flex items-center justify-end gap-0.5 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
+                        <button onClick={() => abrirEditFatura(c)} title="Editar valor da fatura" className="p-1.5 rounded-lg text-slate-400 hover:text-indigo-500 hover:bg-indigo-50 transition-colors"><Pencil /></button>
+                      </div>
                     </div>
                   </div>
                 ))}
@@ -974,6 +1010,35 @@ export default function TabContas({ mes, ano }: Props) {
             )}
             <div className="flex gap-3 pt-1">
               <button type="button" onClick={fecharModal} className="flex-1 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-600 hover:bg-slate-50">Cancelar</button>
+              <button type="submit" className="flex-1 py-2.5 bg-indigo-600 text-white rounded-xl text-sm font-semibold hover:bg-indigo-700 shadow-sm">Salvar</button>
+            </div>
+          </form>
+        </Modal>
+      )}
+
+      {/* ── Modal editar valor da fatura de cartão ── */}
+      {editFatura && (
+        <Modal title={`Fatura ${editFatura.cartaoNome}`} onClose={() => setEditFatura(null)}>
+          <form onSubmit={handleSaveFaturaValor} className="space-y-4">
+            <p className="text-sm text-slate-500">
+              Ajuste o valor da fatura deste mês (ex: imposto ou item não lançado). Não altera as compras cadastradas na aba Cartões.
+            </p>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">Valor da fatura (R$)</label>
+              <input
+                autoFocus
+                value={editFaturaValor}
+                onChange={(e) => setEditFaturaValor(e.target.value)}
+                className={INPUT}
+                placeholder="0,00"
+                inputMode="decimal"
+              />
+              <p className="text-xs text-slate-400 mt-1">Soma das compras: {fmt(editFatura.valorCalculado)}</p>
+            </div>
+            <div className="flex gap-3 pt-1">
+              {editFatura.valor !== editFatura.valorCalculado && (
+                <button type="button" onClick={handleResetFaturaValor} className="flex-1 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-600 hover:bg-slate-50">Usar soma</button>
+              )}
               <button type="submit" className="flex-1 py-2.5 bg-indigo-600 text-white rounded-xl text-sm font-semibold hover:bg-indigo-700 shadow-sm">Salvar</button>
             </div>
           </form>

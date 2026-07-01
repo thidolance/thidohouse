@@ -85,6 +85,9 @@ export interface FaturaCartao {
   status: 'pago' | 'pendente';
   mes: number;
   ano: number;
+  // Valor ajustado manualmente na aba Contas (ex: imposto/itens não lançados).
+  // Quando definido, sobrepõe a soma das compras só na exibição da fatura.
+  valorAjustado?: number | null;
 }
 
 export interface CompraParcelada {
