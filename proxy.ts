@@ -21,5 +21,7 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/((?!_next/static|_next/image|favicon.ico).*)'],
+  // Exclui assets estáticos e ícones de metadata (favicon, icon, apple-icon) para que
+  // não sejam redirecionados ao login — o iOS busca o apple-touch-icon sem sessão.
+  matcher: ['/((?!_next/static|_next/image|.*\\.(?:png|jpg|jpeg|svg|gif|ico|webp)$).*)'],
 };
