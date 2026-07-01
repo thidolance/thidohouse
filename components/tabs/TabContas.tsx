@@ -699,29 +699,37 @@ export default function TabContas({ mes, ano }: Props) {
 
       {/* ── Cards resumo ── */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-        <div className="relative overflow-hidden bg-gradient-to-br from-indigo-600 to-violet-700 rounded-2xl p-4 text-white shadow-md shadow-indigo-200">
-          <div className="absolute -top-4 -right-4 w-20 h-20 bg-white/10 rounded-full" />
-          <p className="text-indigo-200 text-xs font-medium uppercase tracking-wide relative">Total</p>
-          <p className="text-xl font-bold mt-1 tabular-nums relative">{fmt(total)}</p>
-          <div className="mt-2.5 h-1 bg-white/20 rounded-full overflow-hidden relative">
-            <div className="h-full bg-white/70 rounded-full transition-all duration-700" style={{ width: `${pctPago}%` }} />
+        <div className="bg-gradient-to-br from-indigo-600 to-violet-700 rounded-2xl px-4 py-3 text-white shadow-lg shadow-indigo-200">
+          <p className="text-white/90 text-xs font-medium uppercase tracking-wide">Total</p>
+          <p className="text-2xl font-bold mt-0.5 tabular-nums">{fmt(total)}</p>
+          <div className="mt-2 h-1.5 bg-white/25 rounded-full overflow-hidden relative">
+            <div className="absolute inset-y-0 left-0 rounded-full overflow-hidden transition-all duration-700" style={{ width: `${pctPago}%` }}>
+              {/* Elemento interno com o gradiente em largura da trilha inteira, revelado conforme a barra enche */}
+              <div
+                className="h-full"
+                style={{
+                  width: `${pctPago > 0 ? 10000 / pctPago : 100}%`,
+                  background: 'linear-gradient(to right, #ef4444, #f97316, #eab308, #22c55e)',
+                }}
+              />
+            </div>
           </div>
-          <p className="text-indigo-200 text-[11px] mt-1 relative">{pctPago.toFixed(0)}% pago</p>
+          <p className="text-white/90 text-[11px] mt-1">{pctPago.toFixed(0)}% pago</p>
         </div>
-        <div className="bg-white border border-emerald-100 rounded-2xl p-4 shadow-sm">
-          <p className="text-slate-400 text-[11px] font-medium uppercase tracking-wide">Pago</p>
-          <p className="text-xl font-bold text-emerald-600 mt-1 tabular-nums">{fmt(totalPago)}</p>
+        <div className="bg-gradient-to-br from-emerald-500 via-emerald-500 to-teal-400 rounded-2xl px-4 py-3 text-white shadow-lg shadow-emerald-200/60">
+          <p className="text-white/90 text-xs font-medium uppercase tracking-wide">Pago</p>
+          <p className="text-2xl font-bold mt-0.5 tabular-nums">{fmt(totalPago)}</p>
           <div className="flex items-center gap-1.5 mt-2">
-            <span className="w-2 h-2 bg-emerald-500 rounded-full" />
-            <p className="text-[11px] text-slate-400">{countPago} item(s)</p>
+            <span className="w-2 h-2 bg-white rounded-full" />
+            <p className="text-[11px] text-white/90">{countPago} item(s)</p>
           </div>
         </div>
-        <div className="bg-white border border-amber-100 rounded-2xl p-4 shadow-sm">
-          <p className="text-slate-400 text-[11px] font-medium uppercase tracking-wide">Pendente</p>
-          <p className="text-xl font-bold text-amber-500 mt-1 tabular-nums">{fmt(totalPendente)}</p>
+        <div className="bg-gradient-to-br from-amber-500 via-orange-500 to-orange-400 rounded-2xl px-4 py-3 text-white shadow-lg shadow-amber-200/60">
+          <p className="text-white/90 text-xs font-medium uppercase tracking-wide">Pendente</p>
+          <p className="text-2xl font-bold mt-0.5 tabular-nums">{fmt(totalPendente)}</p>
           <div className="flex items-center gap-1.5 mt-2">
-            <span className="w-2 h-2 bg-amber-400 rounded-full animate-pulse" />
-            <p className="text-[11px] text-slate-400">{countTotal - countPago} item(s)</p>
+            <span className="w-2 h-2 bg-white rounded-full animate-pulse" />
+            <p className="text-[11px] text-white/90">{countTotal - countPago} item(s)</p>
           </div>
         </div>
       </div>

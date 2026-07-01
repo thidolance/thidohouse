@@ -272,11 +272,10 @@ export default function TabEntradas({ mes, ano }: Props) {
       </div>
 
       {/* ── Card resumo ── */}
-      <div className="relative overflow-hidden bg-gradient-to-br from-indigo-600 to-violet-700 rounded-2xl p-4 text-white shadow-md shadow-indigo-200">
-        <div className="absolute -top-4 -right-4 w-20 h-20 bg-white/10 rounded-full" />
-        <p className="text-indigo-200 text-xs font-medium uppercase tracking-wide relative">Total do Mês</p>
-        <p className="text-xl font-bold mt-1 tabular-nums relative">{fmt(totalMes)}</p>
-        <p className="text-indigo-200 text-[11px] mt-1 relative">{entradas.length} entrada(s)</p>
+      <div className="bg-gradient-to-br from-indigo-600 to-violet-700 rounded-2xl px-4 py-3 text-white shadow-lg shadow-indigo-200">
+        <p className="text-indigo-100 text-xs font-medium uppercase tracking-wide">Total do Mês</p>
+        <p className="text-2xl font-bold mt-0.5 tabular-nums">{fmt(totalMes)}</p>
+        <p className="text-indigo-100 text-[11px] mt-1">{entradas.length} entrada(s)</p>
       </div>
 
       {/* ── Gráficos ── */}
