@@ -15,6 +15,12 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "ThidoHouse · Controle Financeiro",
   description: "Controle financeiro do Thidinho",
+  // Nome exibido ao adicionar à tela de início do iPhone
+  appleWebApp: {
+    title: "ThidoHouse",
+    capable: true,
+    statusBarStyle: "default",
+  },
 };
 
 export default function RootLayout({
