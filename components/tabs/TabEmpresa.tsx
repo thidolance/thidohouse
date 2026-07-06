@@ -7,7 +7,7 @@ import Card from '../ui/Card';
 import { Plus, Trash, Pencil } from '../ui/Icons';
 import { useRefetchOnFocus } from '@/lib/useRefetchOnFocus';
 import {
-  getCustosEmpresa, addCustoEmpresa, updateCustoEmpresa, deleteCustoEmpresa, deleteCustoEmpresaAndFuture,
+  getCustosEmpresa, addCustoEmpresa, updateCustoEmpresa, updateCustoReparcelado, deleteCustoEmpresa, deleteCustoEmpresaAndFuture,
   getCategoriasEmpresa, addCategoriaEmpresa, deleteCategoriaEmpresa,
 } from '@/lib/firestore';
 import type { CustoEmpresa, CategoriaEmpresa } from '@/lib/types';
@@ -94,8 +94,15 @@ export default function TabEmpresa({ mes, ano }: Props) {
       parcelaAtual:  parseInt(formCusto.parcelaAtual),
       mes, ano,
     };
-    if (editCustoId) await updateCustoEmpresa(editCustoId, data);
-    else             await addCustoEmpresa(data);
+    if (editCustoId) {
+      const original = custos.find((c) => c.id === editCustoId);
+      const isSerie = (original?.totalParcelas ?? 1) > 1 || data.totalParcelas > 1;
+      // Série: reconstrói/propaga para os meses seguintes; caso 1x: atualiza só o doc
+      if (original && isSerie) await updateCustoReparcelado(editCustoId, data, original);
+      else                     await updateCustoEmpresa(editCustoId, data);
+    } else {
+      await addCustoEmpresa(data);
+    }
     setShowCustoModal(false);
     setEditCustoId(null);
     setFormCusto({ ...CUSTO_EMPTY, categoriaId: categorias[0]?.id ?? '' });
