@@ -509,6 +509,17 @@ export async function getCustosEmpresa(mes: number, ano: number): Promise<CustoE
 
 export async function addCustoEmpresa(c: Omit<CustoEmpresa, 'id'>): Promise<void> {
   const grupoId = makeGrupoId();
+  // Fixo: cria o mês atual + 24 meses à frente (recorrente)
+  if (c.fixa) {
+    await Promise.all([
+      addDoc(collection(db, 'custos_empresa'), { ...c, grupoId }),
+      ...Array.from({ length: 24 }, (_, i) => {
+        const { mes, ano } = addMonths(c.mes, c.ano, i + 1);
+        return addDoc(collection(db, 'custos_empresa'), { ...c, grupoId, mes, ano });
+      }),
+    ]);
+    return;
+  }
   const remaining = c.totalParcelas - c.parcelaAtual + 1;
   await Promise.all(
     Array.from({ length: remaining }, (_, i) => {
@@ -516,6 +527,49 @@ export async function addCustoEmpresa(c: Omit<CustoEmpresa, 'id'>): Promise<void
       return addDoc(collection(db, 'custos_empresa'), { ...c, grupoId, parcelaAtual: c.parcelaAtual + i, mes, ano });
     }),
   );
+}
+
+// Ativa/desativa fixo: cria 24 cópias à frente ou apaga todas as futuras do mesmo grupoId
+export async function toggleCustoEmpresaFixa(id: string, custo: CustoEmpresa, tornarFixa: boolean): Promise<void> {
+  const { id: _id, grupoId: _grupoId, ...data } = custo;
+  if (tornarFixa) {
+    const grupoId = makeGrupoId();
+    await Promise.all([
+      setDoc(doc(db, 'custos_empresa', id), { ...data, fixa: true, grupoId }),
+      ...Array.from({ length: 24 }, (_, i) => {
+        const { mes, ano } = addMonths(custo.mes, custo.ano, i + 1);
+        return addDoc(collection(db, 'custos_empresa'), { ...data, fixa: true, grupoId, mes, ano });
+      }),
+    ]);
+  } else {
+    await setDoc(doc(db, 'custos_empresa', id), { ...data, fixa: false });
+    if (custo.grupoId) {
+      const snap = await getDocs(query(collection(db, 'custos_empresa'), where('grupoId', '==', custo.grupoId)));
+      const currentAbs = custo.ano * 12 + custo.mes;
+      await Promise.all(
+        snap.docs
+          .filter((d) => { const x = d.data(); return d.id !== id && (x.ano * 12 + x.mes) > currentAbs; })
+          .map((d) => deleteDoc(d.ref)),
+      );
+    }
+  }
+}
+
+// Edição de custo fixo: atualiza o mês atual e propaga para os meses futuros do grupo,
+// mantendo o mês/ano de cada um (recorrência preservada).
+export async function updateCustoEmpresaFixa(id: string, c: Omit<CustoEmpresa, 'id'>, original: CustoEmpresa): Promise<void> {
+  const grupoId = original.grupoId ?? makeGrupoId();
+  await setDoc(doc(db, 'custos_empresa', id), { ...c, grupoId });
+  if (original.grupoId) {
+    const snap = await getDocs(query(collection(db, 'custos_empresa'), where('grupoId', '==', original.grupoId)));
+    const currentAbs = c.ano * 12 + c.mes;
+    const { mes: _mes, ano: _ano, parcelaAtual: _parcelaAtual, ...serie } = c;
+    await Promise.all(
+      snap.docs
+        .filter((d) => { const x = d.data(); return d.id !== id && (x.ano * 12 + x.mes) > currentAbs; })
+        .map((d) => { const x = d.data(); return setDoc(d.ref, { ...serie, mes: x.mes, ano: x.ano, parcelaAtual: x.parcelaAtual ?? 1, grupoId }, { merge: true }); }),
+    );
+  }
 }
 
 export async function updateCustoEmpresa(id: string, c: Omit<CustoEmpresa, 'id'>): Promise<void> {
