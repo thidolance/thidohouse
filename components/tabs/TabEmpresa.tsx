@@ -7,7 +7,8 @@ import Card from '../ui/Card';
 import { Plus, Trash, Pencil } from '../ui/Icons';
 import { useRefetchOnFocus } from '@/lib/useRefetchOnFocus';
 import {
-  getCustosEmpresa, addCustoEmpresa, updateCustoEmpresa, deleteCustoEmpresa, deleteCustoEmpresaAndFuture,
+  getCustosEmpresa, addCustoEmpresa, updateCustoEmpresa, updateCustoReparcelado, updateCustoEmpresaFixa,
+  toggleCustoEmpresaFixa, deleteCustoEmpresa, deleteCustoEmpresaAndFuture,
   getCategoriasEmpresa, addCategoriaEmpresa, deleteCategoriaEmpresa,
 } from '@/lib/firestore';
 import type { CustoEmpresa, CategoriaEmpresa } from '@/lib/types';
@@ -26,6 +27,14 @@ function GearIcon() {
   );
 }
 
+function PinIcon({ filled }: { filled?: boolean }) {
+  return (
+    <svg className="w-3.5 h-3.5" fill={filled ? 'currentColor' : 'none'} viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
+    </svg>
+  );
+}
+
 const INPUT = 'w-full border border-slate-200 rounded-xl px-3 py-2 text-sm text-slate-900 bg-white focus:outline-none focus:ring-2 focus:ring-violet-300';
 const fmt   = (v: number) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 
@@ -33,9 +42,9 @@ interface Props { mes: number; ano: number; }
 
 type FormCusto = {
   categoriaId: string; descricao: string;
-  valor: string; totalParcelas: string; parcelaAtual: string;
+  valor: string; totalParcelas: string; parcelaAtual: string; fixa: boolean;
 };
-const CUSTO_EMPTY: FormCusto = { categoriaId: '', descricao: '', valor: '', totalParcelas: '1', parcelaAtual: '1' };
+const CUSTO_EMPTY: FormCusto = { categoriaId: '', descricao: '', valor: '', totalParcelas: '1', parcelaAtual: '1', fixa: false };
 
 type FormCat = { nome: string; cor: string };
 const CAT_EMPTY: FormCat = { nome: '', cor: '#8b5cf6' };
@@ -93,9 +102,19 @@ export default function TabEmpresa({ mes, ano }: Props) {
       totalParcelas: parcelas,
       parcelaAtual:  parseInt(formCusto.parcelaAtual),
       mes, ano,
+      fixa: formCusto.fixa && parcelas <= 1,
     };
-    if (editCustoId) await updateCustoEmpresa(editCustoId, data);
-    else             await addCustoEmpresa(data);
+    if (editCustoId) {
+      const original = custos.find((c) => c.id === editCustoId);
+      const isFixa  = !!(original?.fixa || data.fixa);
+      const isSerie = !isFixa && ((original?.totalParcelas ?? 1) > 1 || data.totalParcelas > 1);
+      // Fixo: propaga para os meses futuros; série: reconstrói; caso 1x: atualiza só o doc
+      if (original && isFixa)       await updateCustoEmpresaFixa(editCustoId, data, original);
+      else if (original && isSerie) await updateCustoReparcelado(editCustoId, data, original);
+      else                          await updateCustoEmpresa(editCustoId, data);
+    } else {
+      await addCustoEmpresa(data);
+    }
     setShowCustoModal(false);
     setEditCustoId(null);
     setFormCusto({ ...CUSTO_EMPTY, categoriaId: categorias[0]?.id ?? '' });
@@ -116,12 +135,18 @@ export default function TabEmpresa({ mes, ano }: Props) {
       valor:         c.valor.toLocaleString('pt-BR', { minimumFractionDigits: 2 }),
       totalParcelas: String(c.totalParcelas),
       parcelaAtual:  String(c.parcelaAtual),
+      fixa:          c.fixa ?? false,
     });
     setShowCustoModal(true);
   }
 
+  async function handleToggleFixaCusto(c: CustoEmpresa) {
+    await toggleCustoEmpresaFixa(c.id!, c, !c.fixa);
+    loadCustos();
+  }
+
   function iniciarDeleteCusto(c: CustoEmpresa) {
-    if (c.totalParcelas > c.parcelaAtual) {
+    if (c.fixa || c.totalParcelas > c.parcelaAtual) {
       setDeleteCustoDialog(c);
     } else {
       deleteCustoEmpresa(c.id!).then(loadCustos);
@@ -341,15 +366,25 @@ export default function TabEmpresa({ mes, ano }: Props) {
                       {cat?.nome ?? '—'}
                     </span>
                     <div>
-                      <p className="font-medium text-slate-700 text-sm">{c.descricao}</p>
+                      <div className="flex items-center gap-1.5">
+                        <p className="font-medium text-slate-700 text-sm">{c.descricao}</p>
+                        {c.fixa && <span className="text-[10px] px-1.5 py-0.5 rounded-md font-semibold bg-amber-50 text-amber-600">Fixo</span>}
+                      </div>
                       <p className="text-xs text-slate-400">
-                        {c.parcelaAtual}/{c.totalParcelas}x
-                        {c.totalParcelas > 1 && ` · total ${fmt(c.valor)}`}
+                        {c.fixa
+                          ? 'todo mês'
+                          : <>{c.parcelaAtual}/{c.totalParcelas}x{c.totalParcelas > 1 && ` · total ${fmt(c.valor)}`}</>}
                       </p>
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
                     <span className="font-semibold text-sm text-violet-600">{fmt(c.valorParcela)}</span>
+                    {c.totalParcelas <= 1 && (
+                      <button onClick={() => handleToggleFixaCusto(c)} title={c.fixa ? 'Remover recorrência' : 'Marcar como fixo'}
+                        className={`p-1.5 rounded-lg transition-all ${c.fixa ? 'text-amber-500 bg-amber-50' : 'opacity-100 sm:opacity-0 sm:group-hover:opacity-100 text-slate-300 hover:text-amber-500 hover:bg-amber-50'}`}>
+                        <PinIcon filled={c.fixa} />
+                      </button>
+                    )}
                     <button onClick={() => abrirEditCusto(c)} className="p-1.5 rounded-lg opacity-100 sm:opacity-0 sm:group-hover:opacity-100 hover:bg-violet-100 text-slate-300 hover:text-violet-500 transition-all"><Pencil /></button>
                     <button onClick={() => iniciarDeleteCusto(c)} className="p-1.5 rounded-lg opacity-100 sm:opacity-0 sm:group-hover:opacity-100 hover:bg-red-50 text-slate-300 hover:text-red-400 transition-all"><Trash /></button>
                   </div>
@@ -413,6 +448,19 @@ export default function TabEmpresa({ mes, ano }: Props) {
               </p>
             )}
 
+            {!editCustoId && parseInt(formCusto.totalParcelas || '1') <= 1 && (
+              <label className="flex items-center gap-3 cursor-pointer select-none p-3 rounded-xl border border-slate-100 hover:bg-slate-50 transition-colors">
+                <div onClick={() => setFormCusto({ ...formCusto, fixa: !formCusto.fixa })}
+                  className={`w-11 h-6 rounded-full transition-colors flex items-center flex-shrink-0 ${formCusto.fixa ? 'bg-amber-400' : 'bg-slate-200'}`}>
+                  <span className={`w-5 h-5 bg-white rounded-full shadow transition-transform mx-0.5 ${formCusto.fixa ? 'translate-x-5' : 'translate-x-0'}`} />
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-slate-700">Custo Fixo</p>
+                  <p className="text-xs text-slate-400">Repete automaticamente todo mês</p>
+                </div>
+              </label>
+            )}
+
             <div className="flex gap-3 pt-2">
               <button type="button" onClick={() => { setShowCustoModal(false); setEditCustoId(null); }} className="flex-1 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-600 hover:bg-slate-50">Cancelar</button>
               <button type="submit" className="flex-1 py-2.5 bg-violet-600 text-white rounded-xl text-sm font-medium hover:bg-violet-700">Salvar</button>
@@ -468,16 +516,16 @@ export default function TabEmpresa({ mes, ano }: Props) {
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 space-y-4">
             <h3 className="font-bold text-slate-800">Remover custo da empresa</h3>
             <p className="text-sm text-slate-500 leading-relaxed">
-              <strong>&quot;{deleteCustoDialog.descricao}&quot;</strong> tem parcelas em meses seguintes. Deseja remover só esta parcela ou todas as parcelas restantes?
+              <strong>&quot;{deleteCustoDialog.descricao}&quot;</strong> {deleteCustoDialog.fixa ? 'se repete nos meses seguintes' : 'tem parcelas em meses seguintes'}. Deseja remover só {deleteCustoDialog.fixa ? 'este mês' : 'esta parcela'} ou {deleteCustoDialog.fixa ? 'este e os seguintes' : 'todas as parcelas restantes'}?
             </p>
             <div className="space-y-2 pt-1">
               <button onClick={() => confirmarDeleteCusto('future')}
                 className="w-full py-2.5 rounded-xl text-sm font-semibold bg-red-500 text-white hover:bg-red-600 transition-colors">
-                Remover esta e as seguintes
+                {deleteCustoDialog.fixa ? 'Remover este e os seguintes' : 'Remover esta e as seguintes'}
               </button>
               <button onClick={() => confirmarDeleteCusto('this')}
                 className="w-full py-2.5 rounded-xl text-sm font-medium bg-slate-700 text-white hover:bg-slate-800 transition-colors">
-                Só esta parcela
+                {deleteCustoDialog.fixa ? 'Só este mês' : 'Só esta parcela'}
               </button>
               <button onClick={() => setDeleteCustoDialog(null)}
                 className="w-full py-2.5 rounded-xl text-sm text-slate-500 border border-slate-200 hover:bg-slate-50 transition-colors">

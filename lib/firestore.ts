@@ -509,6 +509,17 @@ export async function getCustosEmpresa(mes: number, ano: number): Promise<CustoE
 
 export async function addCustoEmpresa(c: Omit<CustoEmpresa, 'id'>): Promise<void> {
   const grupoId = makeGrupoId();
+  // Fixo: cria o mês atual + 24 meses à frente (recorrente)
+  if (c.fixa) {
+    await Promise.all([
+      addDoc(collection(db, 'custos_empresa'), { ...c, grupoId }),
+      ...Array.from({ length: 24 }, (_, i) => {
+        const { mes, ano } = addMonths(c.mes, c.ano, i + 1);
+        return addDoc(collection(db, 'custos_empresa'), { ...c, grupoId, mes, ano });
+      }),
+    ]);
+    return;
+  }
   const remaining = c.totalParcelas - c.parcelaAtual + 1;
   await Promise.all(
     Array.from({ length: remaining }, (_, i) => {
@@ -518,8 +529,95 @@ export async function addCustoEmpresa(c: Omit<CustoEmpresa, 'id'>): Promise<void
   );
 }
 
+// Ativa/desativa fixo: cria 24 cópias à frente ou apaga todas as futuras do mesmo grupoId
+export async function toggleCustoEmpresaFixa(id: string, custo: CustoEmpresa, tornarFixa: boolean): Promise<void> {
+  const { id: _id, grupoId: _grupoId, ...data } = custo;
+  if (tornarFixa) {
+    const grupoId = makeGrupoId();
+    await Promise.all([
+      setDoc(doc(db, 'custos_empresa', id), { ...data, fixa: true, grupoId }),
+      ...Array.from({ length: 24 }, (_, i) => {
+        const { mes, ano } = addMonths(custo.mes, custo.ano, i + 1);
+        return addDoc(collection(db, 'custos_empresa'), { ...data, fixa: true, grupoId, mes, ano });
+      }),
+    ]);
+  } else {
+    await setDoc(doc(db, 'custos_empresa', id), { ...data, fixa: false });
+    if (custo.grupoId) {
+      const snap = await getDocs(query(collection(db, 'custos_empresa'), where('grupoId', '==', custo.grupoId)));
+      const currentAbs = custo.ano * 12 + custo.mes;
+      await Promise.all(
+        snap.docs
+          .filter((d) => { const x = d.data(); return d.id !== id && (x.ano * 12 + x.mes) > currentAbs; })
+          .map((d) => deleteDoc(d.ref)),
+      );
+    }
+  }
+}
+
+// Edição de custo fixo: atualiza o mês atual e propaga para os meses futuros do grupo,
+// mantendo o mês/ano de cada um (recorrência preservada).
+export async function updateCustoEmpresaFixa(id: string, c: Omit<CustoEmpresa, 'id'>, original: CustoEmpresa): Promise<void> {
+  const grupoId = original.grupoId ?? makeGrupoId();
+  await setDoc(doc(db, 'custos_empresa', id), { ...c, grupoId });
+  if (original.grupoId) {
+    const snap = await getDocs(query(collection(db, 'custos_empresa'), where('grupoId', '==', original.grupoId)));
+    const currentAbs = c.ano * 12 + c.mes;
+    const { mes: _mes, ano: _ano, parcelaAtual: _parcelaAtual, ...serie } = c;
+    await Promise.all(
+      snap.docs
+        .filter((d) => { const x = d.data(); return d.id !== id && (x.ano * 12 + x.mes) > currentAbs; })
+        .map((d) => { const x = d.data(); return setDoc(d.ref, { ...serie, mes: x.mes, ano: x.ano, parcelaAtual: x.parcelaAtual ?? 1, grupoId }, { merge: true }); }),
+    );
+  }
+}
+
 export async function updateCustoEmpresa(id: string, c: Omit<CustoEmpresa, 'id'>): Promise<void> {
   await setDoc(doc(db, 'custos_empresa', id), c);
+}
+
+// Todos os custos da mesma série, exceto o próprio. Com grupoId usa só o grupo;
+// sem grupoId (legado) cai na heurística categoria + descrição + total de parcelas.
+export async function getCustosDoGrupo(original: CustoEmpresa): Promise<CustoEmpresa[]> {
+  if (original.grupoId) {
+    const snap = await getDocs(query(collection(db, 'custos_empresa'), where('grupoId', '==', original.grupoId)));
+    return snap.docs.map((d) => ({ id: d.id, ...d.data() } as CustoEmpresa)).filter((d) => d.id !== original.id);
+  }
+  const snap = await getDocs(query(
+    collection(db, 'custos_empresa'),
+    where('categoriaId', '==', original.categoriaId),
+    where('descricao', '==', original.descricao),
+  ));
+  return snap.docs
+    .map((d) => ({ id: d.id, ...d.data() } as CustoEmpresa))
+    .filter((d) => d.id !== original.id && d.totalParcelas === original.totalParcelas);
+}
+
+// Reparcelamento do custo: reconstrói a série na edição (muda nº de parcelas ou propaga
+// valor/descrição para os meses seguintes). Mantém as passadas, apaga as futuras antigas
+// e recria conforme o novo total.
+export async function updateCustoReparcelado(id: string, c: Omit<CustoEmpresa, 'id'>, original: CustoEmpresa): Promise<void> {
+  const grupoId = original.grupoId ?? makeGrupoId();
+  const currentAbs = c.ano * 12 + c.mes;
+  const doGrupo = await getCustosDoGrupo(original);
+  const { mes: _mes, ano: _ano, parcelaAtual: _parcelaAtual, ...serie } = c;
+
+  // parcela editada
+  await setDoc(doc(db, 'custos_empresa', id), { ...c, grupoId });
+
+  // passadas: atualiza dados da série (mantém mês/parcela); futuras: apaga (serão recriadas)
+  await Promise.all(doGrupo.map((d) => {
+    const abs = d.ano * 12 + d.mes;
+    if (abs > currentAbs) return deleteDoc(doc(db, 'custos_empresa', d.id!));
+    return setDoc(doc(db, 'custos_empresa', d.id!), { ...serie, mes: d.mes, ano: d.ano, parcelaAtual: d.parcelaAtual, grupoId }, { merge: true });
+  }));
+
+  // recria as parcelas seguintes conforme o novo total
+  const restantes = c.totalParcelas - c.parcelaAtual;
+  await Promise.all(Array.from({ length: Math.max(0, restantes) }, (_, i) => {
+    const pos = addMonths(c.mes, c.ano, i + 1);
+    return addDoc(collection(db, 'custos_empresa'), { ...serie, grupoId, parcelaAtual: c.parcelaAtual + i + 1, mes: pos.mes, ano: pos.ano });
+  }));
 }
 
 export async function deleteCustoEmpresa(id: string): Promise<void> {

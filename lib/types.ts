@@ -69,6 +69,7 @@ export interface CustoEmpresa {
   mes: number;
   ano: number;
   grupoId?: string;
+  fixa?: boolean;
 }
 
 export interface FaturaEmpresa {
