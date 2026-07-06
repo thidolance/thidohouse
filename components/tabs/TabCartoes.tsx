@@ -12,7 +12,7 @@ import Card from '../ui/Card';
 import { Plus, Trash, Pencil } from '../ui/Icons';
 import { useRefetchOnFocus } from '@/lib/useRefetchOnFocus';
 import {
-  getCompras, addCompra, updateCompra, updateCompraAndFuture, getComprasFuturasDoGrupo,
+  getCompras, addCompra, updateCompra, updateCompraAndFuture, updateCompraReparcelada, getComprasFuturasDoGrupo,
   deleteCompra, deleteCompraAndFuture, toggleCompraFixa,
   getCartoes, addCartao, updateCartao, deleteCartao,
   getCategorias, addCategoria, deleteCategoria,
@@ -149,7 +149,24 @@ export default function TabCartoes({ mes, ano }: Props) {
     };
     if (editCompraId) {
       const original = compras.find((c) => c.id === editCompraId);
+      const isSerie = (original?.totalParcelas ?? 1) > 1 || data.totalParcelas > 1;
       const futuras = original ? await getComprasFuturasDoGrupo(original) : [];
+
+      if (original && isSerie && !data.fixa) {
+        const countChanged   = original.totalParcelas !== data.totalParcelas;
+        const futurosEsperados = Math.max(0, data.totalParcelas - data.parcelaAtual);
+        // Reparcela se o total mudou ou se a série está inconsistente (nº de docs futuros
+        // diferente do esperado) — isso também conserta registros já corrompidos.
+        if (countChanged || futuras.length !== futurosEsperados) {
+          await updateCompraReparcelada(editCompraId, data, original);
+          setShowCompraModal(false);
+          setEditCompraId(null);
+          setFormCompra({ ...COMPRA_EMPTY, cartaoId: cartoes[0]?.id ?? '', tipo: categorias[0]?.nome ?? '' });
+          loadCompras();
+          return;
+        }
+      }
+
       if (futuras.length > 0) {
         setShowCompraModal(false);
         setEditCompraDialog({ id: editCompraId, data, original: original! });

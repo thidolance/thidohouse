@@ -359,6 +359,50 @@ export async function updateCompraAndFuture(id: string, c: Omit<CompraParcelada,
   );
 }
 
+// Todas as compras da mesma série, exceto a própria. Com grupoId usa só o grupo
+// (preciso); sem grupoId cai na heurística cartão + descrição + fixa (legado).
+export async function getComprasDoGrupo(original: CompraParcelada): Promise<CompraParcelada[]> {
+  if (original.grupoId) {
+    const snap = await getDocs(query(collection(db, 'compras'), where('grupoId', '==', original.grupoId)));
+    return snap.docs.map((d) => ({ id: d.id, ...d.data() } as CompraParcelada)).filter((d) => d.id !== original.id);
+  }
+  const snap = await getDocs(query(
+    collection(db, 'compras'),
+    where('cartaoId', '==', original.cartaoId),
+    where('descricao', '==', original.descricao),
+  ));
+  return snap.docs
+    .map((d) => ({ id: d.id, ...d.data() } as CompraParcelada))
+    .filter((d) => d.id !== original.id && (d.fixa ?? false) === (original.fixa ?? false));
+}
+
+// Reparcelamento: quando o número de parcelas muda na edição, reconstrói a série.
+// - Atualiza a parcela editada (no mês atual) e as passadas com os novos dados da série.
+// - Apaga as parcelas futuras antigas e recria de acordo com o novo total.
+export async function updateCompraReparcelada(id: string, c: Omit<CompraParcelada, 'id'>, original: CompraParcelada): Promise<void> {
+  const grupoId = original.grupoId ?? makeGrupoId();
+  const currentAbs = c.ano * 12 + c.mes;
+  const doGrupo = await getComprasDoGrupo(original);
+  const { mes: _mes, ano: _ano, parcelaAtual: _parcelaAtual, ...serie } = c;
+
+  // parcela editada
+  await setDoc(doc(db, 'compras', id), { ...c, grupoId });
+
+  // passadas: atualiza dados da série (mantém mês/parcela); futuras: apaga (serão recriadas)
+  await Promise.all(doGrupo.map((d) => {
+    const abs = d.ano * 12 + d.mes;
+    if (abs > currentAbs) return deleteDoc(doc(db, 'compras', d.id!));
+    return setDoc(doc(db, 'compras', d.id!), { ...serie, mes: d.mes, ano: d.ano, parcelaAtual: d.parcelaAtual, grupoId }, { merge: true });
+  }));
+
+  // recria as parcelas seguintes conforme o novo total
+  const restantes = c.totalParcelas - c.parcelaAtual;
+  await Promise.all(Array.from({ length: Math.max(0, restantes) }, (_, i) => {
+    const pos = addMonths(c.mes, c.ano, i + 1);
+    return addDoc(collection(db, 'compras'), { ...serie, grupoId, parcelaAtual: c.parcelaAtual + i + 1, mes: pos.mes, ano: pos.ano });
+  }));
+}
+
 // Ativa/desativa fixa: cria 24 cópias ou apaga todas as futuras do mesmo grupoId
 export async function toggleCompraFixa(id: string, compra: CompraParcelada, tornarFixa: boolean): Promise<void> {
   const { id: _id, grupoId: _grupoId, ...data } = compra;
