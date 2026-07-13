@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { getContas } from '@/lib/firestore';
 import TabVisaoGeral from '@/components/tabs/TabVisaoGeral';
 import TabEntradas from '@/components/tabs/TabEntradas';
 import TabContas from '@/components/tabs/TabContas';
@@ -24,11 +25,41 @@ const TABS = [
 
 type TabId = (typeof TABS)[number]['id'];
 
-export default function Home() {
+function proximoMes(mes: number, ano: number) {
+  return mes === 12 ? { mes: 1, ano: ano + 1 } : { mes: mes + 1, ano };
+}
+
+// Mês inicial ao abrir o app: depois do dia 15 já mostra o mês seguinte,
+// para dar tempo de se programar. (O caso "tudo pago" é tratado no useEffect.)
+function periodoInicial() {
   const now = new Date();
+  const mes = now.getMonth() + 1;
+  const ano = now.getFullYear();
+  return now.getDate() > 15 ? proximoMes(mes, ano) : { mes, ano };
+}
+
+export default function Home() {
   const [tab, setTab] = useState<TabId>('visao');
-  const [mes, setMes] = useState(now.getMonth() + 1);
-  const [ano, setAno] = useState(now.getFullYear());
+  const [periodo, setPeriodo] = useState(periodoInicial);
+  const { mes, ano } = periodo;
+
+  // Se ainda estamos no mês atual (até o dia 15) e todas as contas dele já
+  // estão pagas, adianta para o mês seguinte na abertura.
+  useEffect(() => {
+    const now = new Date();
+    if (now.getDate() > 15) return; // já adiantou no estado inicial
+    const m = now.getMonth() + 1;
+    const a = now.getFullYear();
+    let cancelado = false;
+    getContas(m, a).then((contas) => {
+      if (cancelado) return;
+      const tudoPago = contas.length > 0 && contas.every((c) => c.status === 'pago');
+      if (tudoPago) {
+        setPeriodo((p) => (p.mes === m && p.ano === a ? proximoMes(m, a) : p));
+      }
+    });
+    return () => { cancelado = true; };
+  }, []);
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -44,7 +75,7 @@ export default function Home() {
               <span className="text-slate-400 text-sm hidden sm:block">· Controle Financeiro</span>
             </div>
             <div className="order-3 w-full flex items-center justify-center gap-2 sm:order-none sm:w-auto sm:justify-start">
-              <MonthPicker mes={mes} ano={ano} onChange={(m, a) => { setMes(m); setAno(a); }} />
+              <MonthPicker mes={mes} ano={ano} onChange={(m, a) => setPeriodo({ mes: m, ano: a })} />
               <form action={logout}>
                 <button
                   type="submit"
