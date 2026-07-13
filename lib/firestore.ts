@@ -704,3 +704,55 @@ export async function getNotaMes(mes: number, ano: number): Promise<NotaMes | nu
 export async function saveNotaMes(mes: number, ano: number, texto: string): Promise<void> {
   await setDoc(doc(db, 'notas_mes', notaDocId(mes, ano)), { mes, ano, texto, updatedAt: Date.now() });
 }
+
+// ─── Status geral do mês ─────────────────────────────────────────────────────
+
+// True quando todas as pendências do mês estão pagas: contas + faturas de cartão
+// (só cartões com compras) + faturas da empresa (só categorias com custos).
+// Mês sem nenhuma pendência retorna false (não há o que adiantar). Mesmo critério
+// usado na aba Contas do Mês.
+export async function getMesTotalmentePago(mes: number, ano: number): Promise<boolean> {
+  const [contas, compras, faturasCartao, cartoes, custos, faturasEmpresa, catsEmpresa] =
+    await Promise.all([
+      getContas(mes, ano),
+      getCompras(mes, ano),
+      getFaturasCartao(mes, ano),
+      getCartoes(),
+      getCustosEmpresa(mes, ano),
+      getFaturasEmpresa(mes, ano),
+      getCategoriasEmpresa(),
+    ]);
+
+  let temPendencia = false; // pelo menos um item a pagar no mês
+  let tudoPago = true;
+
+  // Contas do mês
+  for (const c of contas) {
+    temPendencia = true;
+    if (c.status !== 'pago') tudoPago = false;
+  }
+
+  // Faturas de cartão — só contam cartões com compras no mês
+  for (const cartao of cartoes) {
+    const total = compras
+      .filter((p) => p.cartaoId === cartao.id)
+      .reduce((s, p) => s + p.valorParcela, 0);
+    if (total === 0) continue;
+    temPendencia = true;
+    const fatura = faturasCartao.find((f) => f.cartaoId === cartao.id);
+    if ((fatura?.status ?? 'pendente') !== 'pago') tudoPago = false;
+  }
+
+  // Faturas da empresa — só contam categorias com custos no mês
+  for (const cat of catsEmpresa) {
+    const total = custos
+      .filter((c) => c.categoriaId === cat.id)
+      .reduce((s, c) => s + c.valorParcela, 0);
+    if (total === 0) continue;
+    temPendencia = true;
+    const fatura = faturasEmpresa.find((f) => f.categoriaId === cat.id);
+    if ((fatura?.status ?? 'pendente') !== 'pago') tudoPago = false;
+  }
+
+  return temPendencia && tudoPago;
+}

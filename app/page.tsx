@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { getContas } from '@/lib/firestore';
+import { getMesTotalmentePago } from '@/lib/firestore';
 import TabVisaoGeral from '@/components/tabs/TabVisaoGeral';
 import TabEntradas from '@/components/tabs/TabEntradas';
 import TabContas from '@/components/tabs/TabContas';
@@ -43,20 +43,17 @@ export default function Home() {
   const [periodo, setPeriodo] = useState(periodoInicial);
   const { mes, ano } = periodo;
 
-  // Se ainda estamos no mês atual (até o dia 15) e todas as contas dele já
-  // estão pagas, adianta para o mês seguinte na abertura.
+  // Se ainda estamos no mês atual (até o dia 15) e tudo dele já está pago
+  // (contas + cartões + empresa), adianta para o mês seguinte na abertura.
   useEffect(() => {
     const now = new Date();
     if (now.getDate() > 15) return; // já adiantou no estado inicial
     const m = now.getMonth() + 1;
     const a = now.getFullYear();
     let cancelado = false;
-    getContas(m, a).then((contas) => {
-      if (cancelado) return;
-      const tudoPago = contas.length > 0 && contas.every((c) => c.status === 'pago');
-      if (tudoPago) {
-        setPeriodo((p) => (p.mes === m && p.ano === a ? proximoMes(m, a) : p));
-      }
+    getMesTotalmentePago(m, a).then((pago) => {
+      if (cancelado || !pago) return;
+      setPeriodo((p) => (p.mes === m && p.ano === a ? proximoMes(m, a) : p));
     });
     return () => { cancelado = true; };
   }, []);
