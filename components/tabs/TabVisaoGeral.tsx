@@ -430,9 +430,9 @@ export default function TabVisaoGeral({ mes, ano, onNavigate }: Props) {
             <p className="font-semibold text-slate-700 dark:text-zinc-200 text-sm">Investimentos por categoria</p>
             <p className="text-xs text-slate-400 dark:text-zinc-400">Com base na distribuição configurada · Últimos 12 meses</p>
           </div>
-          <div className="bg-violet-50 rounded-xl px-3 py-2 text-right flex-shrink-0">
-            <p className="text-[11px] text-violet-400">Total guardado</p>
-            <p className="font-bold text-violet-600 text-sm tabular-nums">{fmt(totalAcumulado)}</p>
+          <div className="bg-violet-50 dark:bg-violet-500/15 rounded-xl px-3 py-2 text-right flex-shrink-0">
+            <p className="text-[11px] text-violet-400 dark:text-violet-300">Total guardado</p>
+            <p className="font-bold text-violet-600 dark:text-violet-300 text-sm tabular-nums">{fmt(totalAcumulado)}</p>
           </div>
         </div>
 
@@ -449,8 +449,8 @@ export default function TabVisaoGeral({ mes, ano, onNavigate }: Props) {
             {totalGuardado > 0 && (
               <div className="mt-4 grid grid-cols-3 gap-3 pt-4 border-t border-slate-50 dark:border-zinc-800">
                 {[
-                  { label: 'Férias', valor: atual?.ferias ?? 0, color: '#22d3ee', bg: 'bg-cyan-50' },
-                  { label: 'Investimento', valor: atual?.investimento ?? 0, color: '#a78bfa', bg: 'bg-violet-50' },
+                  { label: 'Férias', valor: atual?.ferias ?? 0, color: '#22d3ee', bg: 'bg-cyan-50 dark:bg-cyan-500/10' },
+                  { label: 'Investimento', valor: atual?.investimento ?? 0, color: '#a78bfa', bg: 'bg-violet-50 dark:bg-violet-500/10' },
                   { label: 'Planos Futuros', valor: atual?.planosFuturos ?? 0, color: '#34d399', bg: 'bg-emerald-50 dark:bg-emerald-500/10' },
                 ].map((item) => (
                   <div key={item.label} className={`${item.bg} rounded-xl p-3`}>
