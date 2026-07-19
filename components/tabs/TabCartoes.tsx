@@ -9,6 +9,7 @@ const VChart = dynamic(
 );
 import Modal from '../ui/Modal';
 import Card from '../ui/Card';
+import DatePicker from '../ui/DatePicker';
 import { Plus, Trash, Pencil } from '../ui/Icons';
 import { useRefetchOnFocus } from '@/lib/useRefetchOnFocus';
 import {
@@ -746,7 +747,7 @@ export default function TabCartoes({ mes, ano }: Props) {
 
             <div>
               <label className="block text-sm font-medium text-slate-700 dark:text-zinc-200 mb-1">Data da Compra</label>
-              <input required type="date" value={formCompra.data} onChange={(e) => setFormCompra({ ...formCompra, data: e.target.value })} className={INPUT} />
+              <DatePicker required value={formCompra.data} onChange={(v) => setFormCompra({ ...formCompra, data: v })} className={INPUT} />
             </div>
 
             <div className="grid grid-cols-2 gap-3">

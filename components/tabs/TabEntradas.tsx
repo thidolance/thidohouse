@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import dynamic from 'next/dynamic';
 import Modal from '../ui/Modal';
 import Card from '../ui/Card';
+import DatePicker from '../ui/DatePicker';
 import { Plus, Trash, Pencil, TrendingUp } from '../ui/Icons';
 import { useRefetchOnFocus } from '@/lib/useRefetchOnFocus';
 import {
@@ -482,7 +483,7 @@ export default function TabEntradas({ mes, ano }: Props) {
             </div>
             <div>
               <label className="block text-sm font-medium text-slate-700 dark:text-zinc-200 mb-1">Data</label>
-              <input required type="date" value={form.data} onChange={(e) => setForm({ ...form, data: e.target.value })} className={INPUT} />
+              <DatePicker required value={form.data} onChange={(v) => setForm({ ...form, data: v })} className={INPUT} />
             </div>
             <div className="flex gap-3 pt-1">
               <button type="button" onClick={() => { setShowModal(false); setEditId(null); }} className="flex-1 py-2.5 border border-slate-200 dark:border-zinc-800 rounded-xl text-sm text-slate-600 dark:text-zinc-300 hover:bg-slate-50 dark:hover:bg-zinc-800">Cancelar</button>
