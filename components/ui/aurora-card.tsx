@@ -8,9 +8,9 @@ interface AuroraCardProps extends React.HTMLAttributes<HTMLDivElement> {
 }
 
 /**
- * Card com borda "aurora" em gradiente (roxo/rosa) — sutil no tema escuro.
- * No tema claro cai para o card branco padrão do app.
- * Sem efeito de mouse: a borda é a moldura moderna e discreta.
+ * Card com borda "aurora" em gradiente (índigo → roxo → rosa).
+ * No tema escuro o corpo é praticamente invisível (funde com o fundo preto),
+ * então só a borda aurora e o conteúdo aparecem. No claro, card branco padrão.
  */
 export function AuroraCard({
   className,
@@ -22,9 +22,11 @@ export function AuroraCard({
     <div
       className={cn(
         'relative w-full overflow-hidden rounded-2xl p-px transition-colors duration-300',
-        // Moldura: no claro é uma borda cinza discreta; no escuro, gradiente aurora sutil.
-        'bg-slate-200/80 dark:bg-transparent',
-        'dark:bg-gradient-to-br dark:from-indigo-500/25 dark:via-purple-500/25 dark:to-pink-500/25',
+        // Claro: borda cinza discreta.
+        'bg-slate-200/80',
+        // Escuro: borda aurora vibrante (roxo → rosa) + leve brilho.
+        'dark:bg-gradient-to-r dark:from-indigo-500 dark:via-purple-500 dark:to-pink-500',
+        'dark:shadow-[0_0_24px_-10px_rgba(192,132,252,0.55)]',
         className,
       )}
       {...props}
@@ -32,7 +34,8 @@ export function AuroraCard({
       <div
         className={cn(
           'relative z-10 rounded-[15px] bg-white shadow-sm',
-          'dark:bg-zinc-900/80 dark:shadow-none dark:backdrop-blur-sm',
+          // Escuro: corpo preto opaco (funde com o fundo) — só a borda aurora aparece.
+          'dark:bg-zinc-950 dark:shadow-none',
           contentClassName ?? 'p-6',
         )}
       >
