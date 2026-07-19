@@ -70,7 +70,7 @@ export default function Home() {
                 <FamilyIcon className="h-4 w-4" />
               </div>
               <span className="text-indigo-600 dark:text-purple-400 font-bold text-lg tracking-tight">ThidoHouse</span>
-              <span className="text-slate-400 dark:text-zinc-500 text-sm hidden sm:block">· Controle Financeiro</span>
+              <span className="text-slate-400 dark:text-zinc-400 text-sm hidden sm:block">· Controle Financeiro</span>
             </div>
             <div className="order-3 w-full flex items-center justify-center gap-2 sm:order-none sm:w-auto sm:justify-start">
               <MonthPicker mes={mes} ano={ano} onChange={(m, a) => setPeriodo({ mes: m, ano: a })} />
@@ -79,7 +79,7 @@ export default function Home() {
                 <button
                   type="submit"
                   title="Sair"
-                  className="flex items-center justify-center h-9 w-9 rounded-lg text-slate-400 dark:text-zinc-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors"
+                  className="flex items-center justify-center h-9 w-9 rounded-lg text-slate-400 dark:text-zinc-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors"
                 >
                   <LogOut className="h-4 w-4" />
                 </button>

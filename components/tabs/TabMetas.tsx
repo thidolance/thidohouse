@@ -9,7 +9,7 @@ import { useRefetchOnFocus } from '@/lib/useRefetchOnFocus';
 import type { Meta } from '@/lib/types';
 
 const fmt = (v: number) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-const INPUT = 'w-full border border-slate-200 dark:border-zinc-800 rounded-xl px-3 py-2 text-sm text-slate-900 dark:text-zinc-50 bg-white dark:bg-zinc-900 focus:outline-none focus:ring-2 focus:ring-indigo-300';
+const INPUT = 'w-full border border-slate-200 dark:border-zinc-800 rounded-xl px-3 py-2 text-sm text-slate-900 dark:text-zinc-50 bg-white dark:bg-zinc-900 focus:outline-none focus:ring-2 focus:ring-indigo-300 dark:focus:ring-purple-500';
 
 interface Props { mes: number; ano: number; }
 
@@ -91,7 +91,7 @@ export default function TabMetas({ ano }: Props) {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-lg font-bold text-slate-800 dark:text-zinc-100">Metas de {ano}</h2>
-          <p className="text-xs text-slate-400 dark:text-zinc-500">{metas.length} meta(s) · {fmt(totalGeral)}</p>
+          <p className="text-xs text-slate-400 dark:text-zinc-400">{metas.length} meta(s) · {fmt(totalGeral)}</p>
         </div>
         <button onClick={abrirNova}
           className="inline-flex items-center gap-1.5 px-3 py-2 bg-indigo-600 dark:bg-purple-600 text-white rounded-xl text-sm font-medium hover:bg-indigo-700 dark:hover:bg-purple-700 transition-colors shadow-sm">
@@ -103,17 +103,17 @@ export default function TabMetas({ ano }: Props) {
       <Card className="!p-0 overflow-hidden">
         <div className="px-4 py-3 border-b border-slate-100 dark:border-zinc-800 flex items-center justify-between">
           <p className="font-semibold text-slate-700 dark:text-zinc-200 text-sm">Checklist</p>
-          {metas.length > 0 && <span className="text-xs text-slate-400 dark:text-zinc-500">{metas.length} item(s)</span>}
+          {metas.length > 0 && <span className="text-xs text-slate-400 dark:text-zinc-400">{metas.length} item(s)</span>}
         </div>
         {loading ? (
-          <div className="py-12 flex flex-col items-center gap-2 text-slate-400 dark:text-zinc-500">
+          <div className="py-12 flex flex-col items-center gap-2 text-slate-400 dark:text-zinc-400">
             <div className="w-5 h-5 border-2 border-slate-200 dark:border-zinc-800 border-t-indigo-500 rounded-full animate-spin" />
             <p className="text-sm">Carregando...</p>
           </div>
         ) : metas.length === 0 ? (
           <div className="py-12 text-center">
             <p className="text-2xl mb-2">🎯</p>
-            <p className="text-slate-400 dark:text-zinc-500 text-sm">Nenhuma meta cadastrada para {ano}</p>
+            <p className="text-slate-400 dark:text-zinc-400 text-sm">Nenhuma meta cadastrada para {ano}</p>
           </div>
         ) : (
           <div className="divide-y divide-slate-50 dark:divide-zinc-800">
@@ -128,7 +128,7 @@ export default function TabMetas({ ano }: Props) {
                   {m.concluida && <Check />}
                 </button>
                 <div className="flex-1 min-w-0">
-                  <p className={`font-semibold text-sm leading-tight ${m.concluida ? 'line-through text-slate-400 dark:text-zinc-500' : 'text-slate-800 dark:text-zinc-100'}`}>{m.nome}</p>
+                  <p className={`font-semibold text-sm leading-tight ${m.concluida ? 'line-through text-slate-400 dark:text-zinc-400' : 'text-slate-800 dark:text-zinc-100'}`}>{m.nome}</p>
                   {m.link && (
                     <a href={m.link} target="_blank" rel="noopener noreferrer"
                       className="inline-flex items-center gap-1 text-[11px] text-indigo-500 dark:text-purple-400 hover:text-indigo-700 dark:hover:text-purple-300 mt-0.5">
@@ -138,8 +138,8 @@ export default function TabMetas({ ano }: Props) {
                 </div>
                 <div className="flex items-center gap-2 flex-shrink-0">
                   <span className={`font-bold text-sm tabular-nums ${m.concluida ? 'text-emerald-600 dark:text-emerald-400 line-through' : 'text-slate-800 dark:text-zinc-100'}`}>{fmt(m.valor)}</span>
-                  <button onClick={() => abrirEditar(m)} className="p-1.5 rounded-lg text-slate-400 dark:text-zinc-500 hover:text-indigo-500 dark:hover:text-purple-400 hover:bg-indigo-50 dark:hover:bg-purple-500/10 transition-colors opacity-100 sm:opacity-0 sm:group-hover:opacity-100"><Pencil /></button>
-                  <button onClick={() => handleDelete(m.id!)} className="p-1.5 rounded-lg text-slate-400 dark:text-zinc-500 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors opacity-100 sm:opacity-0 sm:group-hover:opacity-100"><Trash /></button>
+                  <button onClick={() => abrirEditar(m)} className="p-1.5 rounded-lg text-slate-400 dark:text-zinc-400 hover:text-indigo-500 dark:hover:text-purple-400 hover:bg-indigo-50 dark:hover:bg-purple-500/10 transition-colors opacity-100 sm:opacity-0 sm:group-hover:opacity-100"><Pencil /></button>
+                  <button onClick={() => handleDelete(m.id!)} className="p-1.5 rounded-lg text-slate-400 dark:text-zinc-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors opacity-100 sm:opacity-0 sm:group-hover:opacity-100"><Trash /></button>
                 </div>
               </div>
             ))}
@@ -152,15 +152,15 @@ export default function TabMetas({ ano }: Props) {
         <p className="font-semibold text-slate-700 dark:text-zinc-200 text-sm mb-3">Projeção</p>
         <div className="grid grid-cols-3 gap-3 text-center">
           <div>
-            <p className="text-xs text-slate-400 dark:text-zinc-500">Total das metas</p>
+            <p className="text-xs text-slate-400 dark:text-zinc-400">Total das metas</p>
             <p className="text-lg font-bold text-slate-800 dark:text-zinc-100 mt-1">{fmt(totalGeral)}</p>
           </div>
           <div>
-            <p className="text-xs text-slate-400 dark:text-zinc-500">Já conquistado</p>
+            <p className="text-xs text-slate-400 dark:text-zinc-400">Já conquistado</p>
             <p className="text-lg font-bold text-emerald-600 dark:text-emerald-400 mt-1">{fmt(totalConcluido)}</p>
           </div>
           <div>
-            <p className="text-xs text-slate-400 dark:text-zinc-500">Falta para realizar tudo</p>
+            <p className="text-xs text-slate-400 dark:text-zinc-400">Falta para realizar tudo</p>
             <p className="text-lg font-bold text-indigo-600 dark:text-purple-400 mt-1">{fmt(totalFaltante)}</p>
           </div>
         </div>
@@ -179,7 +179,7 @@ export default function TabMetas({ ano }: Props) {
               <input required value={form.valor} onChange={(e) => setForm({ ...form, valor: e.target.value })} className={INPUT} placeholder="0,00" inputMode="decimal" />
             </div>
             <div>
-              <label className="block text-sm font-medium text-slate-700 dark:text-zinc-200 mb-1">Link <span className="text-slate-400 dark:text-zinc-500 font-normal">(opcional)</span></label>
+              <label className="block text-sm font-medium text-slate-700 dark:text-zinc-200 mb-1">Link <span className="text-slate-400 dark:text-zinc-400 font-normal">(opcional)</span></label>
               <input type="url" value={form.link} onChange={(e) => setForm({ ...form, link: e.target.value })} className={INPUT} placeholder="https://..." />
             </div>
             <div className="flex gap-3 pt-1">

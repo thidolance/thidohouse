@@ -65,7 +65,7 @@ const DIST_LABELS: { key: DistKey; label: string }[] = [
 const LS_COLORS_KEY = 'thidohouse-dist-colors';
 
 const fmt = (v: number) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-const INPUT = 'w-full border border-slate-200 dark:border-zinc-800 rounded-xl px-3 py-2 text-sm text-slate-900 dark:text-zinc-50 bg-white dark:bg-zinc-900 focus:outline-none focus:ring-2 focus:ring-indigo-300';
+const INPUT = 'w-full border border-slate-200 dark:border-zinc-800 rounded-xl px-3 py-2 text-sm text-slate-900 dark:text-zinc-50 bg-white dark:bg-zinc-900 focus:outline-none focus:ring-2 focus:ring-indigo-300 dark:focus:ring-purple-500';
 
 interface Props { mes: number; ano: number; }
 
@@ -263,7 +263,7 @@ export default function TabEntradas({ mes, ano }: Props) {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-lg font-bold text-slate-800 dark:text-zinc-100">Entradas</h2>
-          <p className="text-xs text-slate-400 dark:text-zinc-500">{entradas.length} entrada(s) · {fmt(totalMes)}</p>
+          <p className="text-xs text-slate-400 dark:text-zinc-400">{entradas.length} entrada(s) · {fmt(totalMes)}</p>
         </div>
         <button onClick={() => { setEditId(null); setForm({ descricao: '', valor: '', data: '' }); setShowModal(true); }}
           className="inline-flex items-center gap-1.5 px-3 py-2 bg-indigo-600 dark:bg-purple-600 text-white rounded-xl text-sm font-medium hover:bg-indigo-700 dark:hover:bg-purple-700 transition-colors shadow-sm">
@@ -290,7 +290,7 @@ export default function TabEntradas({ mes, ano }: Props) {
               <VChart key={`hist-${historico.length}-${historico.at(-1)?.total?.toFixed(0) ?? 0}`} spec={historicoSpec as any} />
             </div>
           ) : (
-            <div className="h-[220px] flex flex-col items-center justify-center text-slate-400 dark:text-zinc-500 gap-2">
+            <div className="h-[220px] flex flex-col items-center justify-center text-slate-400 dark:text-zinc-400 gap-2">
               <span className="text-3xl">📈</span>
               <p className="text-sm">Sem histórico ainda</p>
             </div>
@@ -309,7 +309,7 @@ export default function TabEntradas({ mes, ano }: Props) {
               <VChart key={`dist-${totalMes.toFixed(0)}-${Object.values(distColors).join('')}`} spec={distSpec as any} />
             </div>
           ) : (
-            <div className="h-[220px] flex flex-col items-center justify-center text-slate-400 dark:text-zinc-500 gap-2">
+            <div className="h-[220px] flex flex-col items-center justify-center text-slate-400 dark:text-zinc-400 gap-2">
               <span className="text-3xl">🥧</span>
               <p className="text-sm">Adicione entradas para ver a distribuição</p>
             </div>
@@ -335,17 +335,17 @@ export default function TabEntradas({ mes, ano }: Props) {
       <Card className="!p-0 overflow-hidden">
         <div className="px-4 py-3 border-b border-slate-100 dark:border-zinc-800 flex items-center justify-between">
           <p className="font-semibold text-slate-700 dark:text-zinc-200 text-sm">Entradas do Mês</p>
-          {entradas.length > 0 && <span className="text-xs text-slate-400 dark:text-zinc-500">{entradas.length} item(s)</span>}
+          {entradas.length > 0 && <span className="text-xs text-slate-400 dark:text-zinc-400">{entradas.length} item(s)</span>}
         </div>
         {loading ? (
-          <div className="py-12 flex flex-col items-center gap-2 text-slate-400 dark:text-zinc-500">
+          <div className="py-12 flex flex-col items-center gap-2 text-slate-400 dark:text-zinc-400">
             <div className="w-5 h-5 border-2 border-slate-200 dark:border-zinc-800 border-t-indigo-500 rounded-full animate-spin" />
             <p className="text-sm">Carregando...</p>
           </div>
         ) : entradas.length === 0 ? (
           <div className="py-12 text-center">
             <p className="text-2xl mb-2">📥</p>
-            <p className="text-slate-400 dark:text-zinc-500 text-sm">Nenhuma entrada neste mês</p>
+            <p className="text-slate-400 dark:text-zinc-400 text-sm">Nenhuma entrada neste mês</p>
           </div>
         ) : (
           <div className="divide-y divide-slate-50 dark:divide-zinc-800">
@@ -357,7 +357,7 @@ export default function TabEntradas({ mes, ano }: Props) {
                   </div>
                   <div>
                     <p className="font-semibold text-slate-800 dark:text-zinc-100 text-sm leading-tight">{e.descricao}</p>
-                    <p className="text-[11px] text-slate-400 dark:text-zinc-500 mt-0.5">
+                    <p className="text-[11px] text-slate-400 dark:text-zinc-400 mt-0.5">
                       {new Date(e.data + 'T12:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' })}
                     </p>
                   </div>
@@ -365,11 +365,11 @@ export default function TabEntradas({ mes, ano }: Props) {
                 <div className="flex items-center gap-2">
                   <span className="font-bold text-indigo-600 dark:text-purple-400 tabular-nums">{fmt(e.valor)}</span>
                   <button onClick={() => handleEdit(e)}
-                    className="p-1.5 rounded-lg text-slate-300 dark:text-zinc-600 hover:text-indigo-500 dark:hover:text-purple-400 hover:bg-indigo-50 dark:hover:bg-purple-500/10 transition-colors opacity-100 sm:opacity-0 sm:group-hover:opacity-100">
+                    className="p-1.5 rounded-lg text-slate-300 dark:text-zinc-500 hover:text-indigo-500 dark:hover:text-purple-400 hover:bg-indigo-50 dark:hover:bg-purple-500/10 transition-colors opacity-100 sm:opacity-0 sm:group-hover:opacity-100">
                     <Pencil />
                   </button>
                   <button onClick={() => handleDelete(e.id!)}
-                    className="p-1.5 rounded-lg text-slate-300 dark:text-zinc-600 hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors opacity-100 sm:opacity-0 sm:group-hover:opacity-100">
+                    className="p-1.5 rounded-lg text-slate-300 dark:text-zinc-500 hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors opacity-100 sm:opacity-0 sm:group-hover:opacity-100">
                     <Trash />
                   </button>
                 </div>
@@ -407,7 +407,7 @@ export default function TabEntradas({ mes, ano }: Props) {
       {showDistModal && (
         <Modal title="Editar Distribuição" onClose={() => setShowDistModal(false)}>
           <form onSubmit={handleSaveDistribuicao} className="space-y-4">
-            <p className="text-xs text-slate-400 dark:text-zinc-500 bg-slate-50 dark:bg-zinc-950 rounded-lg p-2">Os percentuais devem somar exatamente 100%.</p>
+            <p className="text-xs text-slate-400 dark:text-zinc-400 bg-slate-50 dark:bg-zinc-950 rounded-lg p-2">Os percentuais devem somar exatamente 100%.</p>
             {DIST_LABELS.map(({ key, label }) => (
               <div key={key}>
                 <label className="flex items-center gap-2 text-sm font-medium text-slate-700 dark:text-zinc-200 mb-1.5">

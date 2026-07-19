@@ -306,7 +306,7 @@ export default function TabVisaoGeral({ mes, ano, onNavigate }: Props) {
   const dataKey = dados.map((d) => d.gastos + d.ganhos).join('-');
 
   if (loading) {
-    return <div className="flex items-center justify-center py-24 text-slate-400 dark:text-zinc-500 text-sm">Carregando dados...</div>;
+    return <div className="flex items-center justify-center py-24 text-slate-400 dark:text-zinc-400 text-sm">Carregando dados...</div>;
   }
 
   return (
@@ -336,7 +336,7 @@ export default function TabVisaoGeral({ mes, ano, onNavigate }: Props) {
       <Card>
         <div className="mb-3">
           <p className="font-semibold text-slate-700 dark:text-zinc-200 text-sm">Evolução: Ganhos vs Gastos</p>
-          <p className="text-xs text-slate-400 dark:text-zinc-500">Últimos 12 meses · mês atual destacado</p>
+          <p className="text-xs text-slate-400 dark:text-zinc-400">Últimos 12 meses · mês atual destacado</p>
         </div>
         <div style={{ height: 240 }}>
           <VChart key={`evo-${dataKey}`} spec={evoSpec as any} />
@@ -347,7 +347,7 @@ export default function TabVisaoGeral({ mes, ano, onNavigate }: Props) {
       <Card>
         <div className="mb-3">
           <p className="font-semibold text-slate-700 dark:text-zinc-200 text-sm">Gastos por Categoria</p>
-          <p className="text-xs text-slate-400 dark:text-zinc-500">Contas + Cartões — mês atual</p>
+          <p className="text-xs text-slate-400 dark:text-zinc-400">Contas + Cartões — mês atual</p>
         </div>
         {gastosPorCat.length > 0 ? (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-center">
@@ -363,7 +363,7 @@ export default function TabVisaoGeral({ mes, ano, onNavigate }: Props) {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between mb-0.5">
                         <span className="text-xs font-medium text-slate-600 dark:text-zinc-300 truncate">{c.nome}</span>
-                        <span className="text-xs text-slate-400 dark:text-zinc-500 ml-2 flex-shrink-0">{pct.toFixed(0)}%</span>
+                        <span className="text-xs text-slate-400 dark:text-zinc-400 ml-2 flex-shrink-0">{pct.toFixed(0)}%</span>
                       </div>
                       <div className="w-full bg-slate-100 dark:bg-zinc-800 rounded-full h-1.5">
                         <div className="h-1.5 rounded-full transition-all" style={{ width: `${pct}%`, backgroundColor: c.fill }} />
@@ -376,7 +376,7 @@ export default function TabVisaoGeral({ mes, ano, onNavigate }: Props) {
             </div>
           </div>
         ) : (
-          <div className="h-[200px] flex flex-col items-center justify-center text-slate-400 dark:text-zinc-500 gap-2">
+          <div className="h-[200px] flex flex-col items-center justify-center text-slate-400 dark:text-zinc-400 gap-2">
             <span className="text-3xl">📊</span>
             <p className="text-sm">Sem gastos neste mês</p>
           </div>
@@ -387,7 +387,7 @@ export default function TabVisaoGeral({ mes, ano, onNavigate }: Props) {
       <Card>
         <div className="mb-3">
           <p className="font-semibold text-slate-700 dark:text-zinc-200 text-sm">Gastos por Tipo de Conta</p>
-          <p className="text-xs text-slate-400 dark:text-zinc-500">Contas Fixas, Conta Rotativa, Cartões e Empresa — mês atual</p>
+          <p className="text-xs text-slate-400 dark:text-zinc-400">Contas Fixas, Conta Rotativa, Cartões e Empresa — mês atual</p>
         </div>
         {gastosPorTipo.length > 0 ? (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-center">
@@ -403,7 +403,7 @@ export default function TabVisaoGeral({ mes, ano, onNavigate }: Props) {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between mb-0.5">
                         <span className="text-xs font-medium text-slate-600 dark:text-zinc-300 truncate">{c.nome}</span>
-                        <span className="text-xs text-slate-400 dark:text-zinc-500 ml-2 flex-shrink-0">{pct.toFixed(0)}%</span>
+                        <span className="text-xs text-slate-400 dark:text-zinc-400 ml-2 flex-shrink-0">{pct.toFixed(0)}%</span>
                       </div>
                       <div className="w-full bg-slate-100 dark:bg-zinc-800 rounded-full h-1.5">
                         <div className="h-1.5 rounded-full transition-all" style={{ width: `${pct}%`, backgroundColor: c.fill }} />
@@ -416,7 +416,7 @@ export default function TabVisaoGeral({ mes, ano, onNavigate }: Props) {
             </div>
           </div>
         ) : (
-          <div className="h-[200px] flex flex-col items-center justify-center text-slate-400 dark:text-zinc-500 gap-2">
+          <div className="h-[200px] flex flex-col items-center justify-center text-slate-400 dark:text-zinc-400 gap-2">
             <span className="text-3xl">📊</span>
             <p className="text-sm">Sem gastos neste mês</p>
           </div>
@@ -428,7 +428,7 @@ export default function TabVisaoGeral({ mes, ano, onNavigate }: Props) {
         <div className="mb-3 flex items-center justify-between">
           <div>
             <p className="font-semibold text-slate-700 dark:text-zinc-200 text-sm">Investimentos por categoria</p>
-            <p className="text-xs text-slate-400 dark:text-zinc-500">Com base na distribuição configurada · Últimos 12 meses</p>
+            <p className="text-xs text-slate-400 dark:text-zinc-400">Com base na distribuição configurada · Últimos 12 meses</p>
           </div>
           <div className="bg-violet-50 rounded-xl px-3 py-2 text-right flex-shrink-0">
             <p className="text-[11px] text-violet-400">Total guardado</p>
@@ -437,7 +437,7 @@ export default function TabVisaoGeral({ mes, ano, onNavigate }: Props) {
         </div>
 
         {dados.every((d) => d.ferias === 0 && d.investimento === 0 && d.planosFuturos === 0) ? (
-          <div className="h-[200px] flex flex-col items-center justify-center text-slate-400 dark:text-zinc-500 text-sm gap-2">
+          <div className="h-[200px] flex flex-col items-center justify-center text-slate-400 dark:text-zinc-400 text-sm gap-2">
             <span className="text-3xl">💰</span>
             <p>Configure a distribuição na aba Entradas para ver esta análise.</p>
           </div>
@@ -474,7 +474,7 @@ export default function TabVisaoGeral({ mes, ano, onNavigate }: Props) {
                   <div key={item.label} className="rounded-xl px-3 py-1.5 text-center">
                     <div className="flex items-center justify-center gap-1.5">
                       <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: item.color }} />
-                      <span className="text-[10px] text-slate-400 dark:text-zinc-500">Acumulado 12m</span>
+                      <span className="text-[10px] text-slate-400 dark:text-zinc-400">Acumulado 12m</span>
                     </div>
                     <p className="font-semibold text-slate-500 dark:text-zinc-400 text-xs tabular-nums mt-0.5">{fmt(item.valor)}</p>
                   </div>

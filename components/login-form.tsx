@@ -36,7 +36,7 @@ export function LoginForm() {
       <div className="space-y-2">
         <Label htmlFor="username">Usuário</Label>
         <div className="relative">
-          <User className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400 dark:text-zinc-500" />
+          <User className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400 dark:text-zinc-400" />
           <Input
             id="username"
             name="username"
@@ -52,7 +52,7 @@ export function LoginForm() {
       <div className="space-y-2">
         <Label htmlFor="password">Senha</Label>
         <div className="relative">
-          <Lock className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400 dark:text-zinc-500" />
+          <Lock className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400 dark:text-zinc-400" />
           <Input
             id="password"
             name="password"

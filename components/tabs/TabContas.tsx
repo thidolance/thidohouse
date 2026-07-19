@@ -43,7 +43,7 @@ function PinIcon({ filled }: { filled?: boolean }) {
 
 function SearchIcon() {
   return (
-    <svg className="w-4 h-4 text-slate-400 dark:text-zinc-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+    <svg className="w-4 h-4 text-slate-400 dark:text-zinc-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
       <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
     </svg>
   );
@@ -104,7 +104,7 @@ function ScopeDialog({ title, desc, labelFuture, onFuture, onThisOnly, onCancel 
 
 // ── Constantes ────────────────────────────────────────────────────────────────
 
-const INPUT = 'w-full border border-slate-200 dark:border-zinc-800 rounded-xl px-3 py-2 text-sm text-slate-900 dark:text-zinc-50 bg-white dark:bg-zinc-900 focus:outline-none focus:ring-2 focus:ring-indigo-300';
+const INPUT = 'w-full border border-slate-200 dark:border-zinc-800 rounded-xl px-3 py-2 text-sm text-slate-900 dark:text-zinc-50 bg-white dark:bg-zinc-900 focus:outline-none focus:ring-2 focus:ring-indigo-300 dark:focus:ring-purple-500';
 const fmt   = (v: number) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 
 // Cores por tipo de conta (mesmas do gráfico "Gastos por Tipo de Conta"),
@@ -650,11 +650,11 @@ export default function TabContas({ mes, ano }: Props) {
         </button>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-1.5 flex-wrap">
-            <p className={`font-semibold text-sm leading-tight ${pago ? 'line-through text-slate-400 dark:text-zinc-500' : 'text-slate-800 dark:text-zinc-100'}`}>{c.descricao}</p>
+            <p className={`font-semibold text-sm leading-tight ${pago ? 'line-through text-slate-400 dark:text-zinc-400' : 'text-slate-800 dark:text-zinc-100'}`}>{c.descricao}</p>
           </div>
           <div className="flex items-center gap-2 mt-0.5 flex-wrap">
             <span className="text-[11px] px-1.5 py-0.5 rounded-md font-semibold" style={{ backgroundColor: `${cor}18`, color: cor }}>{c.categoria}</span>
-            <span className="text-[11px] text-slate-400 dark:text-zinc-500">dia {c.vencimento}</span>
+            <span className="text-[11px] text-slate-400 dark:text-zinc-400">dia {c.vencimento}</span>
           </div>
           {c.totalParcelas && c.parcelaAtual && (
             <button
@@ -667,8 +667,8 @@ export default function TabContas({ mes, ano }: Props) {
                   style={{ width: `${(c.parcelaAtual / c.totalParcelas) * 100}%`, backgroundColor: '#10b981', opacity: pago ? 0.5 : 0.8 }}
                 />
               </div>
-              <span className="text-[10px] text-slate-400 dark:text-zinc-500 tabular-nums">{c.parcelaAtual}/{c.totalParcelas}</span>
-              <span className="text-slate-300 dark:text-zinc-600 group-hover/prog:text-indigo-400 transition-colors"><ChevronRight /></span>
+              <span className="text-[10px] text-slate-400 dark:text-zinc-400 tabular-nums">{c.parcelaAtual}/{c.totalParcelas}</span>
+              <span className="text-slate-300 dark:text-zinc-500 group-hover/prog:text-indigo-400 transition-colors"><ChevronRight /></span>
             </button>
           )}
         </div>
@@ -677,12 +677,12 @@ export default function TabContas({ mes, ano }: Props) {
           <div className="w-[5.5rem] flex items-center gap-0.5 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
             {!c.parcelaAtual && (
               <button onClick={() => handleToggleFixa(c)} title={c.fixa ? 'Remover recorrência' : 'Marcar como fixa'}
-                className={`p-1.5 rounded-lg transition-colors ${c.fixa ? 'text-amber-500 bg-amber-50 dark:bg-amber-500/10' : 'text-slate-400 dark:text-zinc-500 hover:text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-500/10'}`}>
+                className={`p-1.5 rounded-lg transition-colors ${c.fixa ? 'text-amber-500 bg-amber-50 dark:bg-amber-500/10' : 'text-slate-400 dark:text-zinc-400 hover:text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-500/10'}`}>
                 <PinIcon filled={c.fixa} />
               </button>
             )}
-            <button onClick={() => abrirEditar(c)} className="p-1.5 rounded-lg text-slate-400 dark:text-zinc-500 hover:text-indigo-500 dark:hover:text-purple-400 hover:bg-indigo-50 dark:hover:bg-purple-500/10 transition-colors"><Pencil /></button>
-            <button onClick={() => iniciarDelete(c)} className="p-1.5 rounded-lg text-slate-400 dark:text-zinc-500 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors"><Trash /></button>
+            <button onClick={() => abrirEditar(c)} className="p-1.5 rounded-lg text-slate-400 dark:text-zinc-400 hover:text-indigo-500 dark:hover:text-purple-400 hover:bg-indigo-50 dark:hover:bg-purple-500/10 transition-colors"><Pencil /></button>
+            <button onClick={() => iniciarDelete(c)} className="p-1.5 rounded-lg text-slate-400 dark:text-zinc-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors"><Trash /></button>
           </div>
         </div>
       </div>
@@ -692,8 +692,8 @@ export default function TabContas({ mes, ano }: Props) {
   function SectionHeader({ label, count, total: t }: { label: string; count: number; total: number }) {
     return (
       <div className="px-4 py-2 bg-gradient-to-r from-slate-50 dark:from-zinc-900 to-transparent flex items-center justify-between border-b border-slate-100/80 dark:border-zinc-800/80">
-        <p className="text-[11px] font-bold text-slate-400 dark:text-zinc-500 uppercase tracking-widest">{label}</p>
-        <p className="text-[11px] text-slate-400 dark:text-zinc-500">{count} · {fmt(t)}</p>
+        <p className="text-[11px] font-bold text-slate-400 dark:text-zinc-400 uppercase tracking-widest">{label}</p>
+        <p className="text-[11px] text-slate-400 dark:text-zinc-400">{count} · {fmt(t)}</p>
       </div>
     );
   }
@@ -707,7 +707,7 @@ export default function TabContas({ mes, ano }: Props) {
       <div className="flex items-center justify-between gap-2">
         <div>
           <h2 className="text-lg font-bold text-slate-800 dark:text-zinc-100">Contas do Mês</h2>
-          <p className="text-xs text-slate-400 dark:text-zinc-500">{countPago}/{countTotal} pagas · {fmt(totalPendente)} pendentes</p>
+          <p className="text-xs text-slate-400 dark:text-zinc-400">{countPago}/{countTotal} pagas · {fmt(totalPendente)} pendentes</p>
         </div>
         <div className="flex gap-2">
           <button onClick={() => setShowConfig(true)}
@@ -778,7 +778,7 @@ export default function TabContas({ mes, ano }: Props) {
               <VChart key={`donut-${pieValues.reduce((s, v) => s + v.value, 0).toFixed(0)}-${pieValues.length}`} spec={donutSpec as any} />
             </div>
           ) : (
-            <div className="h-[240px] flex flex-col items-center justify-center text-slate-400 dark:text-zinc-500 gap-2">
+            <div className="h-[240px] flex flex-col items-center justify-center text-slate-400 dark:text-zinc-400 gap-2">
               <span className="text-3xl">📊</span>
               <p className="text-sm">Nenhum dado ainda</p>
             </div>
@@ -791,7 +791,7 @@ export default function TabContas({ mes, ano }: Props) {
               <VChart key={`tipo-bar-${tipoValues.reduce((s, v) => s + v.value, 0).toFixed(0)}-${tipoValues.length}`} spec={tipoBarSpec as any} />
             </div>
           ) : (
-            <div className="h-[240px] flex flex-col items-center justify-center text-slate-400 dark:text-zinc-500 gap-2">
+            <div className="h-[240px] flex flex-col items-center justify-center text-slate-400 dark:text-zinc-400 gap-2">
               <span className="text-3xl">📊</span>
               <p className="text-sm">Nenhum dado ainda</p>
             </div>
@@ -808,12 +808,12 @@ export default function TabContas({ mes, ano }: Props) {
             <div className="relative flex-1">
               <div className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none"><SearchIcon /></div>
               <input value={busca} onChange={(e) => setBusca(e.target.value)} placeholder="Buscar por descrição..."
-                className="w-full pl-9 pr-3 py-2 text-sm border border-slate-200 dark:border-zinc-800 rounded-xl bg-white dark:bg-zinc-900 text-slate-900 dark:text-zinc-50 focus:outline-none focus:ring-2 focus:ring-indigo-300 placeholder:text-slate-400 dark:placeholder:text-zinc-500" />
+                className="w-full pl-9 pr-3 py-2 text-sm border border-slate-200 dark:border-zinc-800 rounded-xl bg-white dark:bg-zinc-900 text-slate-900 dark:text-zinc-50 focus:outline-none focus:ring-2 focus:ring-indigo-300 dark:focus:ring-purple-500 placeholder:text-slate-400 dark:placeholder:text-zinc-400" />
             </div>
             <div className="relative">
-              <div className="absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400 dark:text-zinc-500"><SortIcon /></div>
+              <div className="absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400 dark:text-zinc-400"><SortIcon /></div>
               <select value={ordenacao} onChange={(e) => setOrdenacao(e.target.value as OrdenacaoKey)}
-                className="pl-8 pr-7 py-2 text-sm border border-slate-200 dark:border-zinc-800 rounded-xl bg-white dark:bg-zinc-900 text-slate-700 dark:text-zinc-200 focus:outline-none focus:ring-2 focus:ring-indigo-300 appearance-none cursor-pointer">
+                className="pl-8 pr-7 py-2 text-sm border border-slate-200 dark:border-zinc-800 rounded-xl bg-white dark:bg-zinc-900 text-slate-700 dark:text-zinc-200 focus:outline-none focus:ring-2 focus:ring-indigo-300 dark:focus:ring-purple-500 appearance-none cursor-pointer">
                 {ORDENACAO_OPTS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
               </select>
             </div>
@@ -851,7 +851,7 @@ export default function TabContas({ mes, ano }: Props) {
               </>
             )}
             {filtrosAtivos && (
-              <button onClick={limparFiltros} className="ml-auto px-3 py-1 rounded-full text-xs font-semibold text-slate-400 dark:text-zinc-500 border border-slate-200 dark:border-zinc-800 hover:bg-slate-50 dark:hover:bg-zinc-800 transition-colors">
+              <button onClick={limparFiltros} className="ml-auto px-3 py-1 rounded-full text-xs font-semibold text-slate-400 dark:text-zinc-400 border border-slate-200 dark:border-zinc-800 hover:bg-slate-50 dark:hover:bg-zinc-800 transition-colors">
                 ✕ Limpar
               </button>
             )}
@@ -866,7 +866,7 @@ export default function TabContas({ mes, ano }: Props) {
 
         {/* Lista */}
         {loading ? (
-          <div className="py-16 flex flex-col items-center gap-2 text-slate-400 dark:text-zinc-500">
+          <div className="py-16 flex flex-col items-center gap-2 text-slate-400 dark:text-zinc-400">
             <div className="w-6 h-6 border-2 border-slate-200 dark:border-zinc-800 border-t-indigo-500 rounded-full animate-spin" />
             <p className="text-sm">Carregando...</p>
           </div>
@@ -915,7 +915,7 @@ export default function TabContas({ mes, ano }: Props) {
                       {c.status === 'pago' && <Check />}
                     </button>
                     <div className="flex-1 min-w-0">
-                      <p className={`font-semibold text-sm ${c.status === 'pago' ? 'line-through text-slate-400 dark:text-zinc-500' : 'text-slate-800 dark:text-zinc-100'}`}>Fatura {c.cartaoNome}</p>
+                      <p className={`font-semibold text-sm ${c.status === 'pago' ? 'line-through text-slate-400 dark:text-zinc-400' : 'text-slate-800 dark:text-zinc-100'}`}>Fatura {c.cartaoNome}</p>
                       <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
                         <span className="text-[11px] px-1.5 py-0.5 rounded-md font-semibold inline-block" style={{ backgroundColor: `${c.cartaoCor}18`, color: c.cartaoCor }}>{c.cartaoNome}</span>
                         {c.valor !== c.valorCalculado && (
@@ -926,7 +926,7 @@ export default function TabContas({ mes, ano }: Props) {
                     <div className="flex items-center gap-2 flex-shrink-0">
                       <span className={`font-bold text-sm tabular-nums ${c.status === 'pago' ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-800 dark:text-zinc-100'}`}>{fmt(c.valor)}</span>
                       <div className="w-[5.5rem] flex items-center justify-end gap-0.5 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
-                        <button onClick={() => abrirEditFatura(c)} title="Editar valor da fatura" className="p-1.5 rounded-lg text-slate-400 dark:text-zinc-500 hover:text-indigo-500 dark:hover:text-purple-400 hover:bg-indigo-50 dark:hover:bg-purple-500/10 transition-colors"><Pencil /></button>
+                        <button onClick={() => abrirEditFatura(c)} title="Editar valor da fatura" className="p-1.5 rounded-lg text-slate-400 dark:text-zinc-400 hover:text-indigo-500 dark:hover:text-purple-400 hover:bg-indigo-50 dark:hover:bg-purple-500/10 transition-colors"><Pencil /></button>
                       </div>
                     </div>
                   </div>
@@ -947,10 +947,10 @@ export default function TabContas({ mes, ano }: Props) {
                     {empresaStatus === 'pago' && <Check />}
                   </button>
                   <div className="flex-1 min-w-0">
-                    <p className={`font-semibold text-sm ${empresaStatus === 'pago' ? 'line-through text-slate-400 dark:text-zinc-500' : 'text-slate-800 dark:text-zinc-100'}`}>Empresa</p>
+                    <p className={`font-semibold text-sm ${empresaStatus === 'pago' ? 'line-through text-slate-400 dark:text-zinc-400' : 'text-slate-800 dark:text-zinc-100'}`}>Empresa</p>
                     <div className="flex items-center gap-1.5 mt-0.5">
                       <span className="text-[11px] px-1.5 py-0.5 rounded-md font-semibold bg-sky-50 text-sky-500">{itensEmpresa.length} categoria(s)</span>
-                      <span className="text-[11px] text-slate-400 dark:text-zinc-500">custos do mês</span>
+                      <span className="text-[11px] text-slate-400 dark:text-zinc-400">custos do mês</span>
                     </div>
                   </div>
                   <div className="flex items-center gap-2 flex-shrink-0">
@@ -990,7 +990,7 @@ export default function TabContas({ mes, ano }: Props) {
               </div>
             </div>
             <div>
-              <label className="block text-sm font-medium text-slate-700 dark:text-zinc-200 mb-1">Parcelas <span className="text-slate-400 dark:text-zinc-500 font-normal">(opcional)</span></label>
+              <label className="block text-sm font-medium text-slate-700 dark:text-zinc-200 mb-1">Parcelas <span className="text-slate-400 dark:text-zinc-400 font-normal">(opcional)</span></label>
               <div className="grid grid-cols-2 gap-3">
                 <input type="number" min={1} value={form.parcelaAtual} onChange={(e) => setForm({ ...form, parcelaAtual: e.target.value, fixa: false })} className={INPUT} placeholder="Parcela atual" />
                 <input type="number" min={1} value={form.totalParcelas} onChange={(e) => setForm({ ...form, totalParcelas: e.target.value, fixa: false })} className={INPUT} placeholder="Total" />
@@ -1004,7 +1004,7 @@ export default function TabContas({ mes, ano }: Props) {
                 </div>
                 <div>
                   <p className="text-sm font-medium text-slate-700 dark:text-zinc-200">Conta Fixa</p>
-                  <p className="text-xs text-slate-400 dark:text-zinc-500">Aparece automaticamente todo mês</p>
+                  <p className="text-xs text-slate-400 dark:text-zinc-400">Aparece automaticamente todo mês</p>
                 </div>
               </label>
             )}
@@ -1033,7 +1033,7 @@ export default function TabContas({ mes, ano }: Props) {
                 placeholder="0,00"
                 inputMode="decimal"
               />
-              <p className="text-xs text-slate-400 dark:text-zinc-500 mt-1">Soma das compras: {fmt(editFatura.valorCalculado)}</p>
+              <p className="text-xs text-slate-400 dark:text-zinc-400 mt-1">Soma das compras: {fmt(editFatura.valorCalculado)}</p>
             </div>
             <div className="flex gap-3 pt-1">
               {editFatura.valor !== editFatura.valorCalculado && (
@@ -1078,12 +1078,12 @@ export default function TabContas({ mes, ano }: Props) {
               <div key={cat.id} className="flex items-center gap-3 p-3 rounded-xl border border-slate-100 dark:border-zinc-800 hover:bg-slate-50 dark:hover:bg-zinc-800">
                 <span className="w-5 h-5 rounded-full flex-shrink-0" style={{ backgroundColor: cat.cor }} />
                 <p className="flex-1 text-sm font-medium text-slate-700 dark:text-zinc-200">{cat.nome}</p>
-                <button onClick={() => handleDeleteCat(cat.id!)} className="p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-500/10 text-slate-300 dark:text-zinc-600 hover:text-red-400 transition-colors"><Trash /></button>
+                <button onClick={() => handleDeleteCat(cat.id!)} className="p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-500/10 text-slate-300 dark:text-zinc-500 hover:text-red-400 transition-colors"><Trash /></button>
               </div>
             ))}
             {!showCatForm ? (
               <button onClick={() => setShowCatForm(true)}
-                className="w-full py-2.5 border-2 border-dashed border-slate-200 dark:border-zinc-800 rounded-xl text-sm text-slate-400 dark:text-zinc-500 hover:border-indigo-300 hover:text-indigo-500 dark:hover:text-purple-400 flex items-center justify-center gap-2">
+                className="w-full py-2.5 border-2 border-dashed border-slate-200 dark:border-zinc-800 rounded-xl text-sm text-slate-400 dark:text-zinc-400 hover:border-indigo-300 hover:text-indigo-500 dark:hover:text-purple-400 flex items-center justify-center gap-2">
                 <Plus /> Nova Categoria
               </button>
             ) : (
@@ -1112,7 +1112,7 @@ export default function TabContas({ mes, ano }: Props) {
       {acompanhar && (
         <Modal title="Acompanhamento da Conta" onClose={() => setAcompanhar(null)}>
           {loadingAcompanhar || !acompanhamentoStats ? (
-            <p className="text-slate-400 dark:text-zinc-500 text-sm text-center py-8">Carregando...</p>
+            <p className="text-slate-400 dark:text-zinc-400 text-sm text-center py-8">Carregando...</p>
           ) : (
             <div className="space-y-5">
               <div>
@@ -1131,13 +1131,13 @@ export default function TabContas({ mes, ano }: Props) {
                   <CircularProgress percent={acompanhamentoStats.percent} />
                   <div className="absolute inset-0 flex flex-col items-center justify-center">
                     <span className="text-lg font-bold text-slate-800 dark:text-zinc-100 tabular-nums">{acompanhamentoStats.countPago}</span>
-                    <span className="text-[10px] text-slate-400 dark:text-zinc-500">de {acompanhamentoStats.totalParcelas}</span>
+                    <span className="text-[10px] text-slate-400 dark:text-zinc-400">de {acompanhamentoStats.totalParcelas}</span>
                   </div>
                 </div>
                 <div className="flex-1 space-y-1">
-                  <p className="text-[11px] text-slate-400 dark:text-zinc-500 uppercase tracking-wide font-medium">Valor da parcela</p>
+                  <p className="text-[11px] text-slate-400 dark:text-zinc-400 uppercase tracking-wide font-medium">Valor da parcela</p>
                   <p className="text-2xl font-bold text-slate-800 dark:text-zinc-100 tabular-nums">{fmt(acompanhamentoStats.valorParcela)}</p>
-                  <p className="text-xs text-slate-400 dark:text-zinc-500">{acompanhamentoStats.percent.toFixed(0)}% concluído</p>
+                  <p className="text-xs text-slate-400 dark:text-zinc-400">{acompanhamentoStats.percent.toFixed(0)}% concluído</p>
                 </div>
               </div>
 
@@ -1157,7 +1157,7 @@ export default function TabContas({ mes, ano }: Props) {
 
               {/* Linha do tempo das parcelas */}
               <div>
-                <p className="text-[11px] text-slate-400 dark:text-zinc-500 uppercase tracking-wide font-medium mb-2">Linha do tempo</p>
+                <p className="text-[11px] text-slate-400 dark:text-zinc-400 uppercase tracking-wide font-medium mb-2">Linha do tempo</p>
                 <div className="flex flex-wrap gap-1.5">
                   {Array.from({ length: acompanhamentoStats.totalParcelas }, (_, i) => {
                     const num = i + 1;

@@ -263,7 +263,7 @@ export default function TabEmpresa({ mes, ano }: Props) {
       <div className="flex items-center justify-between gap-2">
         <div>
           <h2 className="text-lg font-bold text-slate-800 dark:text-zinc-100">Empresa</h2>
-          <p className="text-xs text-slate-400 dark:text-zinc-500">{custos.length} custo(s) · {fmt(totalGeral)}</p>
+          <p className="text-xs text-slate-400 dark:text-zinc-400">{custos.length} custo(s) · {fmt(totalGeral)}</p>
         </div>
         <div className="flex gap-2">
           <button
@@ -345,9 +345,9 @@ export default function TabEmpresa({ mes, ano }: Props) {
         </div>
 
         {loading ? (
-          <p className="text-slate-400 dark:text-zinc-500 text-sm text-center py-8">Carregando...</p>
+          <p className="text-slate-400 dark:text-zinc-400 text-sm text-center py-8">Carregando...</p>
         ) : custosFiltrados.length === 0 ? (
-          <div className="py-10 flex flex-col items-center gap-2 text-slate-400 dark:text-zinc-500">
+          <div className="py-10 flex flex-col items-center gap-2 text-slate-400 dark:text-zinc-400">
             <span className="text-3xl">🏢</span>
             <p className="text-sm">{catFiltro ? 'Nenhum custo nesta categoria' : 'Nenhum custo cadastrado este mês'}</p>
           </div>
@@ -370,7 +370,7 @@ export default function TabEmpresa({ mes, ano }: Props) {
                         <p className="font-medium text-slate-700 dark:text-zinc-200 text-sm">{c.descricao}</p>
                         {c.fixa && <span className="text-[10px] px-1.5 py-0.5 rounded-md font-semibold bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400">Fixo</span>}
                       </div>
-                      <p className="text-xs text-slate-400 dark:text-zinc-500">
+                      <p className="text-xs text-slate-400 dark:text-zinc-400">
                         {c.fixa
                           ? 'todo mês'
                           : <>{c.parcelaAtual}/{c.totalParcelas}x{c.totalParcelas > 1 && ` · total ${fmt(c.valor)}`}</>}
@@ -381,12 +381,12 @@ export default function TabEmpresa({ mes, ano }: Props) {
                     <span className="font-semibold text-sm text-violet-600">{fmt(c.valorParcela)}</span>
                     {c.totalParcelas <= 1 && (
                       <button onClick={() => handleToggleFixaCusto(c)} title={c.fixa ? 'Remover recorrência' : 'Marcar como fixo'}
-                        className={`p-1.5 rounded-lg transition-all ${c.fixa ? 'text-amber-500 bg-amber-50 dark:bg-amber-500/10' : 'opacity-100 sm:opacity-0 sm:group-hover:opacity-100 text-slate-300 dark:text-zinc-600 hover:text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-500/10'}`}>
+                        className={`p-1.5 rounded-lg transition-all ${c.fixa ? 'text-amber-500 bg-amber-50 dark:bg-amber-500/10' : 'opacity-100 sm:opacity-0 sm:group-hover:opacity-100 text-slate-300 dark:text-zinc-500 hover:text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-500/10'}`}>
                         <PinIcon filled={c.fixa} />
                       </button>
                     )}
-                    <button onClick={() => abrirEditCusto(c)} className="p-1.5 rounded-lg opacity-100 sm:opacity-0 sm:group-hover:opacity-100 hover:bg-violet-100 text-slate-300 dark:text-zinc-600 hover:text-violet-500 transition-all"><Pencil /></button>
-                    <button onClick={() => iniciarDeleteCusto(c)} className="p-1.5 rounded-lg opacity-100 sm:opacity-0 sm:group-hover:opacity-100 hover:bg-red-50 dark:hover:bg-red-500/10 text-slate-300 dark:text-zinc-600 hover:text-red-400 transition-all"><Trash /></button>
+                    <button onClick={() => abrirEditCusto(c)} className="p-1.5 rounded-lg opacity-100 sm:opacity-0 sm:group-hover:opacity-100 hover:bg-violet-100 text-slate-300 dark:text-zinc-500 hover:text-violet-500 transition-all"><Pencil /></button>
+                    <button onClick={() => iniciarDeleteCusto(c)} className="p-1.5 rounded-lg opacity-100 sm:opacity-0 sm:group-hover:opacity-100 hover:bg-red-50 dark:hover:bg-red-500/10 text-slate-300 dark:text-zinc-500 hover:text-red-400 transition-all"><Trash /></button>
                   </div>
                 </div>
               );
@@ -456,7 +456,7 @@ export default function TabEmpresa({ mes, ano }: Props) {
                 </div>
                 <div>
                   <p className="text-sm font-medium text-slate-700 dark:text-zinc-200">Custo Fixo</p>
-                  <p className="text-xs text-slate-400 dark:text-zinc-500">Repete automaticamente todo mês</p>
+                  <p className="text-xs text-slate-400 dark:text-zinc-400">Repete automaticamente todo mês</p>
                 </div>
               </label>
             )}
@@ -478,12 +478,12 @@ export default function TabEmpresa({ mes, ano }: Props) {
               <div key={cat.id} className="flex items-center gap-3 p-3 rounded-xl border border-violet-100 hover:bg-violet-50/50">
                 <span className="w-5 h-5 rounded-full flex-shrink-0 shadow-sm" style={{ backgroundColor: cat.cor }} />
                 <p className="flex-1 text-sm font-medium text-slate-700 dark:text-zinc-200">{cat.nome}</p>
-                <button onClick={() => handleDeleteCategoria(cat.id!)} className="p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-500/10 text-slate-300 dark:text-zinc-600 hover:text-red-400 transition-colors"><Trash /></button>
+                <button onClick={() => handleDeleteCategoria(cat.id!)} className="p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-500/10 text-slate-300 dark:text-zinc-500 hover:text-red-400 transition-colors"><Trash /></button>
               </div>
             ))}
 
             {!showCatForm ? (
-              <button onClick={() => setShowCatForm(true)} className="w-full py-2.5 border-2 border-dashed border-violet-200 rounded-xl text-sm text-slate-400 dark:text-zinc-500 hover:border-violet-400 hover:text-violet-500 transition-colors flex items-center justify-center gap-2">
+              <button onClick={() => setShowCatForm(true)} className="w-full py-2.5 border-2 border-dashed border-violet-200 rounded-xl text-sm text-slate-400 dark:text-zinc-400 hover:border-violet-400 hover:text-violet-500 transition-colors flex items-center justify-center gap-2">
                 <Plus /> Nova Categoria
               </button>
             ) : (

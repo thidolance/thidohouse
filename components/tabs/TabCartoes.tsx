@@ -56,7 +56,7 @@ function PinIcon({ filled }: { filled?: boolean }) {
   );
 }
 
-const INPUT = 'w-full border border-slate-200 dark:border-zinc-800 rounded-xl px-3 py-2 text-sm text-slate-900 dark:text-zinc-50 bg-white dark:bg-zinc-900 focus:outline-none focus:ring-2 focus:ring-indigo-300';
+const INPUT = 'w-full border border-slate-200 dark:border-zinc-800 rounded-xl px-3 py-2 text-sm text-slate-900 dark:text-zinc-50 bg-white dark:bg-zinc-900 focus:outline-none focus:ring-2 focus:ring-indigo-300 dark:focus:ring-purple-500';
 
 interface Props { mes: number; ano: number; }
 
@@ -405,7 +405,7 @@ export default function TabCartoes({ mes, ano }: Props) {
       <div className="flex items-center justify-between gap-2">
         <div>
           <h2 className="text-lg font-bold text-slate-800 dark:text-zinc-100">Cartões</h2>
-          <p className="text-xs text-slate-400 dark:text-zinc-500">{compras.length} compra(s) · {fmt(totalGeral)}</p>
+          <p className="text-xs text-slate-400 dark:text-zinc-400">{compras.length} compra(s) · {fmt(totalGeral)}</p>
         </div>
         <div className="flex gap-2">
           <button
@@ -439,7 +439,7 @@ export default function TabCartoes({ mes, ano }: Props) {
               <VChart key={`cartao-bar-${totalGeral.toFixed(0)}`} spec={cartaoBarSpec as any} />
             </div>
           ) : (
-            <div className="h-[220px] flex flex-col items-center justify-center text-slate-400 dark:text-zinc-500 gap-2">
+            <div className="h-[220px] flex flex-col items-center justify-center text-slate-400 dark:text-zinc-400 gap-2">
               <span className="text-3xl">💳</span>
               <p className="text-sm">Sem compras neste mês</p>
             </div>
@@ -452,7 +452,7 @@ export default function TabCartoes({ mes, ano }: Props) {
               <VChart key={`cat-donut-${totalGeral.toFixed(0)}`} spec={catDonutSpec as any} />
             </div>
           ) : (
-            <div className="h-[220px] flex flex-col items-center justify-center text-slate-400 dark:text-zinc-500 gap-2">
+            <div className="h-[220px] flex flex-col items-center justify-center text-slate-400 dark:text-zinc-400 gap-2">
               <span className="text-3xl">📊</span>
               <p className="text-sm">Sem dados de categoria</p>
             </div>
@@ -469,10 +469,30 @@ export default function TabCartoes({ mes, ano }: Props) {
             <button
               key={c.id}
               onClick={() => setCartaoSelecionado(isSelected ? null : c.id!)}
-              className={`relative overflow-hidden rounded-2xl p-5 text-left transition-all text-white shadow-lg hover:scale-105 flex flex-col justify-between ${isSelected ? 'ring-4 ring-white/40 scale-105' : ''}`}
+              className={`group relative overflow-hidden rounded-2xl p-5 text-left transition-all duration-300 text-white shadow-lg hover:scale-105 flex flex-col justify-between ${isSelected ? 'scale-105 shadow-[0_0_30px_-4px_rgba(217,70,239,0.75)]' : ''}`}
               style={{ backgroundColor: c.cor, minHeight: 120 }}
             >
               <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-black/25 pointer-events-none" />
+              {/* Brilho glossy no canto superior */}
+              <div
+                className="absolute inset-0 pointer-events-none"
+                style={{ background: 'radial-gradient(120% 80% at 88% 0%, rgba(255,255,255,0.28), transparent 55%)' }}
+              />
+              {/* Borda aurora mascarada (índigo→roxo→rosa→branco), mais forte quando selecionado */}
+              <div
+                aria-hidden
+                className="absolute inset-0 rounded-2xl pointer-events-none transition-opacity duration-300"
+                style={{
+                  padding: isSelected ? 2.5 : 1.5,
+                  background:
+                    'linear-gradient(120deg, rgba(129,140,248,0.95) 0%, rgba(168,85,247,0.95) 38%, rgba(236,72,153,0.9) 72%, rgba(255,255,255,0.75) 100%)',
+                  WebkitMask:
+                    'linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)',
+                  WebkitMaskComposite: 'xor',
+                  maskComposite: 'exclude',
+                  opacity: isSelected ? 1 : 0.7,
+                }}
+              />
               <div className="relative flex items-start justify-between">
                 <span className="text-sm font-bold tracking-wide">{c.nome}</span>
                 {c.bandeira === 'Visa' && <VisaLogo />}
@@ -526,9 +546,9 @@ export default function TabCartoes({ mes, ano }: Props) {
             </button>
           </div>
           {loading ? (
-            <p className="text-slate-400 dark:text-zinc-500 text-sm text-center py-6">Carregando...</p>
+            <p className="text-slate-400 dark:text-zinc-400 text-sm text-center py-6">Carregando...</p>
           ) : comprasDoCartao.length === 0 ? (
-            <p className="text-slate-400 dark:text-zinc-500 text-sm text-center py-6">Nenhuma compra neste mês</p>
+            <p className="text-slate-400 dark:text-zinc-400 text-sm text-center py-6">Nenhuma compra neste mês</p>
           ) : (
             <div className="space-y-2">
               {comprasDoCartao.map((p) => (
@@ -539,22 +559,22 @@ export default function TabCartoes({ mes, ano }: Props) {
                     </span>
                     <div>
                       <p className="font-medium text-slate-700 dark:text-zinc-200 text-sm">{p.descricao}</p>
-                      {p.data && <p className="text-[11px] text-slate-400 dark:text-zinc-500 leading-tight">{new Date(p.data + 'T12:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' })}</p>}
+                      {p.data && <p className="text-[11px] text-slate-400 dark:text-zinc-400 leading-tight">{new Date(p.data + 'T12:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' })}</p>}
                       <div className="flex items-center gap-1.5 mt-0.5">
                         <span className="text-[11px] px-1.5 py-0.5 rounded-full bg-slate-100 dark:bg-zinc-800 text-slate-500 dark:text-zinc-400 font-medium">{p.parcelaAtual}/{p.totalParcelas}</span>
-                        <span className="text-slate-300 dark:text-zinc-600 text-[11px]">·</span>
-                        <span className="text-[11px] text-slate-400 dark:text-zinc-500">total {fmt(p.valorTotal)}</span>
+                        <span className="text-slate-300 dark:text-zinc-500 text-[11px]">·</span>
+                        <span className="text-[11px] text-slate-400 dark:text-zinc-400">total {fmt(p.valorTotal)}</span>
                       </div>
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
                     <span className="font-semibold text-sm" style={{ color: cartaoAtivo.cor }}>{fmt(p.valorParcela)}</span>
                     <button onClick={() => handleToggleFixa(p)} title={p.fixa ? 'Remover recorrência' : 'Marcar como fixa'}
-                      className={`p-1.5 rounded-lg transition-colors ${p.fixa ? 'text-amber-500 bg-amber-50 dark:bg-amber-500/10' : 'text-slate-300 dark:text-zinc-600 hover:text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-500/10'}`}>
+                      className={`p-1.5 rounded-lg transition-colors ${p.fixa ? 'text-amber-500 bg-amber-50 dark:bg-amber-500/10' : 'text-slate-300 dark:text-zinc-500 hover:text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-500/10'}`}>
                       <PinIcon filled={p.fixa} />
                     </button>
-                    <button onClick={() => abrirEditCompra(p)} className="p-1.5 rounded-lg hover:bg-indigo-50 dark:hover:bg-purple-500/10 text-slate-300 dark:text-zinc-600 hover:text-indigo-400 dark:hover:text-purple-400 transition-colors"><Pencil /></button>
-                    <button onClick={() => iniciarDeleteCompra(p)} className="p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-500/10 text-slate-300 dark:text-zinc-600 hover:text-red-400 transition-colors"><Trash /></button>
+                    <button onClick={() => abrirEditCompra(p)} className="p-1.5 rounded-lg hover:bg-indigo-50 dark:hover:bg-purple-500/10 text-slate-300 dark:text-zinc-500 hover:text-indigo-400 dark:hover:text-purple-400 transition-colors"><Pencil /></button>
+                    <button onClick={() => iniciarDeleteCompra(p)} className="p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-500/10 text-slate-300 dark:text-zinc-500 hover:text-red-400 transition-colors"><Trash /></button>
                   </div>
                 </div>
               ))}
@@ -593,11 +613,11 @@ export default function TabCartoes({ mes, ano }: Props) {
           )}
 
           {loading ? (
-            <p className="text-slate-400 dark:text-zinc-500 text-sm text-center py-8">Carregando...</p>
+            <p className="text-slate-400 dark:text-zinc-400 text-sm text-center py-8">Carregando...</p>
           ) : compras.length === 0 ? (
-            <p className="text-slate-400 dark:text-zinc-500 text-sm text-center py-8">Clique em um cartão para filtrar ou adicione uma compra</p>
+            <p className="text-slate-400 dark:text-zinc-400 text-sm text-center py-8">Clique em um cartão para filtrar ou adicione uma compra</p>
           ) : comprasOrdenadas.length === 0 ? (
-            <p className="text-slate-400 dark:text-zinc-500 text-sm text-center py-8">Nenhuma compra nesta categoria</p>
+            <p className="text-slate-400 dark:text-zinc-400 text-sm text-center py-8">Nenhuma compra nesta categoria</p>
           ) : (
             <div className="space-y-2">
               {comprasOrdenadas.map((p) => {
@@ -611,10 +631,10 @@ export default function TabCartoes({ mes, ano }: Props) {
                       </span>
                       <div>
                         <p className="font-medium text-slate-700 dark:text-zinc-200 text-sm">{p.descricao}</p>
-                        {p.data && <p className="text-[11px] text-slate-400 dark:text-zinc-500 leading-tight">{new Date(p.data + 'T12:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' })}</p>}
+                        {p.data && <p className="text-[11px] text-slate-400 dark:text-zinc-400 leading-tight">{new Date(p.data + 'T12:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' })}</p>}
                         <div className="flex items-center gap-1.5 mt-0.5">
                           <span className="text-[11px] font-semibold" style={{ color: c?.cor ?? '#94a3b8' }}>{c?.nome}</span>
-                          <span className="text-slate-300 dark:text-zinc-600 text-[11px]">·</span>
+                          <span className="text-slate-300 dark:text-zinc-500 text-[11px]">·</span>
                           <span className="text-[11px] px-1.5 py-0.5 rounded-full bg-slate-100 dark:bg-zinc-800 text-slate-500 dark:text-zinc-400 font-medium">{p.parcelaAtual}/{p.totalParcelas}</span>
                         </div>
                       </div>
@@ -622,11 +642,11 @@ export default function TabCartoes({ mes, ano }: Props) {
                     <div className="flex items-center gap-2">
                       <span className="font-semibold text-sm text-slate-700 dark:text-zinc-200">{fmt(p.valorParcela)}</span>
                       <button onClick={() => handleToggleFixa(p)} title={p.fixa ? 'Remover recorrência' : 'Marcar como fixa'}
-                        className={`p-1.5 rounded-lg transition-colors ${p.fixa ? 'text-amber-500 bg-amber-50 dark:bg-amber-500/10' : 'text-slate-300 dark:text-zinc-600 hover:text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-500/10'}`}>
+                        className={`p-1.5 rounded-lg transition-colors ${p.fixa ? 'text-amber-500 bg-amber-50 dark:bg-amber-500/10' : 'text-slate-300 dark:text-zinc-500 hover:text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-500/10'}`}>
                         <PinIcon filled={p.fixa} />
                       </button>
-                      <button onClick={() => abrirEditCompra(p)} className="p-1.5 rounded-lg hover:bg-indigo-50 dark:hover:bg-purple-500/10 text-slate-300 dark:text-zinc-600 hover:text-indigo-400 dark:hover:text-purple-400 transition-colors"><Pencil /></button>
-                      <button onClick={() => iniciarDeleteCompra(p)} className="p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-500/10 text-slate-300 dark:text-zinc-600 hover:text-red-400 transition-colors"><Trash /></button>
+                      <button onClick={() => abrirEditCompra(p)} className="p-1.5 rounded-lg hover:bg-indigo-50 dark:hover:bg-purple-500/10 text-slate-300 dark:text-zinc-500 hover:text-indigo-400 dark:hover:text-purple-400 transition-colors"><Pencil /></button>
+                      <button onClick={() => iniciarDeleteCompra(p)} className="p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-500/10 text-slate-300 dark:text-zinc-500 hover:text-red-400 transition-colors"><Trash /></button>
                     </div>
                   </div>
                 );
@@ -722,7 +742,7 @@ export default function TabCartoes({ mes, ano }: Props) {
                 </div>
                 <div>
                   <p className="text-sm font-medium text-slate-700 dark:text-zinc-200">Compra Fixa</p>
-                  <p className="text-xs text-slate-400 dark:text-zinc-500">Repete automaticamente todo mês</p>
+                  <p className="text-xs text-slate-400 dark:text-zinc-400">Repete automaticamente todo mês</p>
                 </div>
               </label>
             )}
@@ -759,15 +779,15 @@ export default function TabCartoes({ mes, ano }: Props) {
                   <span className="w-5 h-5 rounded-full flex-shrink-0 border border-white shadow" style={{ backgroundColor: c.cor }} />
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-slate-700 dark:text-zinc-200">{c.nome}</p>
-                    <p className="text-xs text-slate-400 dark:text-zinc-500">{c.bandeira ?? '—'}</p>
+                    <p className="text-xs text-slate-400 dark:text-zinc-400">{c.bandeira ?? '—'}</p>
                   </div>
-                  <button onClick={() => abrirEditCartao(c)} className="p-1.5 rounded-lg hover:bg-indigo-50 dark:hover:bg-purple-500/10 text-slate-300 dark:text-zinc-600 hover:text-indigo-400 dark:hover:text-purple-400 transition-colors"><Pencil /></button>
-                  <button onClick={() => handleDeleteCartao(c.id!)} className="p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-500/10 text-slate-300 dark:text-zinc-600 hover:text-red-400 transition-colors"><Trash /></button>
+                  <button onClick={() => abrirEditCartao(c)} className="p-1.5 rounded-lg hover:bg-indigo-50 dark:hover:bg-purple-500/10 text-slate-300 dark:text-zinc-500 hover:text-indigo-400 dark:hover:text-purple-400 transition-colors"><Pencil /></button>
+                  <button onClick={() => handleDeleteCartao(c.id!)} className="p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-500/10 text-slate-300 dark:text-zinc-500 hover:text-red-400 transition-colors"><Trash /></button>
                 </div>
               ))}
 
               {!showCartaoForm ? (
-                <button onClick={abrirNovoCartao} className="w-full py-2.5 border-2 border-dashed border-slate-200 dark:border-zinc-800 rounded-xl text-sm text-slate-400 dark:text-zinc-500 hover:border-indigo-300 hover:text-indigo-500 dark:hover:text-purple-400 transition-colors flex items-center justify-center gap-2">
+                <button onClick={abrirNovoCartao} className="w-full py-2.5 border-2 border-dashed border-slate-200 dark:border-zinc-800 rounded-xl text-sm text-slate-400 dark:text-zinc-400 hover:border-indigo-300 hover:text-indigo-500 dark:hover:text-purple-400 transition-colors flex items-center justify-center gap-2">
                   <Plus /> Novo Cartão
                 </button>
               ) : (
@@ -830,12 +850,12 @@ export default function TabCartoes({ mes, ano }: Props) {
                 <div key={cat.id} className="flex items-center gap-3 p-3 rounded-xl border border-slate-100 dark:border-zinc-800 hover:bg-slate-50 dark:hover:bg-zinc-800">
                   <span className="w-5 h-5 rounded-full flex-shrink-0" style={{ backgroundColor: cat.cor }} />
                   <p className="flex-1 text-sm font-medium text-slate-700 dark:text-zinc-200">{cat.nome}</p>
-                  <button onClick={() => handleDeleteCategoria(cat.id!)} className="p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-500/10 text-slate-300 dark:text-zinc-600 hover:text-red-400 transition-colors"><Trash /></button>
+                  <button onClick={() => handleDeleteCategoria(cat.id!)} className="p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-500/10 text-slate-300 dark:text-zinc-500 hover:text-red-400 transition-colors"><Trash /></button>
                 </div>
               ))}
 
               {!showCatForm ? (
-                <button onClick={() => setShowCatForm(true)} className="w-full py-2.5 border-2 border-dashed border-slate-200 dark:border-zinc-800 rounded-xl text-sm text-slate-400 dark:text-zinc-500 hover:border-indigo-300 hover:text-indigo-500 dark:hover:text-purple-400 transition-colors flex items-center justify-center gap-2">
+                <button onClick={() => setShowCatForm(true)} className="w-full py-2.5 border-2 border-dashed border-slate-200 dark:border-zinc-800 rounded-xl text-sm text-slate-400 dark:text-zinc-400 hover:border-indigo-300 hover:text-indigo-500 dark:hover:text-purple-400 transition-colors flex items-center justify-center gap-2">
                   <Plus /> Nova Categoria
                 </button>
               ) : (

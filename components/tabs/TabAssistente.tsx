@@ -91,7 +91,7 @@ export default function TabAssistente({ mes, ano }: Props) {
         </div>
         <div>
           <h2 className="text-lg font-bold text-slate-800 dark:text-zinc-100">Assistente Financeiro</h2>
-          <p className="text-xs text-slate-400 dark:text-zinc-500">Pergunte sobre seus gastos de {MESES[mes - 1]}/{ano}</p>
+          <p className="text-xs text-slate-400 dark:text-zinc-400">Pergunte sobre seus gastos de {MESES[mes - 1]}/{ano}</p>
         </div>
       </div>
 
@@ -99,7 +99,7 @@ export default function TabAssistente({ mes, ano }: Props) {
         {/* ── Mensagens ── */}
         <div className="flex-1 overflow-y-auto space-y-3 pr-1">
           {mensagens.length === 0 && (
-            <div className="h-full flex flex-col items-center justify-center text-center gap-3 text-slate-400 dark:text-zinc-500">
+            <div className="h-full flex flex-col items-center justify-center text-center gap-3 text-slate-400 dark:text-zinc-400">
               <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-indigo-50 dark:bg-purple-500/10 text-indigo-500 dark:text-purple-400">
                 <MessageCircle />
               </div>
@@ -139,7 +139,7 @@ export default function TabAssistente({ mes, ano }: Props) {
             onChange={(e) => setInput(e.target.value)}
             placeholder="Pergunte sobre seus gastos..."
             disabled={enviando}
-            className="flex-1 border border-slate-200 dark:border-zinc-800 rounded-xl px-3 py-2 text-sm text-slate-900 dark:text-zinc-50 bg-white dark:bg-zinc-900 focus:outline-none focus:ring-2 focus:ring-indigo-300 disabled:opacity-50"
+            className="flex-1 border border-slate-200 dark:border-zinc-800 rounded-xl px-3 py-2 text-sm text-slate-900 dark:text-zinc-50 bg-white dark:bg-zinc-900 focus:outline-none focus:ring-2 focus:ring-indigo-300 dark:focus:ring-purple-500 disabled:opacity-50"
           />
           <button
             type="submit"

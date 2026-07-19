@@ -76,3 +76,13 @@ body {
 .dark textarea {
   color-scheme: dark;
 }
+
+/* Ícone do calendário (date input) visível e destacado no tema escuro */
+.dark input[type="date"]::-webkit-calendar-picker-indicator {
+  filter: invert(1) brightness(1.6) sepia(1) hue-rotate(230deg) saturate(4);
+  opacity: 0.85;
+  cursor: pointer;
+}
+.dark input[type="date"]::-webkit-calendar-picker-indicator:hover {
+  opacity: 1;
+}

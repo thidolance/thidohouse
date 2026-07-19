@@ -92,7 +92,7 @@ export default function NotasMes({ mes, ano }: Props) {
                 onChange={(e) => setTexto(e.target.value)}
                 placeholder="Anotações do mês..."
                 rows={8}
-                className="w-full resize-none rounded-xl border border-slate-200 dark:border-zinc-800 bg-slate-50 dark:bg-zinc-950 px-3 py-2.5 text-sm text-slate-700 dark:text-zinc-200 placeholder-slate-400 dark:placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent transition"
+                className="w-full resize-none rounded-xl border border-slate-200 dark:border-zinc-800 bg-slate-50 dark:bg-zinc-950 px-3 py-2.5 text-sm text-slate-700 dark:text-zinc-200 placeholder-slate-400 dark:placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-indigo-400 dark:focus:ring-purple-500 focus:border-transparent transition"
               />
             )}
 

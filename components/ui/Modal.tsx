@@ -25,7 +25,7 @@ export default function Modal({ title, onClose, children }: Props) {
           <h3 className="text-lg font-semibold text-slate-800 dark:text-zinc-100">{title}</h3>
           <button
             onClick={onClose}
-            className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-zinc-800 transition-colors text-slate-400 dark:text-zinc-500"
+            className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-zinc-800 transition-colors text-slate-400 dark:text-zinc-400"
           >
             <X />
           </button>
