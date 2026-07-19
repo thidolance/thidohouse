@@ -106,17 +106,26 @@ export default function TabEntradas({ mes, ano }: Props) {
     ]);
     setEntradas(list);
 
-    // ── Balanço acumulado do que foi guardado (all-time) ──
+    // ── Balanço do que foi guardado (acumulado nos últimos 12 meses até o mês
+    // selecionado) — mesma janela do "Investimentos por categoria" da Visão Geral. ──
     const distByKey = new Map(distHist.map((d) => [`${d.ano}-${d.mes}`, d]));
     const ganhosByKey: Record<string, number> = {};
     hist.forEach((e) => {
       const k = `${e.ano}-${e.mes}`;
       ganhosByKey[k] = (ganhosByKey[k] ?? 0) + e.valor;
     });
+    // Janela rolante de 12 meses terminando em (mes, ano).
+    const janela: string[] = [];
+    let jm = mes, ja = ano;
+    for (let i = 0; i < 12; i++) {
+      janela.unshift(`${ja}-${jm}`);
+      jm--; if (jm === 0) { jm = 12; ja--; }
+    }
     let accInvest = 0, accFerias = 0, accPlanos = 0;
-    Object.entries(ganhosByKey).forEach(([k, g]) => {
+    janela.forEach((k) => {
       const d = distByKey.get(k);
-      if (!d) return;
+      const g = ganhosByKey[k];
+      if (!d || !g) return;
       accInvest += g * (d.investimento / 100);
       accFerias += g * (d.ferias / 100);
       accPlanos += g * (d.planosFuturos / 100);
@@ -310,54 +319,6 @@ export default function TabEntradas({ mes, ano }: Props) {
         <p className="text-indigo-100 dark:text-purple-100 text-[11px] mt-1">{entradas.length} entrada(s)</p>
       </div>
 
-      {/* ── Balanço de investimentos / reservas (acumulado) ── */}
-      <Card>
-        <div className="flex items-start justify-between mb-1">
-          <div>
-            <p className="text-sm font-semibold text-slate-500 dark:text-zinc-400">Investimentos &amp; Reservas</p>
-            <p className="text-[11px] text-slate-400 dark:text-zinc-500">Acumulado guardado (todos os meses)</p>
-          </div>
-          <div className="h-9 w-9 rounded-xl bg-indigo-100 dark:bg-purple-500/20 flex items-center justify-center text-indigo-600 dark:text-purple-400 flex-shrink-0">
-            <TrendingUp />
-          </div>
-        </div>
-
-        <div className="flex flex-wrap items-end gap-x-3 gap-y-1 mb-4">
-          <span className="text-3xl font-bold tracking-tight text-slate-800 dark:text-white tabular-nums">{fmt(balanco.total)}</span>
-          {balanco.contribMes > 0 && (
-            <span className="mb-1 text-sm font-semibold text-emerald-600 dark:text-emerald-400">
-              +{fmt(balanco.contribMes)}
-              {balanco.deltaPct > 0 && <span className="ml-1 text-emerald-500/80">(+{balanco.deltaPct.toFixed(1)}%)</span>}
-              <span className="ml-1 font-normal text-slate-400 dark:text-zinc-500">este mês</span>
-            </span>
-          )}
-        </div>
-
-        <div className="border-b border-slate-100 dark:border-zinc-800 mb-4" />
-
-        {balanco.total > 0 ? (
-          <div className="flex items-stretch gap-1.5 w-full">
-            {([
-              { key: 'investimento' as const, label: 'Investimento', value: balanco.invest },
-              { key: 'ferias' as const,        label: 'Férias',       value: balanco.ferias },
-              { key: 'planosFuturos' as const, label: 'Planos',       value: balanco.planos },
-            ]).filter((b) => b.value > 0).map((b) => (
-              <div key={b.key} className="space-y-2 min-w-0" style={{ width: `${(b.value / balanco.total) * 100}%` }}>
-                <div className="h-2.5 w-full rounded-sm transition-all" style={{ backgroundColor: distColors[b.key] }} />
-                <div className="flex flex-col">
-                  <span className="text-[11px] text-slate-400 dark:text-zinc-400 font-medium truncate">{b.label} · {((b.value / balanco.total) * 100).toFixed(0)}%</span>
-                  <span className="text-sm font-semibold text-slate-700 dark:text-white tabular-nums">{fmt(b.value)}</span>
-                </div>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <p className="text-sm text-slate-400 dark:text-zinc-400 py-2 text-center">
-            Configure a distribuição e adicione entradas para acompanhar o crescimento.
-          </p>
-        )}
-      </Card>
-
       {/* ── Gráficos ── */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <Card>
@@ -456,6 +417,54 @@ export default function TabEntradas({ mes, ano }: Props) {
               </div>
             ))}
           </div>
+        )}
+      </Card>
+
+      {/* ── Balanço de investimentos / reservas (acumulado 12m) ── */}
+      <Card>
+        <div className="flex items-start justify-between mb-1">
+          <div>
+            <p className="text-sm font-semibold text-slate-500 dark:text-zinc-400">Investimentos &amp; Reservas</p>
+            <p className="text-[11px] text-slate-400 dark:text-zinc-500">Com base na distribuição · acumulado dos últimos 12 meses</p>
+          </div>
+          <div className="h-9 w-9 rounded-xl bg-indigo-100 dark:bg-purple-500/20 flex items-center justify-center text-indigo-600 dark:text-purple-400 flex-shrink-0">
+            <TrendingUp />
+          </div>
+        </div>
+
+        <div className="flex flex-wrap items-end gap-x-3 gap-y-1 mb-4">
+          <span className="text-3xl font-bold tracking-tight text-slate-800 dark:text-white tabular-nums">{fmt(balanco.total)}</span>
+          {balanco.contribMes > 0 && (
+            <span className="mb-1 text-sm font-semibold text-emerald-600 dark:text-emerald-400">
+              +{fmt(balanco.contribMes)}
+              {balanco.deltaPct > 0 && <span className="ml-1 text-emerald-500/80">(+{balanco.deltaPct.toFixed(1)}%)</span>}
+              <span className="ml-1 font-normal text-slate-400 dark:text-zinc-500">este mês</span>
+            </span>
+          )}
+        </div>
+
+        <div className="border-b border-slate-100 dark:border-zinc-800 mb-4" />
+
+        {balanco.total > 0 ? (
+          <div className="flex items-stretch gap-1.5 w-full">
+            {([
+              { key: 'investimento' as const, label: 'Investimento', value: balanco.invest },
+              { key: 'ferias' as const,        label: 'Férias',       value: balanco.ferias },
+              { key: 'planosFuturos' as const, label: 'Planos',       value: balanco.planos },
+            ]).filter((b) => b.value > 0).map((b) => (
+              <div key={b.key} className="space-y-2 min-w-0" style={{ width: `${(b.value / balanco.total) * 100}%` }}>
+                <div className="h-2.5 w-full rounded-sm transition-all" style={{ backgroundColor: distColors[b.key] }} />
+                <div className="flex flex-col">
+                  <span className="text-[11px] text-slate-400 dark:text-zinc-400 font-medium truncate">{b.label} · {((b.value / balanco.total) * 100).toFixed(0)}%</span>
+                  <span className="text-sm font-semibold text-slate-700 dark:text-white tabular-nums">{fmt(b.value)}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="text-sm text-slate-400 dark:text-zinc-400 py-2 text-center">
+            Configure a distribuição e adicione entradas para acompanhar o crescimento.
+          </p>
         )}
       </Card>
 
