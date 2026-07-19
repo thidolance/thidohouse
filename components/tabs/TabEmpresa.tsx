@@ -35,7 +35,7 @@ function PinIcon({ filled }: { filled?: boolean }) {
   );
 }
 
-const INPUT = 'w-full border border-slate-200 rounded-xl px-3 py-2 text-sm text-slate-900 bg-white focus:outline-none focus:ring-2 focus:ring-violet-300';
+const INPUT = 'w-full border border-zinc-800 rounded-xl px-3 py-2 text-sm text-zinc-50 bg-zinc-900 focus:outline-none focus:ring-2 focus:ring-violet-300';
 const fmt   = (v: number) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 
 interface Props { mes: number; ano: number; }
@@ -262,8 +262,8 @@ export default function TabEmpresa({ mes, ano }: Props) {
       {/* ── Header ── */}
       <div className="flex items-center justify-between gap-2">
         <div>
-          <h2 className="text-lg font-bold text-slate-800">Empresa</h2>
-          <p className="text-xs text-slate-400">{custos.length} custo(s) · {fmt(totalGeral)}</p>
+          <h2 className="text-lg font-bold text-zinc-100">Empresa</h2>
+          <p className="text-xs text-zinc-500">{custos.length} custo(s) · {fmt(totalGeral)}</p>
         </div>
         <div className="flex gap-2">
           <button
@@ -274,7 +274,7 @@ export default function TabEmpresa({ mes, ano }: Props) {
           </button>
           <button
             onClick={() => abrirNovoCusto()}
-            className="inline-flex items-center gap-1.5 px-3 py-2 bg-violet-600 text-white rounded-xl text-sm font-medium hover:bg-violet-700 transition-colors shadow-sm shadow-violet-200"
+            className="inline-flex items-center gap-1.5 px-3 py-2 bg-violet-600 text-white rounded-xl text-sm font-medium hover:bg-violet-700 transition-colors shadow-sm shadow-violet-500/20"
           >
             <Plus /><span className="hidden sm:inline">Novo Custo</span>
           </button>
@@ -282,23 +282,23 @@ export default function TabEmpresa({ mes, ano }: Props) {
       </div>
 
       {/* ── Card total ── */}
-      <div className="bg-gradient-to-br from-indigo-600 to-violet-700 rounded-2xl px-4 py-3 text-white shadow-lg shadow-indigo-200">
-        <p className="text-indigo-100 text-xs font-medium uppercase tracking-wide">Total do Mês — Empresa</p>
+      <div className="bg-gradient-to-br from-purple-600 to-violet-700 rounded-2xl px-4 py-3 text-white shadow-lg shadow-purple-500/20">
+        <p className="text-purple-100 text-xs font-medium uppercase tracking-wide">Total do Mês — Empresa</p>
         <p className="text-2xl font-bold mt-0.5 tabular-nums">{fmt(totalGeral)}</p>
-        <p className="text-indigo-100 text-[11px] mt-1">{custos.length} custo(s) em {categorias.length} categoria(s)</p>
+        <p className="text-purple-100 text-[11px] mt-1">{custos.length} custo(s) em {categorias.length} categoria(s)</p>
       </div>
 
       {/* ── Gráficos ── */}
       {totalGeral > 0 && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           <Card>
-            <p className="font-semibold text-slate-700 text-sm mb-3">Custo por Categoria</p>
+            <p className="font-semibold text-zinc-200 text-sm mb-3">Custo por Categoria</p>
             <div style={{ height: 220 }}>
               <VChart key={`emp-bar-${totalGeral.toFixed(0)}`} spec={barSpec as any} />
             </div>
           </Card>
           <Card>
-            <p className="font-semibold text-slate-700 text-sm mb-3">Distribuição</p>
+            <p className="font-semibold text-zinc-200 text-sm mb-3">Distribuição</p>
             <div style={{ height: 220 }}>
               <VChart key={`emp-donut-${totalGeral.toFixed(0)}`} spec={donutSpec as any} />
             </div>
@@ -310,7 +310,7 @@ export default function TabEmpresa({ mes, ano }: Props) {
       <div className="flex flex-wrap gap-2">
         <button
           onClick={() => setCatFiltro(null)}
-          className={`px-3 py-1.5 rounded-full text-sm font-medium transition-all border ${!catFiltro ? 'bg-violet-600 text-white border-violet-600' : 'border-slate-200 text-slate-500 hover:border-violet-300 hover:text-violet-600'}`}
+          className={`px-3 py-1.5 rounded-full text-sm font-medium transition-all border ${!catFiltro ? 'bg-violet-600 text-white border-violet-600' : 'border-zinc-800 text-zinc-400 hover:border-violet-300 hover:text-violet-600'}`}
         >
           Todos
         </button>
@@ -331,7 +331,7 @@ export default function TabEmpresa({ mes, ano }: Props) {
       {/* ── Lista de custos ── */}
       <Card>
         <div className="flex items-center justify-between mb-4">
-          <h3 className="font-semibold text-slate-700 text-sm">
+          <h3 className="font-semibold text-zinc-200 text-sm">
             {catAtiva ? `Custos — ${catAtiva.nome}` : 'Todos os Custos do Mês'}
           </h3>
           {catAtiva && (
@@ -345,9 +345,9 @@ export default function TabEmpresa({ mes, ano }: Props) {
         </div>
 
         {loading ? (
-          <p className="text-slate-400 text-sm text-center py-8">Carregando...</p>
+          <p className="text-zinc-500 text-sm text-center py-8">Carregando...</p>
         ) : custosFiltrados.length === 0 ? (
-          <div className="py-10 flex flex-col items-center gap-2 text-slate-400">
+          <div className="py-10 flex flex-col items-center gap-2 text-zinc-500">
             <span className="text-3xl">🏢</span>
             <p className="text-sm">{catFiltro ? 'Nenhum custo nesta categoria' : 'Nenhum custo cadastrado este mês'}</p>
           </div>
@@ -367,10 +367,10 @@ export default function TabEmpresa({ mes, ano }: Props) {
                     </span>
                     <div>
                       <div className="flex items-center gap-1.5">
-                        <p className="font-medium text-slate-700 text-sm">{c.descricao}</p>
-                        {c.fixa && <span className="text-[10px] px-1.5 py-0.5 rounded-md font-semibold bg-amber-50 text-amber-600">Fixo</span>}
+                        <p className="font-medium text-zinc-200 text-sm">{c.descricao}</p>
+                        {c.fixa && <span className="text-[10px] px-1.5 py-0.5 rounded-md font-semibold bg-amber-500/10 text-amber-400">Fixo</span>}
                       </div>
-                      <p className="text-xs text-slate-400">
+                      <p className="text-xs text-zinc-500">
                         {c.fixa
                           ? 'todo mês'
                           : <>{c.parcelaAtual}/{c.totalParcelas}x{c.totalParcelas > 1 && ` · total ${fmt(c.valor)}`}</>}
@@ -381,12 +381,12 @@ export default function TabEmpresa({ mes, ano }: Props) {
                     <span className="font-semibold text-sm text-violet-600">{fmt(c.valorParcela)}</span>
                     {c.totalParcelas <= 1 && (
                       <button onClick={() => handleToggleFixaCusto(c)} title={c.fixa ? 'Remover recorrência' : 'Marcar como fixo'}
-                        className={`p-1.5 rounded-lg transition-all ${c.fixa ? 'text-amber-500 bg-amber-50' : 'opacity-100 sm:opacity-0 sm:group-hover:opacity-100 text-slate-300 hover:text-amber-500 hover:bg-amber-50'}`}>
+                        className={`p-1.5 rounded-lg transition-all ${c.fixa ? 'text-amber-500 bg-amber-500/10' : 'opacity-100 sm:opacity-0 sm:group-hover:opacity-100 text-zinc-600 hover:text-amber-500 hover:bg-amber-500/10'}`}>
                         <PinIcon filled={c.fixa} />
                       </button>
                     )}
-                    <button onClick={() => abrirEditCusto(c)} className="p-1.5 rounded-lg opacity-100 sm:opacity-0 sm:group-hover:opacity-100 hover:bg-violet-100 text-slate-300 hover:text-violet-500 transition-all"><Pencil /></button>
-                    <button onClick={() => iniciarDeleteCusto(c)} className="p-1.5 rounded-lg opacity-100 sm:opacity-0 sm:group-hover:opacity-100 hover:bg-red-50 text-slate-300 hover:text-red-400 transition-all"><Trash /></button>
+                    <button onClick={() => abrirEditCusto(c)} className="p-1.5 rounded-lg opacity-100 sm:opacity-0 sm:group-hover:opacity-100 hover:bg-violet-100 text-zinc-600 hover:text-violet-500 transition-all"><Pencil /></button>
+                    <button onClick={() => iniciarDeleteCusto(c)} className="p-1.5 rounded-lg opacity-100 sm:opacity-0 sm:group-hover:opacity-100 hover:bg-red-500/10 text-zinc-600 hover:text-red-400 transition-all"><Trash /></button>
                   </div>
                 </div>
               );
@@ -403,7 +403,7 @@ export default function TabEmpresa({ mes, ano }: Props) {
         >
           <form onSubmit={handleSaveCusto} className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">Categoria</label>
+              <label className="block text-sm font-medium text-zinc-200 mb-2">Categoria</label>
               <div className="flex flex-wrap gap-2">
                 {categorias.map((cat) => (
                   <button
@@ -422,47 +422,47 @@ export default function TabEmpresa({ mes, ano }: Props) {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Descrição</label>
+              <label className="block text-sm font-medium text-zinc-200 mb-1">Descrição</label>
               <input required value={formCusto.descricao} onChange={(e) => setFormCusto({ ...formCusto, descricao: e.target.value })} className={INPUT} placeholder="Ex: DAS Junho 2025" />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Valor Total (R$)</label>
+              <label className="block text-sm font-medium text-zinc-200 mb-1">Valor Total (R$)</label>
               <input required value={formCusto.valor} onChange={(e) => setFormCusto({ ...formCusto, valor: e.target.value })} className={INPUT} placeholder="0,00" inputMode="decimal" />
             </div>
 
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Parcela Atual</label>
+                <label className="block text-sm font-medium text-zinc-200 mb-1">Parcela Atual</label>
                 <input required type="number" min={1} value={formCusto.parcelaAtual} onChange={(e) => setFormCusto({ ...formCusto, parcelaAtual: e.target.value })} className={INPUT} placeholder="1" />
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Total de Parcelas</label>
+                <label className="block text-sm font-medium text-zinc-200 mb-1">Total de Parcelas</label>
                 <input required type="number" min={1} value={formCusto.totalParcelas} onChange={(e) => setFormCusto({ ...formCusto, totalParcelas: e.target.value })} className={INPUT} placeholder="1" />
               </div>
             </div>
 
             {formCusto.valor && parseInt(formCusto.totalParcelas) > 1 && (
-              <p className="text-xs text-slate-500 bg-violet-50 rounded-lg p-2">
+              <p className="text-xs text-zinc-400 bg-violet-50 rounded-lg p-2">
                 Valor por parcela: <strong>{fmt(parseFloat(formCusto.valor.replace(',', '.')) / parseInt(formCusto.totalParcelas) || 0)}</strong>
               </p>
             )}
 
             {!editCustoId && parseInt(formCusto.totalParcelas || '1') <= 1 && (
-              <label className="flex items-center gap-3 cursor-pointer select-none p-3 rounded-xl border border-slate-100 hover:bg-slate-50 transition-colors">
+              <label className="flex items-center gap-3 cursor-pointer select-none p-3 rounded-xl border border-zinc-800 hover:bg-zinc-950 transition-colors">
                 <div onClick={() => setFormCusto({ ...formCusto, fixa: !formCusto.fixa })}
-                  className={`w-11 h-6 rounded-full transition-colors flex items-center flex-shrink-0 ${formCusto.fixa ? 'bg-amber-400' : 'bg-slate-200'}`}>
+                  className={`w-11 h-6 rounded-full transition-colors flex items-center flex-shrink-0 ${formCusto.fixa ? 'bg-amber-400' : 'bg-zinc-800'}`}>
                   <span className={`w-5 h-5 bg-white rounded-full shadow transition-transform mx-0.5 ${formCusto.fixa ? 'translate-x-5' : 'translate-x-0'}`} />
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-slate-700">Custo Fixo</p>
-                  <p className="text-xs text-slate-400">Repete automaticamente todo mês</p>
+                  <p className="text-sm font-medium text-zinc-200">Custo Fixo</p>
+                  <p className="text-xs text-zinc-500">Repete automaticamente todo mês</p>
                 </div>
               </label>
             )}
 
             <div className="flex gap-3 pt-2">
-              <button type="button" onClick={() => { setShowCustoModal(false); setEditCustoId(null); }} className="flex-1 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-600 hover:bg-slate-50">Cancelar</button>
+              <button type="button" onClick={() => { setShowCustoModal(false); setEditCustoId(null); }} className="flex-1 py-2.5 border border-zinc-800 rounded-xl text-sm text-zinc-300 hover:bg-zinc-950">Cancelar</button>
               <button type="submit" className="flex-1 py-2.5 bg-violet-600 text-white rounded-xl text-sm font-medium hover:bg-violet-700">Salvar</button>
             </div>
           </form>
@@ -473,35 +473,35 @@ export default function TabEmpresa({ mes, ano }: Props) {
       {showConfigModal && (
         <Modal title="Configurações — Empresa" onClose={() => { setShowConfigModal(false); setShowCatForm(false); setFormCat(CAT_EMPTY); }}>
           <div className="space-y-3">
-            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Categorias</p>
+            <p className="text-xs font-semibold text-zinc-400 uppercase tracking-wide">Categorias</p>
             {categorias.map((cat) => (
               <div key={cat.id} className="flex items-center gap-3 p-3 rounded-xl border border-violet-100 hover:bg-violet-50/50">
                 <span className="w-5 h-5 rounded-full flex-shrink-0 shadow-sm" style={{ backgroundColor: cat.cor }} />
-                <p className="flex-1 text-sm font-medium text-slate-700">{cat.nome}</p>
-                <button onClick={() => handleDeleteCategoria(cat.id!)} className="p-1.5 rounded-lg hover:bg-red-50 text-slate-300 hover:text-red-400 transition-colors"><Trash /></button>
+                <p className="flex-1 text-sm font-medium text-zinc-200">{cat.nome}</p>
+                <button onClick={() => handleDeleteCategoria(cat.id!)} className="p-1.5 rounded-lg hover:bg-red-500/10 text-zinc-600 hover:text-red-400 transition-colors"><Trash /></button>
               </div>
             ))}
 
             {!showCatForm ? (
-              <button onClick={() => setShowCatForm(true)} className="w-full py-2.5 border-2 border-dashed border-violet-200 rounded-xl text-sm text-slate-400 hover:border-violet-400 hover:text-violet-500 transition-colors flex items-center justify-center gap-2">
+              <button onClick={() => setShowCatForm(true)} className="w-full py-2.5 border-2 border-dashed border-violet-200 rounded-xl text-sm text-zinc-500 hover:border-violet-400 hover:text-violet-500 transition-colors flex items-center justify-center gap-2">
                 <Plus /> Nova Categoria
               </button>
             ) : (
               <form onSubmit={handleSaveCategoria} className="border border-violet-200 rounded-xl p-4 space-y-3 bg-violet-50/30">
-                <p className="text-sm font-semibold text-slate-700">Nova Categoria</p>
+                <p className="text-sm font-semibold text-zinc-200">Nova Categoria</p>
                 <input required value={formCat.nome} onChange={(e) => setFormCat({ ...formCat, nome: e.target.value })} className={INPUT} placeholder="Ex: Alvará, ISS..." />
                 <div>
-                  <label className="block text-xs text-slate-500 mb-1">Cor</label>
+                  <label className="block text-xs text-zinc-400 mb-1">Cor</label>
                   <div className="flex items-center gap-2">
-                    <input type="color" value={formCat.cor} onChange={(e) => setFormCat({ ...formCat, cor: e.target.value })} className="w-10 h-9 rounded-lg border border-slate-200 cursor-pointer p-0.5 bg-white" />
-                    <span className="text-xs text-slate-500 font-mono">{formCat.cor}</span>
+                    <input type="color" value={formCat.cor} onChange={(e) => setFormCat({ ...formCat, cor: e.target.value })} className="w-10 h-9 rounded-lg border border-zinc-800 cursor-pointer p-0.5 bg-zinc-900" />
+                    <span className="text-xs text-zinc-400 font-mono">{formCat.cor}</span>
                     <span className="px-3 py-1 rounded-full text-xs font-medium ml-2" style={{ backgroundColor: `${formCat.cor}22`, color: formCat.cor }}>
                       {formCat.nome || 'Exemplo'}
                     </span>
                   </div>
                 </div>
                 <div className="flex gap-2">
-                  <button type="button" onClick={() => { setShowCatForm(false); setFormCat(CAT_EMPTY); }} className="flex-1 py-2 border border-slate-200 rounded-xl text-xs text-slate-600 hover:bg-white">Cancelar</button>
+                  <button type="button" onClick={() => { setShowCatForm(false); setFormCat(CAT_EMPTY); }} className="flex-1 py-2 border border-zinc-800 rounded-xl text-xs text-zinc-300 hover:bg-zinc-800">Cancelar</button>
                   <button type="submit" className="flex-1 py-2 bg-violet-600 text-white rounded-xl text-xs font-medium hover:bg-violet-700">Salvar</button>
                 </div>
               </form>
@@ -513,9 +513,9 @@ export default function TabEmpresa({ mes, ano }: Props) {
       {/* ── Dialog exclusão de custos futuros ── */}
       {deleteCustoDialog && (
         <div className="fixed inset-0 z-[200] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 space-y-4">
-            <h3 className="font-bold text-slate-800">Remover custo da empresa</h3>
-            <p className="text-sm text-slate-500 leading-relaxed">
+          <div className="bg-zinc-900 rounded-2xl shadow-2xl w-full max-w-sm p-6 space-y-4">
+            <h3 className="font-bold text-zinc-100">Remover custo da empresa</h3>
+            <p className="text-sm text-zinc-400 leading-relaxed">
               <strong>&quot;{deleteCustoDialog.descricao}&quot;</strong> {deleteCustoDialog.fixa ? 'se repete nos meses seguintes' : 'tem parcelas em meses seguintes'}. Deseja remover só {deleteCustoDialog.fixa ? 'este mês' : 'esta parcela'} ou {deleteCustoDialog.fixa ? 'este e os seguintes' : 'todas as parcelas restantes'}?
             </p>
             <div className="space-y-2 pt-1">
@@ -524,11 +524,11 @@ export default function TabEmpresa({ mes, ano }: Props) {
                 {deleteCustoDialog.fixa ? 'Remover este e os seguintes' : 'Remover esta e as seguintes'}
               </button>
               <button onClick={() => confirmarDeleteCusto('this')}
-                className="w-full py-2.5 rounded-xl text-sm font-medium bg-slate-700 text-white hover:bg-slate-800 transition-colors">
+                className="w-full py-2.5 rounded-xl text-sm font-medium bg-zinc-700 text-white hover:bg-zinc-800 transition-colors">
                 {deleteCustoDialog.fixa ? 'Só este mês' : 'Só esta parcela'}
               </button>
               <button onClick={() => setDeleteCustoDialog(null)}
-                className="w-full py-2.5 rounded-xl text-sm text-slate-500 border border-slate-200 hover:bg-slate-50 transition-colors">
+                className="w-full py-2.5 rounded-xl text-sm text-zinc-400 border border-zinc-800 hover:bg-zinc-950 transition-colors">
                 Cancelar
               </button>
             </div>

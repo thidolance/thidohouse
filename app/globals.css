@@ -1,17 +1,18 @@
 @import "tailwindcss";
 
+/* Tema dark "preto + roxo" como padrão do app */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-  --card: #ffffff;
-  --card-foreground: #171717;
-  --primary: #4f46e5;
+  --background: #09090b;      /* zinc-950 */
+  --foreground: #f4f4f5;      /* zinc-100 */
+  --card: #18181b;            /* zinc-900 */
+  --card-foreground: #f4f4f5;
+  --primary: #a855f7;         /* purple-500 */
   --primary-foreground: #ffffff;
-  --muted: #f8fafc;
-  --muted-foreground: #64748b;
-  --border: #e2e8f0;
-  --input: #e2e8f0;
-  --ring: #6366f1;
+  --muted: #18181b;
+  --muted-foreground: #a1a1aa; /* zinc-400 */
+  --border: #27272a;           /* zinc-800 */
+  --input: #27272a;
+  --ring: #a855f7;             /* purple-500 */
   --radius: 0.75rem;
 }
 
@@ -34,15 +35,23 @@
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html {
+  color-scheme: dark;
 }
 
 body {
-  background: var(--background);
+  /* Fundo preto com um leve brilho aurora roxo no topo */
+  background-color: var(--background);
+  background-image:
+    radial-gradient(60rem 40rem at 50% -20%, rgba(168, 85, 247, 0.10), transparent 70%);
+  background-attachment: fixed;
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
+}
+
+/* Inputs nativos (date/color) herdam esquema escuro */
+input,
+select,
+textarea {
+  color-scheme: dark;
 }

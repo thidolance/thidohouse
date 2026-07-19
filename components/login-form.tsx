@@ -36,7 +36,7 @@ export function LoginForm() {
       <div className="space-y-2">
         <Label htmlFor="username">Usuário</Label>
         <div className="relative">
-          <User className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+          <User className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-500" />
           <Input
             id="username"
             name="username"
@@ -52,7 +52,7 @@ export function LoginForm() {
       <div className="space-y-2">
         <Label htmlFor="password">Senha</Label>
         <div className="relative">
-          <Lock className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+          <Lock className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-500" />
           <Input
             id="password"
             name="password"
@@ -66,7 +66,7 @@ export function LoginForm() {
       </div>
 
       {state?.error && (
-        <p className="rounded-lg border border-red-100 bg-red-50 px-3 py-2 text-sm text-red-600">
+        <p className="rounded-lg border border-red-100 bg-red-500/10 px-3 py-2 text-sm text-red-400">
           {state.error}
         </p>
       )}

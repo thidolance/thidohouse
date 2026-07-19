@@ -59,17 +59,17 @@ export default function Home() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen">
       {/* Header */}
-      <header className="bg-white border-b border-slate-100 sticky top-0 z-40">
+      <header className="bg-zinc-950/70 backdrop-blur-xl border-b border-zinc-800/80 sticky top-0 z-40">
         <div className="max-w-5xl mx-auto px-4">
           <div className="flex flex-wrap sm:flex-nowrap items-center justify-between gap-y-2 py-2.5 sm:h-14 sm:py-0">
             <div className="flex items-center gap-2">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-600 text-white">
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-purple-600 text-white">
                 <FamilyIcon className="h-4 w-4" />
               </div>
-              <span className="text-indigo-600 font-bold text-lg tracking-tight">ThidoHouse</span>
-              <span className="text-slate-400 text-sm hidden sm:block">· Controle Financeiro</span>
+              <span className="text-purple-400 font-bold text-lg tracking-tight">ThidoHouse</span>
+              <span className="text-zinc-500 text-sm hidden sm:block">· Controle Financeiro</span>
             </div>
             <div className="order-3 w-full flex items-center justify-center gap-2 sm:order-none sm:w-auto sm:justify-start">
               <MonthPicker mes={mes} ano={ano} onChange={(m, a) => setPeriodo({ mes: m, ano: a })} />
@@ -77,7 +77,7 @@ export default function Home() {
                 <button
                   type="submit"
                   title="Sair"
-                  className="flex items-center justify-center h-9 w-9 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors"
+                  className="flex items-center justify-center h-9 w-9 rounded-lg text-zinc-500 hover:text-red-400 hover:bg-red-500/10 transition-colors"
                 >
                   <LogOut className="h-4 w-4" />
                 </button>
@@ -93,8 +93,8 @@ export default function Home() {
                 onClick={() => setTab(t.id)}
                 className={`flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
                   tab === t.id
-                    ? 'border-indigo-600 text-indigo-600'
-                    : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
+                    ? 'border-purple-600 text-purple-400'
+                    : 'border-transparent text-zinc-400 hover:text-zinc-200 hover:border-zinc-700'
                 }`}
               >
                 {t.icon}

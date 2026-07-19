@@ -14,7 +14,7 @@ import type { Entrada, Distribuicao } from '@/lib/types';
 
 const VChart = dynamic(
   () => import('@visactor/react-vchart').then((m) => m.VChart),
-  { ssr: false, loading: () => <div className="animate-pulse bg-slate-100 rounded-xl h-full w-full" /> },
+  { ssr: false, loading: () => <div className="animate-pulse bg-zinc-800 rounded-xl h-full w-full" /> },
 );
 
 // ── helpers ───────────────────────────────────────────────────────────────────
@@ -65,7 +65,7 @@ const DIST_LABELS: { key: DistKey; label: string }[] = [
 const LS_COLORS_KEY = 'thidohouse-dist-colors';
 
 const fmt = (v: number) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-const INPUT = 'w-full border border-slate-200 rounded-xl px-3 py-2 text-sm text-slate-900 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-300';
+const INPUT = 'w-full border border-zinc-800 rounded-xl px-3 py-2 text-sm text-zinc-50 bg-zinc-900 focus:outline-none focus:ring-2 focus:ring-purple-300';
 
 interface Props { mes: number; ano: number; }
 
@@ -203,7 +203,7 @@ export default function TabEntradas({ mes, ano }: Props) {
       { orient: 'bottom', domainLine: { visible: false }, tick: { visible: false }, label: { style: { fontSize: 11, fill: '#94a3b8' } } },
       {
         orient: 'left',
-        grid: { style: { stroke: '#f1f5f9', lineDash: [3, 3] } },
+        grid: { style: { stroke: '#27272a', lineDash: [3, 3] } },
         domainLine: { visible: false },
         tick: { visible: false },
         label: {
@@ -262,20 +262,20 @@ export default function TabEntradas({ mes, ano }: Props) {
       {/* ── Header ── */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-lg font-bold text-slate-800">Entradas</h2>
-          <p className="text-xs text-slate-400">{entradas.length} entrada(s) · {fmt(totalMes)}</p>
+          <h2 className="text-lg font-bold text-zinc-100">Entradas</h2>
+          <p className="text-xs text-zinc-500">{entradas.length} entrada(s) · {fmt(totalMes)}</p>
         </div>
         <button onClick={() => { setEditId(null); setForm({ descricao: '', valor: '', data: '' }); setShowModal(true); }}
-          className="inline-flex items-center gap-1.5 px-3 py-2 bg-indigo-600 text-white rounded-xl text-sm font-medium hover:bg-indigo-700 transition-colors shadow-sm">
+          className="inline-flex items-center gap-1.5 px-3 py-2 bg-purple-600 text-white rounded-xl text-sm font-medium hover:bg-purple-700 transition-colors shadow-sm">
           <Plus /><span className="hidden sm:inline">Nova Entrada</span>
         </button>
       </div>
 
       {/* ── Card resumo ── */}
-      <div className="bg-gradient-to-br from-indigo-600 to-violet-700 rounded-2xl px-4 py-3 text-white shadow-lg shadow-indigo-200">
-        <p className="text-indigo-100 text-xs font-medium uppercase tracking-wide">Total do Mês</p>
+      <div className="bg-gradient-to-br from-purple-600 to-violet-700 rounded-2xl px-4 py-3 text-white shadow-lg shadow-purple-500/20">
+        <p className="text-purple-100 text-xs font-medium uppercase tracking-wide">Total do Mês</p>
         <p className="text-2xl font-bold mt-0.5 tabular-nums">{fmt(totalMes)}</p>
-        <p className="text-indigo-100 text-[11px] mt-1">{entradas.length} entrada(s)</p>
+        <p className="text-purple-100 text-[11px] mt-1">{entradas.length} entrada(s)</p>
       </div>
 
       {/* ── Gráficos ── */}
@@ -283,14 +283,14 @@ export default function TabEntradas({ mes, ano }: Props) {
         <Card>
           <div className="flex items-center gap-2 mb-3">
             <TrendingUp />
-            <p className="font-semibold text-slate-700 text-sm">Histórico (12 meses)</p>
+            <p className="font-semibold text-zinc-200 text-sm">Histórico (12 meses)</p>
           </div>
           {historico.length > 0 ? (
             <div style={{ height: 220 }}>
               <VChart key={`hist-${historico.length}-${historico.at(-1)?.total?.toFixed(0) ?? 0}`} spec={historicoSpec as any} />
             </div>
           ) : (
-            <div className="h-[220px] flex flex-col items-center justify-center text-slate-400 gap-2">
+            <div className="h-[220px] flex flex-col items-center justify-center text-zinc-500 gap-2">
               <span className="text-3xl">📈</span>
               <p className="text-sm">Sem histórico ainda</p>
             </div>
@@ -298,9 +298,9 @@ export default function TabEntradas({ mes, ano }: Props) {
         </Card>
         <Card>
           <div className="flex items-center justify-between mb-3">
-            <p className="font-semibold text-slate-700 text-sm">Distribuição</p>
+            <p className="font-semibold text-zinc-200 text-sm">Distribuição</p>
             <button onClick={() => { setDistColorForm(distColors); setShowDistModal(true); }}
-              className="inline-flex items-center gap-1 px-2.5 py-1.5 border border-slate-200 rounded-lg text-xs font-medium text-slate-500 hover:bg-slate-50 hover:text-slate-700 transition-colors">
+              className="inline-flex items-center gap-1 px-2.5 py-1.5 border border-zinc-800 rounded-lg text-xs font-medium text-zinc-400 hover:bg-zinc-950 hover:text-zinc-200 transition-colors">
               <GearIcon /> Editar %
             </button>
           </div>
@@ -309,7 +309,7 @@ export default function TabEntradas({ mes, ano }: Props) {
               <VChart key={`dist-${totalMes.toFixed(0)}-${Object.values(distColors).join('')}`} spec={distSpec as any} />
             </div>
           ) : (
-            <div className="h-[220px] flex flex-col items-center justify-center text-slate-400 gap-2">
+            <div className="h-[220px] flex flex-col items-center justify-center text-zinc-500 gap-2">
               <span className="text-3xl">🥧</span>
               <p className="text-sm">Adicione entradas para ver a distribuição</p>
             </div>
@@ -321,9 +321,9 @@ export default function TabEntradas({ mes, ano }: Props) {
                 <div key={key} className="flex items-center justify-between gap-2">
                   <div className="flex items-center gap-1.5 min-w-0">
                     <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: distColors[key] }} />
-                    <span className="text-[11px] text-slate-500 truncate">{label} {distribuicao[key]}%</span>
+                    <span className="text-[11px] text-zinc-400 truncate">{label} {distribuicao[key]}%</span>
                   </div>
-                  <span className="text-[11px] font-semibold text-slate-700 tabular-nums flex-shrink-0">{fmt(totalMes * distribuicao[key] / 100)}</span>
+                  <span className="text-[11px] font-semibold text-zinc-200 tabular-nums flex-shrink-0">{fmt(totalMes * distribuicao[key] / 100)}</span>
                 </div>
               ))}
             </div>
@@ -333,43 +333,43 @@ export default function TabEntradas({ mes, ano }: Props) {
 
       {/* ── Lista de entradas ── */}
       <Card className="!p-0 overflow-hidden">
-        <div className="px-4 py-3 border-b border-slate-100 flex items-center justify-between">
-          <p className="font-semibold text-slate-700 text-sm">Entradas do Mês</p>
-          {entradas.length > 0 && <span className="text-xs text-slate-400">{entradas.length} item(s)</span>}
+        <div className="px-4 py-3 border-b border-zinc-800 flex items-center justify-between">
+          <p className="font-semibold text-zinc-200 text-sm">Entradas do Mês</p>
+          {entradas.length > 0 && <span className="text-xs text-zinc-500">{entradas.length} item(s)</span>}
         </div>
         {loading ? (
-          <div className="py-12 flex flex-col items-center gap-2 text-slate-400">
-            <div className="w-5 h-5 border-2 border-slate-200 border-t-indigo-500 rounded-full animate-spin" />
+          <div className="py-12 flex flex-col items-center gap-2 text-zinc-500">
+            <div className="w-5 h-5 border-2 border-zinc-800 border-t-purple-500 rounded-full animate-spin" />
             <p className="text-sm">Carregando...</p>
           </div>
         ) : entradas.length === 0 ? (
           <div className="py-12 text-center">
             <p className="text-2xl mb-2">📥</p>
-            <p className="text-slate-400 text-sm">Nenhuma entrada neste mês</p>
+            <p className="text-zinc-500 text-sm">Nenhuma entrada neste mês</p>
           </div>
         ) : (
-          <div className="divide-y divide-slate-50">
+          <div className="divide-y divide-zinc-800">
             {entradas.map((e) => (
-              <div key={e.id} className="group flex items-center justify-between px-4 py-3.5 hover:bg-slate-50/80 transition-colors">
+              <div key={e.id} className="group flex items-center justify-between px-4 py-3.5 hover:bg-zinc-950/80 transition-colors">
                 <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 bg-indigo-100 rounded-xl flex items-center justify-center flex-shrink-0">
+                  <div className="w-8 h-8 bg-purple-100 rounded-xl flex items-center justify-center flex-shrink-0">
                     <TrendingUp />
                   </div>
                   <div>
-                    <p className="font-semibold text-slate-800 text-sm leading-tight">{e.descricao}</p>
-                    <p className="text-[11px] text-slate-400 mt-0.5">
+                    <p className="font-semibold text-zinc-100 text-sm leading-tight">{e.descricao}</p>
+                    <p className="text-[11px] text-zinc-500 mt-0.5">
                       {new Date(e.data + 'T12:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' })}
                     </p>
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="font-bold text-indigo-600 tabular-nums">{fmt(e.valor)}</span>
+                  <span className="font-bold text-purple-400 tabular-nums">{fmt(e.valor)}</span>
                   <button onClick={() => handleEdit(e)}
-                    className="p-1.5 rounded-lg text-slate-300 hover:text-indigo-500 hover:bg-indigo-50 transition-colors opacity-100 sm:opacity-0 sm:group-hover:opacity-100">
+                    className="p-1.5 rounded-lg text-zinc-600 hover:text-purple-400 hover:bg-purple-500/10 transition-colors opacity-100 sm:opacity-0 sm:group-hover:opacity-100">
                     <Pencil />
                   </button>
                   <button onClick={() => handleDelete(e.id!)}
-                    className="p-1.5 rounded-lg text-slate-300 hover:text-red-400 hover:bg-red-50 transition-colors opacity-100 sm:opacity-0 sm:group-hover:opacity-100">
+                    className="p-1.5 rounded-lg text-zinc-600 hover:text-red-400 hover:bg-red-500/10 transition-colors opacity-100 sm:opacity-0 sm:group-hover:opacity-100">
                     <Trash />
                   </button>
                 </div>
@@ -384,20 +384,20 @@ export default function TabEntradas({ mes, ano }: Props) {
         <Modal title={editId ? 'Editar Entrada' : 'Nova Entrada'} onClose={() => { setShowModal(false); setEditId(null); }}>
           <form onSubmit={handleSaveEntrada} className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Descrição</label>
+              <label className="block text-sm font-medium text-zinc-200 mb-1">Descrição</label>
               <input required value={form.descricao} onChange={(e) => setForm({ ...form, descricao: e.target.value })} className={INPUT} placeholder="Ex: Salário" />
             </div>
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Valor (R$)</label>
+              <label className="block text-sm font-medium text-zinc-200 mb-1">Valor (R$)</label>
               <input required value={form.valor} onChange={(e) => setForm({ ...form, valor: formatBRL(e.target.value) })} className={INPUT} placeholder="0,00" inputMode="decimal" />
             </div>
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Data</label>
+              <label className="block text-sm font-medium text-zinc-200 mb-1">Data</label>
               <input required type="date" value={form.data} onChange={(e) => setForm({ ...form, data: e.target.value })} className={INPUT} />
             </div>
             <div className="flex gap-3 pt-1">
-              <button type="button" onClick={() => { setShowModal(false); setEditId(null); }} className="flex-1 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-600 hover:bg-slate-50">Cancelar</button>
-              <button type="submit" className="flex-1 py-2.5 bg-indigo-600 text-white rounded-xl text-sm font-semibold hover:bg-indigo-700 shadow-sm">Salvar</button>
+              <button type="button" onClick={() => { setShowModal(false); setEditId(null); }} className="flex-1 py-2.5 border border-zinc-800 rounded-xl text-sm text-zinc-300 hover:bg-zinc-950">Cancelar</button>
+              <button type="submit" className="flex-1 py-2.5 bg-purple-600 text-white rounded-xl text-sm font-semibold hover:bg-purple-700 shadow-sm">Salvar</button>
             </div>
           </form>
         </Modal>
@@ -407,15 +407,15 @@ export default function TabEntradas({ mes, ano }: Props) {
       {showDistModal && (
         <Modal title="Editar Distribuição" onClose={() => setShowDistModal(false)}>
           <form onSubmit={handleSaveDistribuicao} className="space-y-4">
-            <p className="text-xs text-slate-400 bg-slate-50 rounded-lg p-2">Os percentuais devem somar exatamente 100%.</p>
+            <p className="text-xs text-zinc-500 bg-zinc-950 rounded-lg p-2">Os percentuais devem somar exatamente 100%.</p>
             {DIST_LABELS.map(({ key, label }) => (
               <div key={key}>
-                <label className="flex items-center gap-2 text-sm font-medium text-slate-700 mb-1.5">
+                <label className="flex items-center gap-2 text-sm font-medium text-zinc-200 mb-1.5">
                   <input
                     type="color"
                     value={distColorForm[key]}
                     onChange={(e) => setDistColorForm({ ...distColorForm, [key]: e.target.value })}
-                    className="w-7 h-7 rounded-lg border border-slate-200 cursor-pointer p-0.5 bg-white flex-shrink-0"
+                    className="w-7 h-7 rounded-lg border border-zinc-800 cursor-pointer p-0.5 bg-zinc-900 flex-shrink-0"
                   />
                   {label} (%)
                 </label>
@@ -425,13 +425,13 @@ export default function TabEntradas({ mes, ano }: Props) {
                   className={INPUT} />
               </div>
             ))}
-            <div className={`flex items-center justify-between text-sm p-2 rounded-lg ${distSoma === 100 ? 'bg-emerald-50 text-emerald-600' : 'bg-red-50 text-red-500'}`}>
+            <div className={`flex items-center justify-between text-sm p-2 rounded-lg ${distSoma === 100 ? 'bg-emerald-500/10 text-emerald-400' : 'bg-red-500/10 text-red-500'}`}>
               <span className="font-medium">Soma:</span>
               <span className="font-bold">{distSoma}%</span>
             </div>
             <div className="flex gap-3 pt-1">
-              <button type="button" onClick={() => setShowDistModal(false)} className="flex-1 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-600 hover:bg-slate-50">Cancelar</button>
-              <button type="submit" className="flex-1 py-2.5 bg-indigo-600 text-white rounded-xl text-sm font-semibold hover:bg-indigo-700 shadow-sm">Salvar</button>
+              <button type="button" onClick={() => setShowDistModal(false)} className="flex-1 py-2.5 border border-zinc-800 rounded-xl text-sm text-zinc-300 hover:bg-zinc-950">Cancelar</button>
+              <button type="submit" className="flex-1 py-2.5 bg-purple-600 text-white rounded-xl text-sm font-semibold hover:bg-purple-700 shadow-sm">Salvar</button>
             </div>
           </form>
         </Modal>
