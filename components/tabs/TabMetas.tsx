@@ -118,11 +118,11 @@ export default function TabMetas({ ano }: Props) {
         ) : (
           <div className="divide-y divide-slate-50 dark:divide-zinc-800">
             {metasOrdenadas.map((m) => (
-              <div key={m.id} className={`group flex items-center gap-3 px-4 py-3.5 transition-all ${m.concluida ? 'bg-emerald-50/70' : 'hover:bg-slate-50/80 dark:hover:bg-zinc-800/80'}`}>
+              <div key={m.id} className={`group flex items-center gap-3 px-4 py-3.5 transition-all ${m.concluida ? 'border-l-2 border-emerald-400 dark:border-emerald-500 bg-gradient-to-r from-emerald-100 via-emerald-50 to-transparent dark:from-emerald-500/20 dark:via-emerald-500/5 dark:to-transparent' : 'hover:bg-slate-50/80 dark:hover:bg-zinc-800/80'}`}>
                 <button
                   onClick={() => handleToggle(m)}
                   className={`w-7 h-7 rounded-full border-2 flex items-center justify-center transition-all flex-shrink-0 shadow-sm ${
-                    m.concluida ? 'bg-emerald-500 border-emerald-500 text-white' : 'border-slate-200 dark:border-zinc-800 hover:border-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-500/10'
+                    m.concluida ? 'bg-gradient-to-br from-emerald-400 to-emerald-600 border-emerald-500 text-white shadow-emerald-500/30' : 'border-slate-200 dark:border-zinc-800 hover:border-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-500/10'
                   }`}
                 >
                   {m.concluida && <Check />}
