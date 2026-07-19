@@ -22,11 +22,10 @@ export function AuroraCard({
     <div
       className={cn(
         'relative w-full overflow-hidden rounded-2xl p-px transition-colors duration-300',
-        // Claro: borda cinza discreta.
-        'bg-slate-200/80',
-        // Escuro: borda aurora vibrante (roxo → rosa) + leve brilho.
-        'dark:bg-gradient-to-r dark:from-indigo-500 dark:via-purple-500 dark:to-pink-500',
-        'dark:shadow-[0_0_24px_-10px_rgba(192,132,252,0.55)]',
+        // Borda aurora (índigo → roxo → rosa) nos dois temas.
+        'bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400',
+        'dark:from-indigo-500 dark:via-purple-500 dark:to-pink-500',
+        'shadow-[0_0_22px_-14px_rgba(168,85,247,0.5)] dark:shadow-[0_0_24px_-10px_rgba(192,132,252,0.55)]',
         className,
       )}
       {...props}

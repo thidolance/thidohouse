@@ -21,6 +21,35 @@ import type { CompraParcelada, Cartao, CategoriaCompra } from '@/lib/types';
 
 const fmt = (v: number) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 
+// Converte um hex em HSL (para derivar tons da cor do cartão).
+function hexToHsl(hex: string): { h: number; s: number; l: number } {
+  let c = hex.replace('#', '');
+  if (c.length === 3) c = c.split('').map((x) => x + x).join('');
+  const r = parseInt(c.slice(0, 2), 16) / 255;
+  const g = parseInt(c.slice(2, 4), 16) / 255;
+  const b = parseInt(c.slice(4, 6), 16) / 255;
+  const max = Math.max(r, g, b), min = Math.min(r, g, b), d = max - min;
+  const l = (max + min) / 2;
+  let h = 0, s = 0;
+  if (d !== 0) {
+    s = d / (1 - Math.abs(2 * l - 1));
+    if (max === r) h = ((g - b) / d) % 6;
+    else if (max === g) h = (b - r) / d + 2;
+    else h = (r - g) / d + 4;
+    h = (h * 60 + 360) % 360;
+  }
+  return { h, s: s * 100, l: l * 100 };
+}
+
+// Gera a borda "aurora" a partir da cor do cartão: mantém a cor base e desloca
+// o matiz para os lados, terminando em branco — sempre formata bem para qualquer cor.
+function auroraFromColor(hex: string): string {
+  const { h, s, l } = hexToHsl(hex);
+  const stop = (dh: number, dl: number, a: number) =>
+    `hsla(${(h + dh + 360) % 360}, ${Math.min(100, s + 12)}%, ${Math.min(80, Math.max(45, l + dl))}%, ${a})`;
+  return `linear-gradient(120deg, ${stop(-28, 6, 0.95)} 0%, ${stop(0, 4, 0.92)} 38%, ${stop(40, 16, 0.85)} 72%, rgba(255,255,255,0.85) 100%)`;
+}
+
 function VisaLogo() {
   return (
     <svg viewBox="0 0 48 16" className="h-4 w-auto fill-current text-white opacity-90">
@@ -469,8 +498,12 @@ export default function TabCartoes({ mes, ano }: Props) {
             <button
               key={c.id}
               onClick={() => setCartaoSelecionado(isSelected ? null : c.id!)}
-              className={`group relative overflow-hidden rounded-2xl p-5 text-left transition-all duration-300 text-white shadow-lg hover:scale-105 flex flex-col justify-between ${isSelected ? 'scale-105 shadow-[0_0_30px_-4px_rgba(217,70,239,0.75)]' : ''}`}
-              style={{ backgroundColor: c.cor, minHeight: 120 }}
+              className={`group relative overflow-hidden rounded-2xl p-5 text-left transition-all duration-300 text-white shadow-lg hover:scale-105 flex flex-col justify-between ${isSelected ? 'scale-105' : ''}`}
+              style={{
+                backgroundColor: c.cor,
+                minHeight: 120,
+                boxShadow: isSelected ? `0 0 34px -4px ${c.cor}` : undefined,
+              }}
             >
               <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-black/25 pointer-events-none" />
               {/* Brilho glossy no canto superior */}
@@ -484,8 +517,7 @@ export default function TabCartoes({ mes, ano }: Props) {
                 className="absolute inset-0 rounded-2xl pointer-events-none transition-opacity duration-300"
                 style={{
                   padding: isSelected ? 2.5 : 1.5,
-                  background:
-                    'linear-gradient(120deg, rgba(129,140,248,0.95) 0%, rgba(168,85,247,0.95) 38%, rgba(236,72,153,0.9) 72%, rgba(255,255,255,0.75) 100%)',
+                  background: auroraFromColor(c.cor),
                   WebkitMask:
                     'linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)',
                   WebkitMaskComposite: 'xor',
@@ -826,9 +858,24 @@ export default function TabCartoes({ mes, ano }: Props) {
                     <label className="block text-xs text-slate-500 dark:text-zinc-400 mb-1">Limite (R$)</label>
                     <input value={formCartao.limite} onChange={(e) => setFormCartao({ ...formCartao, limite: e.target.value })} className={INPUT} placeholder="0,00" inputMode="decimal" />
                   </div>
-                  {/* Preview */}
-                  <div className="relative overflow-hidden rounded-xl h-14 flex items-center px-4" style={{ backgroundColor: formCartao.cor }}>
-                    <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-black/20" />
+                  {/* Preview — mesma borda aurora derivada da cor escolhida */}
+                  <div className="relative overflow-hidden rounded-xl h-20 flex items-center px-4" style={{ backgroundColor: formCartao.cor }}>
+                    <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-black/25" />
+                    <div
+                      className="absolute inset-0 pointer-events-none"
+                      style={{ background: 'radial-gradient(120% 80% at 88% 0%, rgba(255,255,255,0.28), transparent 55%)' }}
+                    />
+                    <div
+                      aria-hidden
+                      className="absolute inset-0 rounded-xl pointer-events-none"
+                      style={{
+                        padding: 2,
+                        background: auroraFromColor(formCartao.cor),
+                        WebkitMask: 'linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)',
+                        WebkitMaskComposite: 'xor',
+                        maskComposite: 'exclude',
+                      }}
+                    />
                     <span className="relative text-white font-bold text-sm">{formCartao.nome || 'Pré-visualização'}</span>
                     <div className="relative ml-auto">
                       {formCartao.bandeira === 'Visa' ? <VisaLogo /> : <MastercardLogo />}
