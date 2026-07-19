@@ -1,19 +1,37 @@
 @import "tailwindcss";
 
-/* Tema dark "preto + roxo" como padrão do app */
+/* Dark mode por classe (.dark no <html>) em vez de prefers-color-scheme */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* ── Tema claro (default original do app) ── */
 :root {
-  --background: #09090b;      /* zinc-950 */
-  --foreground: #f4f4f5;      /* zinc-100 */
-  --card: #18181b;            /* zinc-900 */
+  --background: #ffffff;
+  --foreground: #171717;
+  --card: #ffffff;
+  --card-foreground: #171717;
+  --primary: #4f46e5;          /* indigo-600 */
+  --primary-foreground: #ffffff;
+  --muted: #f8fafc;
+  --muted-foreground: #64748b;
+  --border: #e2e8f0;
+  --input: #e2e8f0;
+  --ring: #6366f1;
+  --radius: 0.75rem;
+}
+
+/* ── Tema escuro (preto + roxo) ── */
+.dark {
+  --background: #09090b;        /* zinc-950 */
+  --foreground: #f4f4f5;        /* zinc-100 */
+  --card: #18181b;             /* zinc-900 */
   --card-foreground: #f4f4f5;
-  --primary: #a855f7;         /* purple-500 */
+  --primary: #a855f7;           /* purple-500 */
   --primary-foreground: #ffffff;
   --muted: #18181b;
-  --muted-foreground: #a1a1aa; /* zinc-400 */
-  --border: #27272a;           /* zinc-800 */
+  --muted-foreground: #a1a1aa;  /* zinc-400 */
+  --border: #27272a;            /* zinc-800 */
   --input: #27272a;
-  --ring: #a855f7;             /* purple-500 */
-  --radius: 0.75rem;
+  --ring: #a855f7;              /* purple-500 */
 }
 
 @theme inline {
@@ -35,23 +53,26 @@
   --font-mono: var(--font-geist-mono);
 }
 
-html {
-  color-scheme: dark;
-}
+html { color-scheme: light; }
+.dark { color-scheme: dark; }
 
 body {
-  /* Fundo preto com um leve brilho aurora roxo no topo */
   background-color: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* Brilho aurora sutil no fundo, apenas no tema escuro */
+.dark body {
   background-image:
     radial-gradient(60rem 40rem at 50% -20%, rgba(168, 85, 247, 0.10), transparent 70%);
   background-attachment: fixed;
-  color: var(--foreground);
-  font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
 }
 
-/* Inputs nativos (date/color) herdam esquema escuro */
-input,
-select,
-textarea {
+/* Inputs nativos (date/color) seguem o tema */
+.dark input,
+.dark select,
+.dark textarea {
   color-scheme: dark;
 }

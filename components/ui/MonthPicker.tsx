@@ -28,16 +28,16 @@ export default function MonthPicker({ mes, ano, onChange }: Props) {
     <div className="flex items-center gap-3">
       <button
         onClick={prev}
-        className="p-1.5 rounded-lg hover:bg-zinc-800 transition-colors text-zinc-400"
+        className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-zinc-800 transition-colors text-slate-500 dark:text-zinc-400"
       >
         <ChevronLeft />
       </button>
-      <span className="text-base font-semibold text-zinc-200 min-w-[150px] text-center">
+      <span className="text-base font-semibold text-slate-700 dark:text-zinc-200 min-w-[150px] text-center">
         {MESES[mes - 1]} {ano}
       </span>
       <button
         onClick={next}
-        className="p-1.5 rounded-lg hover:bg-zinc-800 transition-colors text-zinc-400"
+        className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-zinc-800 transition-colors text-slate-500 dark:text-zinc-400"
       >
         <ChevronRight />
       </button>

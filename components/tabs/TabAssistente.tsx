@@ -86,12 +86,12 @@ export default function TabAssistente({ mes, ano }: Props) {
     <div className="space-y-5">
       {/* ── Header ── */}
       <div className="flex items-center gap-3">
-        <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-purple-500/10 text-purple-400 flex-shrink-0">
+        <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-indigo-50 dark:bg-purple-500/10 text-indigo-500 dark:text-purple-400 flex-shrink-0">
           <MessageCircle />
         </div>
         <div>
-          <h2 className="text-lg font-bold text-zinc-100">Assistente Financeiro</h2>
-          <p className="text-xs text-zinc-500">Pergunte sobre seus gastos de {MESES[mes - 1]}/{ano}</p>
+          <h2 className="text-lg font-bold text-slate-800 dark:text-zinc-100">Assistente Financeiro</h2>
+          <p className="text-xs text-slate-400 dark:text-zinc-500">Pergunte sobre seus gastos de {MESES[mes - 1]}/{ano}</p>
         </div>
       </div>
 
@@ -99,8 +99,8 @@ export default function TabAssistente({ mes, ano }: Props) {
         {/* ── Mensagens ── */}
         <div className="flex-1 overflow-y-auto space-y-3 pr-1">
           {mensagens.length === 0 && (
-            <div className="h-full flex flex-col items-center justify-center text-center gap-3 text-zinc-500">
-              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-purple-500/10 text-purple-400">
+            <div className="h-full flex flex-col items-center justify-center text-center gap-3 text-slate-400 dark:text-zinc-500">
+              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-indigo-50 dark:bg-purple-500/10 text-indigo-500 dark:text-purple-400">
                 <MessageCircle />
               </div>
               <p className="text-sm">Pergunte algo sobre suas finanças deste mês.</p>
@@ -109,7 +109,7 @@ export default function TabAssistente({ mes, ano }: Props) {
                   <button
                     key={s}
                     onClick={() => enviarMensagem(s)}
-                    className="text-xs px-3 py-1.5 rounded-full border border-zinc-800 text-zinc-400 hover:bg-zinc-950 transition-colors"
+                    className="text-xs px-3 py-1.5 rounded-full border border-slate-200 dark:border-zinc-800 text-slate-500 dark:text-zinc-400 hover:bg-slate-50 dark:hover:bg-zinc-800 transition-colors"
                   >
                     {s}
                   </button>
@@ -122,8 +122,8 @@ export default function TabAssistente({ mes, ano }: Props) {
             <div key={i} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
               <div className={`max-w-[85%] rounded-2xl px-4 py-2.5 text-sm whitespace-pre-wrap ${
                 m.role === 'user'
-                  ? 'bg-purple-600 text-white rounded-br-sm'
-                  : 'bg-zinc-800 text-zinc-200 rounded-bl-sm'
+                  ? 'bg-indigo-600 dark:bg-purple-600 text-white rounded-br-sm'
+                  : 'bg-slate-100 dark:bg-zinc-800 text-slate-700 dark:text-zinc-200 rounded-bl-sm'
               }`}>
                 {m.content || (enviando && i === mensagens.length - 1 ? '...' : '')}
               </div>
@@ -133,18 +133,18 @@ export default function TabAssistente({ mes, ano }: Props) {
         </div>
 
         {/* ── Input ── */}
-        <form onSubmit={handleSubmit} className="flex items-center gap-2 pt-3 mt-3 border-t border-zinc-800">
+        <form onSubmit={handleSubmit} className="flex items-center gap-2 pt-3 mt-3 border-t border-slate-100 dark:border-zinc-800">
           <input
             value={input}
             onChange={(e) => setInput(e.target.value)}
             placeholder="Pergunte sobre seus gastos..."
             disabled={enviando}
-            className="flex-1 border border-zinc-800 rounded-xl px-3 py-2 text-sm text-zinc-50 bg-zinc-900 focus:outline-none focus:ring-2 focus:ring-purple-300 disabled:opacity-50"
+            className="flex-1 border border-slate-200 dark:border-zinc-800 rounded-xl px-3 py-2 text-sm text-slate-900 dark:text-zinc-50 bg-white dark:bg-zinc-900 focus:outline-none focus:ring-2 focus:ring-indigo-300 disabled:opacity-50"
           />
           <button
             type="submit"
             disabled={enviando || !input.trim()}
-            className="inline-flex items-center justify-center px-4 py-2 bg-purple-600 text-white rounded-xl text-sm font-medium hover:bg-purple-700 transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+            className="inline-flex items-center justify-center px-4 py-2 bg-indigo-600 dark:bg-purple-600 text-white rounded-xl text-sm font-medium hover:bg-indigo-700 dark:hover:bg-purple-700 transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Enviar
           </button>

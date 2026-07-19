@@ -34,7 +34,7 @@ function gastoCartoesDoMes(compras: CompraParcelada[], faturas: FaturaCartao[], 
 
 const VChart = dynamic(
   () => import('@visactor/react-vchart').then((m) => m.VChart),
-  { ssr: false, loading: () => <div className="animate-pulse bg-zinc-800 rounded-xl h-full w-full" /> },
+  { ssr: false, loading: () => <div className="animate-pulse bg-slate-100 dark:bg-zinc-800 rounded-xl h-full w-full" /> },
 );
 
 interface MesDashboard {
@@ -79,7 +79,7 @@ const AXIS_BOTTOM = {
 
 const AXIS_LEFT = (formatMethod: (v: number) => string) => ({
   orient: 'left',
-  grid: { style: { stroke: '#27272a', lineDash: [3, 3] } },
+  grid: { style: { stroke: 'rgba(113,113,122,0.2)', lineDash: [3, 3] } },
   domainLine: { visible: false },
   tick: { visible: false },
   label: { style: { fontSize: 11, fill: '#94a3b8' }, formatMethod },
@@ -306,26 +306,26 @@ export default function TabVisaoGeral({ mes, ano, onNavigate }: Props) {
   const dataKey = dados.map((d) => d.gastos + d.ganhos).join('-');
 
   if (loading) {
-    return <div className="flex items-center justify-center py-24 text-zinc-500 text-sm">Carregando dados...</div>;
+    return <div className="flex items-center justify-center py-24 text-slate-400 dark:text-zinc-500 text-sm">Carregando dados...</div>;
   }
 
   return (
     <div className="space-y-5">
       {/* ── Cards do mês atual ── */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        <button type="button" onClick={() => onNavigate('entradas')} className="bg-gradient-to-br from-purple-600 to-violet-700 rounded-2xl px-4 py-3 text-white shadow-lg shadow-purple-500/20 text-left cursor-pointer hover:brightness-110 transition-all">
-          <p className="text-purple-100 text-xs">Ganhos do mês</p>
+        <button type="button" onClick={() => onNavigate('entradas')} className="bg-gradient-to-br from-indigo-600 dark:from-purple-600 to-violet-700 rounded-2xl px-4 py-3 text-white shadow-lg shadow-indigo-200 dark:shadow-purple-500/20 text-left cursor-pointer hover:brightness-110 transition-all">
+          <p className="text-indigo-100 dark:text-purple-100 text-xs">Ganhos do mês</p>
           <p className="text-xl font-bold mt-0.5 tabular-nums">{fmt(atual?.ganhos ?? 0)}</p>
         </button>
-        <button type="button" onClick={() => onNavigate('contas')} className="bg-gradient-to-br from-rose-500 to-rose-600 rounded-2xl px-4 py-3 text-white shadow-lg shadow-rose-500/20 text-left cursor-pointer hover:brightness-110 transition-all">
+        <button type="button" onClick={() => onNavigate('contas')} className="bg-gradient-to-br from-rose-500 to-rose-600 rounded-2xl px-4 py-3 text-white shadow-lg shadow-rose-200 dark:shadow-rose-500/20 text-left cursor-pointer hover:brightness-110 transition-all">
           <p className="text-rose-100 text-xs">Gastos do mês</p>
           <p className="text-xl font-bold mt-0.5 tabular-nums">{fmt(atual?.gastos ?? 0)}</p>
         </button>
-        <div className={`rounded-2xl px-4 py-3 text-white shadow-lg bg-gradient-to-br ${(atual?.saldo ?? 0) >= 0 ? 'from-emerald-500 to-emerald-600 shadow-emerald-500/20' : 'from-amber-500 to-amber-600 shadow-amber-500/20'}`}>
+        <div className={`rounded-2xl px-4 py-3 text-white shadow-lg bg-gradient-to-br ${(atual?.saldo ?? 0) >= 0 ? 'from-emerald-500 to-emerald-600 shadow-emerald-200 dark:shadow-emerald-500/20' : 'from-amber-500 to-amber-600 shadow-amber-200 dark:shadow-amber-500/20'}`}>
           <p className="text-white/90 text-xs">Saldo do mês</p>
           <p className="text-xl font-bold mt-0.5 tabular-nums">{fmt(atual?.saldo ?? 0)}</p>
         </div>
-        <button type="button" onClick={() => onNavigate('entradas')} className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl px-4 py-3 text-white shadow-lg shadow-blue-500/20 text-left cursor-pointer hover:brightness-110 transition-all">
+        <button type="button" onClick={() => onNavigate('entradas')} className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl px-4 py-3 text-white shadow-lg shadow-blue-200 dark:shadow-blue-500/20 text-left cursor-pointer hover:brightness-110 transition-all">
           <p className="text-blue-100 text-xs">Guardado no mês</p>
           <p className="text-xl font-bold mt-0.5 tabular-nums">{fmt(totalGuardado)}</p>
           <p className="text-blue-100 text-[11px] mt-0.5">{pctGuardado.toFixed(0)}% dos ganhos</p>
@@ -335,8 +335,8 @@ export default function TabVisaoGeral({ mes, ano, onNavigate }: Props) {
       {/* ── Evolução Ganhos vs Gastos ── */}
       <Card>
         <div className="mb-3">
-          <p className="font-semibold text-zinc-200 text-sm">Evolução: Ganhos vs Gastos</p>
-          <p className="text-xs text-zinc-500">Últimos 12 meses · mês atual destacado</p>
+          <p className="font-semibold text-slate-700 dark:text-zinc-200 text-sm">Evolução: Ganhos vs Gastos</p>
+          <p className="text-xs text-slate-400 dark:text-zinc-500">Últimos 12 meses · mês atual destacado</p>
         </div>
         <div style={{ height: 240 }}>
           <VChart key={`evo-${dataKey}`} spec={evoSpec as any} />
@@ -346,8 +346,8 @@ export default function TabVisaoGeral({ mes, ano, onNavigate }: Props) {
       {/* ── Gastos por Categoria (mês atual) ── */}
       <Card>
         <div className="mb-3">
-          <p className="font-semibold text-zinc-200 text-sm">Gastos por Categoria</p>
-          <p className="text-xs text-zinc-500">Contas + Cartões — mês atual</p>
+          <p className="font-semibold text-slate-700 dark:text-zinc-200 text-sm">Gastos por Categoria</p>
+          <p className="text-xs text-slate-400 dark:text-zinc-500">Contas + Cartões — mês atual</p>
         </div>
         {gastosPorCat.length > 0 ? (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-center">
@@ -362,21 +362,21 @@ export default function TabVisaoGeral({ mes, ano, onNavigate }: Props) {
                     <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: c.fill }} />
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between mb-0.5">
-                        <span className="text-xs font-medium text-zinc-300 truncate">{c.nome}</span>
-                        <span className="text-xs text-zinc-500 ml-2 flex-shrink-0">{pct.toFixed(0)}%</span>
+                        <span className="text-xs font-medium text-slate-600 dark:text-zinc-300 truncate">{c.nome}</span>
+                        <span className="text-xs text-slate-400 dark:text-zinc-500 ml-2 flex-shrink-0">{pct.toFixed(0)}%</span>
                       </div>
-                      <div className="w-full bg-zinc-800 rounded-full h-1.5">
+                      <div className="w-full bg-slate-100 dark:bg-zinc-800 rounded-full h-1.5">
                         <div className="h-1.5 rounded-full transition-all" style={{ width: `${pct}%`, backgroundColor: c.fill }} />
                       </div>
                     </div>
-                    <span className="text-xs font-semibold text-zinc-200 flex-shrink-0 tabular-nums">{fmt(c.total)}</span>
+                    <span className="text-xs font-semibold text-slate-700 dark:text-zinc-200 flex-shrink-0 tabular-nums">{fmt(c.total)}</span>
                   </div>
                 );
               })}
             </div>
           </div>
         ) : (
-          <div className="h-[200px] flex flex-col items-center justify-center text-zinc-500 gap-2">
+          <div className="h-[200px] flex flex-col items-center justify-center text-slate-400 dark:text-zinc-500 gap-2">
             <span className="text-3xl">📊</span>
             <p className="text-sm">Sem gastos neste mês</p>
           </div>
@@ -386,8 +386,8 @@ export default function TabVisaoGeral({ mes, ano, onNavigate }: Props) {
       {/* ── Gastos por Tipo de Conta (mês atual) ── */}
       <Card>
         <div className="mb-3">
-          <p className="font-semibold text-zinc-200 text-sm">Gastos por Tipo de Conta</p>
-          <p className="text-xs text-zinc-500">Contas Fixas, Conta Rotativa, Cartões e Empresa — mês atual</p>
+          <p className="font-semibold text-slate-700 dark:text-zinc-200 text-sm">Gastos por Tipo de Conta</p>
+          <p className="text-xs text-slate-400 dark:text-zinc-500">Contas Fixas, Conta Rotativa, Cartões e Empresa — mês atual</p>
         </div>
         {gastosPorTipo.length > 0 ? (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-center">
@@ -402,21 +402,21 @@ export default function TabVisaoGeral({ mes, ano, onNavigate }: Props) {
                     <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: c.fill }} />
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between mb-0.5">
-                        <span className="text-xs font-medium text-zinc-300 truncate">{c.nome}</span>
-                        <span className="text-xs text-zinc-500 ml-2 flex-shrink-0">{pct.toFixed(0)}%</span>
+                        <span className="text-xs font-medium text-slate-600 dark:text-zinc-300 truncate">{c.nome}</span>
+                        <span className="text-xs text-slate-400 dark:text-zinc-500 ml-2 flex-shrink-0">{pct.toFixed(0)}%</span>
                       </div>
-                      <div className="w-full bg-zinc-800 rounded-full h-1.5">
+                      <div className="w-full bg-slate-100 dark:bg-zinc-800 rounded-full h-1.5">
                         <div className="h-1.5 rounded-full transition-all" style={{ width: `${pct}%`, backgroundColor: c.fill }} />
                       </div>
                     </div>
-                    <span className="text-xs font-semibold text-zinc-200 flex-shrink-0 tabular-nums">{fmt(c.total)}</span>
+                    <span className="text-xs font-semibold text-slate-700 dark:text-zinc-200 flex-shrink-0 tabular-nums">{fmt(c.total)}</span>
                   </div>
                 );
               })}
             </div>
           </div>
         ) : (
-          <div className="h-[200px] flex flex-col items-center justify-center text-zinc-500 gap-2">
+          <div className="h-[200px] flex flex-col items-center justify-center text-slate-400 dark:text-zinc-500 gap-2">
             <span className="text-3xl">📊</span>
             <p className="text-sm">Sem gastos neste mês</p>
           </div>
@@ -427,8 +427,8 @@ export default function TabVisaoGeral({ mes, ano, onNavigate }: Props) {
       <Card>
         <div className="mb-3 flex items-center justify-between">
           <div>
-            <p className="font-semibold text-zinc-200 text-sm">Investimentos por categoria</p>
-            <p className="text-xs text-zinc-500">Com base na distribuição configurada · Últimos 12 meses</p>
+            <p className="font-semibold text-slate-700 dark:text-zinc-200 text-sm">Investimentos por categoria</p>
+            <p className="text-xs text-slate-400 dark:text-zinc-500">Com base na distribuição configurada · Últimos 12 meses</p>
           </div>
           <div className="bg-violet-50 rounded-xl px-3 py-2 text-right flex-shrink-0">
             <p className="text-[11px] text-violet-400">Total guardado</p>
@@ -437,7 +437,7 @@ export default function TabVisaoGeral({ mes, ano, onNavigate }: Props) {
         </div>
 
         {dados.every((d) => d.ferias === 0 && d.investimento === 0 && d.planosFuturos === 0) ? (
-          <div className="h-[200px] flex flex-col items-center justify-center text-zinc-500 text-sm gap-2">
+          <div className="h-[200px] flex flex-col items-center justify-center text-slate-400 dark:text-zinc-500 text-sm gap-2">
             <span className="text-3xl">💰</span>
             <p>Configure a distribuição na aba Entradas para ver esta análise.</p>
           </div>
@@ -447,18 +447,18 @@ export default function TabVisaoGeral({ mes, ano, onNavigate }: Props) {
               <VChart key={`guard-${dataKey}`} spec={guardadoSpec as any} />
             </div>
             {totalGuardado > 0 && (
-              <div className="mt-4 grid grid-cols-3 gap-3 pt-4 border-t border-zinc-800">
+              <div className="mt-4 grid grid-cols-3 gap-3 pt-4 border-t border-slate-50 dark:border-zinc-800">
                 {[
                   { label: 'Férias', valor: atual?.ferias ?? 0, color: '#22d3ee', bg: 'bg-cyan-50' },
                   { label: 'Investimento', valor: atual?.investimento ?? 0, color: '#a78bfa', bg: 'bg-violet-50' },
-                  { label: 'Planos Futuros', valor: atual?.planosFuturos ?? 0, color: '#34d399', bg: 'bg-emerald-500/10' },
+                  { label: 'Planos Futuros', valor: atual?.planosFuturos ?? 0, color: '#34d399', bg: 'bg-emerald-50 dark:bg-emerald-500/10' },
                 ].map((item) => (
                   <div key={item.label} className={`${item.bg} rounded-xl p-3`}>
                     <div className="flex items-center gap-1.5 mb-1">
                       <span className="w-2 h-2 rounded-full" style={{ backgroundColor: item.color }} />
-                      <span className="text-xs text-zinc-400">{item.label}</span>
+                      <span className="text-xs text-slate-500 dark:text-zinc-400">{item.label}</span>
                     </div>
-                    <p className="font-bold text-zinc-200 text-sm tabular-nums">{fmt(item.valor)}</p>
+                    <p className="font-bold text-slate-700 dark:text-zinc-200 text-sm tabular-nums">{fmt(item.valor)}</p>
                   </div>
                 ))}
               </div>
@@ -474,9 +474,9 @@ export default function TabVisaoGeral({ mes, ano, onNavigate }: Props) {
                   <div key={item.label} className="rounded-xl px-3 py-1.5 text-center">
                     <div className="flex items-center justify-center gap-1.5">
                       <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: item.color }} />
-                      <span className="text-[10px] text-zinc-500">Acumulado 12m</span>
+                      <span className="text-[10px] text-slate-400 dark:text-zinc-500">Acumulado 12m</span>
                     </div>
-                    <p className="font-semibold text-zinc-400 text-xs tabular-nums mt-0.5">{fmt(item.valor)}</p>
+                    <p className="font-semibold text-slate-500 dark:text-zinc-400 text-xs tabular-nums mt-0.5">{fmt(item.valor)}</p>
                   </div>
                 ))}
               </div>

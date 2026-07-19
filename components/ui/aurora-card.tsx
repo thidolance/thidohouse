@@ -1,6 +1,3 @@
-'use client';
-
-import { useRef } from 'react';
 import { cn } from '@/lib/utils';
 
 interface AuroraCardProps extends React.HTMLAttributes<HTMLDivElement> {
@@ -11,51 +8,34 @@ interface AuroraCardProps extends React.HTMLAttributes<HTMLDivElement> {
 }
 
 /**
- * Card escuro moderno com efeito "aurora" roxo que segue o cursor no hover.
- * Filosofia shadcn/ui: estilizável via className, conteúdo via children.
+ * Card com borda "aurora" em gradiente (roxo/rosa) — sutil no tema escuro.
+ * No tema claro cai para o card branco padrão do app.
+ * Sem efeito de mouse: a borda é a moldura moderna e discreta.
  */
 export function AuroraCard({
-  children,
   className,
   contentClassName,
+  children,
   ...props
 }: AuroraCardProps) {
-  const ref = useRef<HTMLDivElement>(null);
-
-  // Atualiza a posição do brilho via CSS vars (evita re-render do React).
-  function handleMouseMove(e: React.MouseEvent<HTMLDivElement>) {
-    const el = ref.current;
-    if (!el) return;
-    const rect = el.getBoundingClientRect();
-    el.style.setProperty('--mx', `${e.clientX - rect.left}px`);
-    el.style.setProperty('--my', `${e.clientY - rect.top}px`);
-  }
-
   return (
     <div
-      ref={ref}
-      onMouseMove={handleMouseMove}
       className={cn(
-        'group relative overflow-hidden rounded-2xl border border-white/10 bg-zinc-900/70 shadow-lg shadow-black/20 backdrop-blur-sm transition-colors duration-300 hover:border-purple-500/40',
+        'relative w-full overflow-hidden rounded-2xl p-px transition-colors duration-300',
+        // Moldura: no claro é uma borda cinza discreta; no escuro, gradiente aurora sutil.
+        'bg-slate-200/80 dark:bg-transparent',
+        'dark:bg-gradient-to-br dark:from-indigo-500/25 dark:via-purple-500/25 dark:to-pink-500/25',
         className,
       )}
       {...props}
     >
-      {/* Aurora radial que segue o cursor */}
       <div
-        aria-hidden
-        className="pointer-events-none absolute -inset-px opacity-0 transition-opacity duration-300 group-hover:opacity-100"
-        style={{
-          background:
-            'radial-gradient(360px circle at var(--mx, 50%) var(--my, 0%), rgba(168,85,247,0.30), rgba(236,72,153,0.12) 42%, transparent 72%)',
-        }}
-      />
-      {/* Fio de luz roxo no topo, revelado no hover */}
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-purple-500/60 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100"
-      />
-      <div className={cn('relative z-10', contentClassName ?? 'p-6')}>
+        className={cn(
+          'relative z-10 rounded-[15px] bg-white shadow-sm',
+          'dark:bg-zinc-900/80 dark:shadow-none dark:backdrop-blur-sm',
+          contentClassName ?? 'p-6',
+        )}
+      >
         {children}
       </div>
     </div>
