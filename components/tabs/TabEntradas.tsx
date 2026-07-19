@@ -9,6 +9,7 @@ import { useRefetchOnFocus } from '@/lib/useRefetchOnFocus';
 import {
   getEntradas, addEntrada, updateEntrada, deleteEntrada,
   getEntradasHistorico, getDistribuicao, saveDistribuicao,
+  getDistribuicoesHistorico,
 } from '@/lib/firestore';
 import type { Entrada, Distribuicao } from '@/lib/types';
 
@@ -72,6 +73,10 @@ interface Props { mes: number; ano: number; }
 export default function TabEntradas({ mes, ano }: Props) {
   const [entradas, setEntradas]   = useState<Entrada[]>([]);
   const [historico, setHistorico] = useState<{ mes: string; total: number; fill: string }[]>([]);
+  // Balanço acumulado do que foi guardado (investimento/férias/planos), all-time.
+  const [balanco, setBalanco] = useState<{
+    invest: number; ferias: number; planos: number; total: number; contribMes: number; deltaPct: number;
+  }>({ invest: 0, ferias: 0, planos: 0, total: 0, contribMes: 0, deltaPct: 0 });
   const [distribuicao, setDistribuicao] = useState<Distribuicao>({
     mes, ano, contas: 50, ferias: 10, investimento: 20, planosFuturos: 20,
   });
@@ -93,12 +98,39 @@ export default function TabEntradas({ mes, ano }: Props) {
 
   const load = useCallback(async () => {
     setLoading(true);
-    const [list, hist, dist] = await Promise.all([
+    const [list, hist, dist, distHist] = await Promise.all([
       getEntradas(mes, ano),
       getEntradasHistorico(),
       getDistribuicao(mes, ano),
+      getDistribuicoesHistorico(),
     ]);
     setEntradas(list);
+
+    // ── Balanço acumulado do que foi guardado (all-time) ──
+    const distByKey = new Map(distHist.map((d) => [`${d.ano}-${d.mes}`, d]));
+    const ganhosByKey: Record<string, number> = {};
+    hist.forEach((e) => {
+      const k = `${e.ano}-${e.mes}`;
+      ganhosByKey[k] = (ganhosByKey[k] ?? 0) + e.valor;
+    });
+    let accInvest = 0, accFerias = 0, accPlanos = 0;
+    Object.entries(ganhosByKey).forEach(([k, g]) => {
+      const d = distByKey.get(k);
+      if (!d) return;
+      accInvest += g * (d.investimento / 100);
+      accFerias += g * (d.ferias / 100);
+      accPlanos += g * (d.planosFuturos / 100);
+    });
+    const totalAcc = accInvest + accFerias + accPlanos;
+    const kAtual = `${ano}-${mes}`;
+    const gAtual = ganhosByKey[kAtual] ?? 0;
+    const dAtual = distByKey.get(kAtual);
+    const contribMes = dAtual
+      ? gAtual * ((dAtual.investimento + dAtual.ferias + dAtual.planosFuturos) / 100)
+      : 0;
+    const priorTotal = totalAcc - contribMes;
+    const deltaPct = priorTotal > 0 ? (contribMes / priorTotal) * 100 : 0;
+    setBalanco({ invest: accInvest, ferias: accFerias, planos: accPlanos, total: totalAcc, contribMes, deltaPct });
 
     const byMonth: Record<string, number> = {};
     hist.forEach((e) => {
@@ -277,6 +309,54 @@ export default function TabEntradas({ mes, ano }: Props) {
         <p className="text-2xl font-bold mt-0.5 tabular-nums">{fmt(totalMes)}</p>
         <p className="text-indigo-100 dark:text-purple-100 text-[11px] mt-1">{entradas.length} entrada(s)</p>
       </div>
+
+      {/* ── Balanço de investimentos / reservas (acumulado) ── */}
+      <Card>
+        <div className="flex items-start justify-between mb-1">
+          <div>
+            <p className="text-sm font-semibold text-slate-500 dark:text-zinc-400">Investimentos &amp; Reservas</p>
+            <p className="text-[11px] text-slate-400 dark:text-zinc-500">Acumulado guardado (todos os meses)</p>
+          </div>
+          <div className="h-9 w-9 rounded-xl bg-indigo-100 dark:bg-purple-500/20 flex items-center justify-center text-indigo-600 dark:text-purple-400 flex-shrink-0">
+            <TrendingUp />
+          </div>
+        </div>
+
+        <div className="flex flex-wrap items-end gap-x-3 gap-y-1 mb-4">
+          <span className="text-3xl font-bold tracking-tight text-slate-800 dark:text-white tabular-nums">{fmt(balanco.total)}</span>
+          {balanco.contribMes > 0 && (
+            <span className="mb-1 text-sm font-semibold text-emerald-600 dark:text-emerald-400">
+              +{fmt(balanco.contribMes)}
+              {balanco.deltaPct > 0 && <span className="ml-1 text-emerald-500/80">(+{balanco.deltaPct.toFixed(1)}%)</span>}
+              <span className="ml-1 font-normal text-slate-400 dark:text-zinc-500">este mês</span>
+            </span>
+          )}
+        </div>
+
+        <div className="border-b border-slate-100 dark:border-zinc-800 mb-4" />
+
+        {balanco.total > 0 ? (
+          <div className="flex items-stretch gap-1.5 w-full">
+            {([
+              { key: 'investimento' as const, label: 'Investimento', value: balanco.invest },
+              { key: 'ferias' as const,        label: 'Férias',       value: balanco.ferias },
+              { key: 'planosFuturos' as const, label: 'Planos',       value: balanco.planos },
+            ]).filter((b) => b.value > 0).map((b) => (
+              <div key={b.key} className="space-y-2 min-w-0" style={{ width: `${(b.value / balanco.total) * 100}%` }}>
+                <div className="h-2.5 w-full rounded-sm transition-all" style={{ backgroundColor: distColors[b.key] }} />
+                <div className="flex flex-col">
+                  <span className="text-[11px] text-slate-400 dark:text-zinc-400 font-medium truncate">{b.label} · {((b.value / balanco.total) * 100).toFixed(0)}%</span>
+                  <span className="text-sm font-semibold text-slate-700 dark:text-white tabular-nums">{fmt(b.value)}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="text-sm text-slate-400 dark:text-zinc-400 py-2 text-center">
+            Configure a distribuição e adicione entradas para acompanhar o crescimento.
+          </p>
+        )}
+      </Card>
 
       {/* ── Gráficos ── */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
