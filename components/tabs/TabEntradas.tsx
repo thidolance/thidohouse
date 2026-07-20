@@ -447,21 +447,35 @@ export default function TabEntradas({ mes, ano }: Props) {
         <div className="border-b border-slate-100 dark:border-zinc-800 mb-4" />
 
         {balanco.total > 0 ? (
-          <div className="flex items-stretch gap-1.5 w-full">
-            {([
+          (() => {
+            const itens = ([
               { key: 'investimento' as const, label: 'Investimento', value: balanco.invest },
               { key: 'ferias' as const,        label: 'Férias',       value: balanco.ferias },
               { key: 'planosFuturos' as const, label: 'Planos',       value: balanco.planos },
-            ]).filter((b) => b.value > 0).map((b) => (
-              <div key={b.key} className="space-y-2 min-w-0" style={{ width: `${(b.value / balanco.total) * 100}%` }}>
-                <div className="h-2.5 w-full rounded-sm transition-all" style={{ backgroundColor: distColors[b.key] }} />
-                <div className="flex flex-col">
-                  <span className="text-[11px] text-slate-400 dark:text-zinc-400 font-medium truncate">{b.label} · {((b.value / balanco.total) * 100).toFixed(0)}%</span>
-                  <span className="text-sm font-semibold text-slate-700 dark:text-white tabular-nums">{fmt(b.value)}</span>
+            ]).filter((b) => b.value > 0);
+            return (
+              <div className="space-y-3">
+                {/* Barra segmentada proporcional */}
+                <div className="flex items-stretch gap-1 w-full h-2.5">
+                  {itens.map((b) => (
+                    <div key={b.key} className="rounded-sm transition-all" style={{ width: `${(b.value / balanco.total) * 100}%`, backgroundColor: distColors[b.key] }} />
+                  ))}
+                </div>
+                {/* Legenda com valores — largura fixa, sem sobreposição */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-x-4 gap-y-2">
+                  {itens.map((b) => (
+                    <div key={b.key} className="flex flex-col min-w-0">
+                      <span className="flex items-center gap-1.5 text-[11px] text-slate-400 dark:text-zinc-400 font-medium">
+                        <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: distColors[b.key] }} />
+                        <span className="truncate">{b.label} · {((b.value / balanco.total) * 100).toFixed(0)}%</span>
+                      </span>
+                      <span className="text-sm font-semibold text-slate-700 dark:text-white tabular-nums">{fmt(b.value)}</span>
+                    </div>
+                  ))}
                 </div>
               </div>
-            ))}
-          </div>
+            );
+          })()
         ) : (
           <p className="text-sm text-slate-400 dark:text-zinc-400 py-2 text-center">
             Configure a distribuição e adicione entradas para acompanhar o crescimento.
