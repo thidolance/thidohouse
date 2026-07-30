@@ -8,6 +8,7 @@ import { Plus, Trash, Pencil } from '../ui/Icons';
 import { useRefetchOnFocus } from '@/lib/useRefetchOnFocus';
 import {
   getCustosEmpresa, addCustoEmpresa, updateCustoEmpresa, updateCustoReparcelado, updateCustoEmpresaFixa,
+  updateCustoEmpresaAndFuture, getCustosFuturosDoGrupo,
   toggleCustoEmpresaFixa, deleteCustoEmpresa, deleteCustoEmpresaAndFuture,
   getCategoriasEmpresa, addCategoriaEmpresa, deleteCategoriaEmpresa,
 } from '@/lib/firestore';
@@ -61,6 +62,7 @@ export default function TabEmpresa({ mes, ano }: Props) {
   const [editCustoId, setEditCustoId] = useState<string | null>(null);
   const [formCusto, setFormCusto]     = useState<FormCusto>(CUSTO_EMPTY);
   const [deleteCustoDialog, setDeleteCustoDialog] = useState<CustoEmpresa | null>(null);
+  const [editCustoDialog, setEditCustoDialog] = useState<{ id: string; data: Omit<CustoEmpresa, 'id'>; original: CustoEmpresa } | null>(null);
 
   const [formCat, setFormCat]         = useState<FormCat>(CAT_EMPTY);
   const [showCatForm, setShowCatForm] = useState(false);
@@ -108,17 +110,61 @@ export default function TabEmpresa({ mes, ano }: Props) {
       const original = custos.find((c) => c.id === editCustoId);
       const isFixa  = !!(original?.fixa || data.fixa);
       const isSerie = !isFixa && ((original?.totalParcelas ?? 1) > 1 || data.totalParcelas > 1);
-      // Fixo: propaga para os meses futuros; série: reconstrói; caso 1x: atualiza só o doc
-      if (original && isFixa)       await updateCustoEmpresaFixa(editCustoId, data, original);
-      else if (original && isSerie) await updateCustoReparcelado(editCustoId, data, original);
-      else                          await updateCustoEmpresa(editCustoId, data);
+
+      if (original && isSerie) {
+        const futuras = await getCustosFuturosDoGrupo(original);
+        const countChanged     = original.totalParcelas !== data.totalParcelas;
+        const futurosEsperados = Math.max(0, data.totalParcelas - data.parcelaAtual);
+        // Reparcela se o total mudou ou se a série está inconsistente (nº de docs futuros
+        // diferente do esperado) — isso também conserta séries já corrompidas.
+        if (countChanged || futuras.length !== futurosEsperados) {
+          await updateCustoReparcelado(editCustoId, data, original);
+          fecharModalCusto();
+          loadCustos();
+          return;
+        }
+        if (futuras.length > 0) {
+          // Mesma qtd de parcelas, mas há meses futuros → perguntar escopo
+          setShowCustoModal(false);
+          setEditCustoDialog({ id: editCustoId, data, original });
+          return;
+        }
+        await updateCustoEmpresa(editCustoId, data);
+      } else if (original && isFixa) {
+        const futuras = await getCustosFuturosDoGrupo(original);
+        if (futuras.length > 0) {
+          setShowCustoModal(false);
+          setEditCustoDialog({ id: editCustoId, data, original });
+          return;
+        }
+        await updateCustoEmpresaFixa(editCustoId, data, original);
+      } else {
+        await updateCustoEmpresa(editCustoId, data);
+      }
     } else {
       await addCustoEmpresa(data);
     }
+    fecharModalCusto();
+    loadCustos();
+  }
+
+  async function confirmarEditCusto(scope: 'this' | 'future') {
+    const { id, data, original } = editCustoDialog!;
+    setEditCustoDialog(null);
+    if (scope === 'future') {
+      if (original.fixa) await updateCustoEmpresaFixa(id, data, original);
+      else                await updateCustoEmpresaAndFuture(id, data, original);
+    } else {
+      await updateCustoEmpresa(id, data);
+    }
+    fecharModalCusto();
+    loadCustos();
+  }
+
+  function fecharModalCusto() {
     setShowCustoModal(false);
     setEditCustoId(null);
     setFormCusto({ ...CUSTO_EMPTY, categoriaId: categorias[0]?.id ?? '' });
-    loadCustos();
   }
 
   function abrirNovoCusto(categoriaId?: string) {
@@ -356,19 +402,19 @@ export default function TabEmpresa({ mes, ano }: Props) {
             {custosFiltrados.map((c) => {
               const cat = catPorId(c.categoriaId);
               return (
-                <div key={c.id} className="group flex items-center justify-between p-3 rounded-xl hover:bg-violet-50/50 transition-colors">
-                  <div className="flex items-center gap-3">
+                <div key={c.id} className="group flex items-center gap-3 p-3 rounded-xl hover:bg-violet-50/50 transition-colors">
+                  <div className="flex items-center gap-3 flex-1 min-w-0">
                     <span className="w-1 h-10 rounded-full flex-shrink-0" style={{ backgroundColor: cat?.cor ?? '#8b5cf6' }} />
                     <span
-                      className="text-xs px-2 py-0.5 rounded-full font-medium"
+                      className="text-xs px-2 py-0.5 rounded-full font-medium flex-shrink-0"
                       style={{ backgroundColor: `${cat?.cor ?? '#8b5cf6'}22`, color: cat?.cor ?? '#8b5cf6' }}
                     >
                       {cat?.nome ?? '—'}
                     </span>
-                    <div>
+                    <div className="min-w-0">
                       <div className="flex items-center gap-1.5">
-                        <p className="font-medium text-slate-700 dark:text-zinc-200 text-sm">{c.descricao}</p>
-                        {c.fixa && <span className="text-[10px] px-1.5 py-0.5 rounded-md font-semibold bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400">Fixo</span>}
+                        <p className="font-medium text-slate-700 dark:text-zinc-200 text-sm truncate">{c.descricao}</p>
+                        {c.fixa && <span className="text-[10px] px-1.5 py-0.5 rounded-md font-semibold bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400 flex-shrink-0">Fixo</span>}
                       </div>
                       <p className="text-xs text-slate-400 dark:text-zinc-400">
                         {c.fixa
@@ -377,16 +423,18 @@ export default function TabEmpresa({ mes, ano }: Props) {
                       </p>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <span className="font-semibold text-sm text-violet-600">{fmt(c.valorParcela)}</span>
-                    {c.totalParcelas <= 1 && (
-                      <button onClick={() => handleToggleFixaCusto(c)} title={c.fixa ? 'Remover recorrência' : 'Marcar como fixo'}
-                        className={`p-1.5 rounded-lg transition-all ${c.fixa ? 'text-amber-500 bg-amber-50 dark:bg-amber-500/10' : 'opacity-100 sm:opacity-0 sm:group-hover:opacity-100 text-slate-300 dark:text-zinc-500 hover:text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-500/10'}`}>
-                        <PinIcon filled={c.fixa} />
-                      </button>
-                    )}
-                    <button onClick={() => abrirEditCusto(c)} className="p-1.5 rounded-lg opacity-100 sm:opacity-0 sm:group-hover:opacity-100 hover:bg-violet-100 text-slate-300 dark:text-zinc-500 hover:text-violet-500 transition-all"><Pencil /></button>
-                    <button onClick={() => iniciarDeleteCusto(c)} className="p-1.5 rounded-lg opacity-100 sm:opacity-0 sm:group-hover:opacity-100 hover:bg-red-50 dark:hover:bg-red-500/10 text-slate-300 dark:text-zinc-500 hover:text-red-400 transition-all"><Trash /></button>
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    <span className="font-semibold text-sm text-violet-600 tabular-nums">{fmt(c.valorParcela)}</span>
+                    <div className="w-[5.5rem] flex items-center gap-0.5">
+                      {c.totalParcelas <= 1 && (
+                        <button onClick={() => handleToggleFixaCusto(c)} title={c.fixa ? 'Remover recorrência' : 'Marcar como fixo'}
+                          className={`p-1.5 rounded-lg transition-all ${c.fixa ? 'text-amber-500 bg-amber-50 dark:bg-amber-500/10' : 'opacity-100 sm:opacity-0 sm:group-hover:opacity-100 text-slate-300 dark:text-zinc-500 hover:text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-500/10'}`}>
+                          <PinIcon filled={c.fixa} />
+                        </button>
+                      )}
+                      <button onClick={() => abrirEditCusto(c)} className="p-1.5 rounded-lg opacity-100 sm:opacity-0 sm:group-hover:opacity-100 hover:bg-violet-100 text-slate-300 dark:text-zinc-500 hover:text-violet-500 transition-all"><Pencil /></button>
+                      <button onClick={() => iniciarDeleteCusto(c)} className="p-1.5 rounded-lg opacity-100 sm:opacity-0 sm:group-hover:opacity-100 hover:bg-red-50 dark:hover:bg-red-500/10 text-slate-300 dark:text-zinc-500 hover:text-red-400 transition-all"><Trash /></button>
+                    </div>
                   </div>
                 </div>
               );
@@ -528,6 +576,32 @@ export default function TabEmpresa({ mes, ano }: Props) {
                 {deleteCustoDialog.fixa ? 'Só este mês' : 'Só esta parcela'}
               </button>
               <button onClick={() => setDeleteCustoDialog(null)}
+                className="w-full py-2.5 rounded-xl text-sm text-slate-500 dark:text-zinc-400 border border-slate-200 dark:border-zinc-800 hover:bg-slate-50 dark:hover:bg-zinc-800 transition-colors">
+                Cancelar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Dialog escopo de edição: este mês ou também os seguintes ── */}
+      {editCustoDialog && (
+        <div className="fixed inset-0 z-[200] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-zinc-900 rounded-2xl shadow-2xl w-full max-w-sm p-6 space-y-4">
+            <h3 className="font-bold text-slate-800 dark:text-zinc-100">Aplicar alteração</h3>
+            <p className="text-sm text-slate-500 dark:text-zinc-400 leading-relaxed">
+              <strong>&quot;{editCustoDialog.original.descricao}&quot;</strong> também aparece em meses seguintes. Deseja aplicar essa alteração só a este mês ou também aos próximos?
+            </p>
+            <div className="space-y-2 pt-1">
+              <button onClick={() => confirmarEditCusto('future')}
+                className="w-full py-2.5 rounded-xl text-sm font-semibold bg-violet-600 text-white hover:bg-violet-700 transition-colors">
+                Este e os seguintes
+              </button>
+              <button onClick={() => confirmarEditCusto('this')}
+                className="w-full py-2.5 rounded-xl text-sm font-medium bg-slate-700 dark:bg-zinc-700 text-white hover:bg-slate-800 dark:hover:bg-zinc-700 transition-colors">
+                Só este mês
+              </button>
+              <button onClick={() => { setEditCustoDialog(null); fecharModalCusto(); }}
                 className="w-full py-2.5 rounded-xl text-sm text-slate-500 dark:text-zinc-400 border border-slate-200 dark:border-zinc-800 hover:bg-slate-50 dark:hover:bg-zinc-800 transition-colors">
                 Cancelar
               </button>

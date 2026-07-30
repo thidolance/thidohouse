@@ -188,6 +188,46 @@ export async function updateContaAndFuture(id: string, conta: Conta, data: Omit<
   }
 }
 
+// Todas as contas futuras da mesma série (grupoId), exceto a própria
+export async function getContasFuturasDoGrupo(original: Conta): Promise<Conta[]> {
+  if (!original.grupoId) return [];
+  const snap = await getDocs(query(collection(db, 'contas'), where('grupoId', '==', original.grupoId)));
+  const currentAbs = original.ano * 12 + original.mes;
+  return snap.docs
+    .map((d) => ({ id: d.id, ...d.data() } as Conta))
+    .filter((d) => d.id !== original.id && (d.ano * 12 + d.mes) > currentAbs);
+}
+
+// Reparcelamento: quando o número de parcelas muda na edição, reconstrói a série.
+// Mantém as passadas (com os novos dados), apaga as futuras antigas e recria conforme o novo total.
+export async function updateContaReparcelada(id: string, c: Omit<Conta, 'id'>, original: Conta): Promise<void> {
+  const grupoId = original.grupoId ?? makeGrupoId();
+  const currentAbs = c.ano * 12 + c.mes;
+  const doGrupo = original.grupoId
+    ? (await getContasPorGrupo(original.grupoId)).filter((d) => d.id !== original.id)
+    : [];
+  const { mes: _mes, ano: _ano, parcelaAtual: _parcelaAtual, status: _status, ...serie } = c;
+
+  // parcela editada
+  await setDoc(doc(db, 'contas', id), { ...c, grupoId });
+
+  // passadas: atualiza dados da série (mantém mês/parcela/status); futuras: apaga (serão recriadas)
+  await Promise.all(doGrupo.map((d) => {
+    const abs = d.ano * 12 + d.mes;
+    if (abs > currentAbs) return deleteDoc(doc(db, 'contas', d.id!));
+    return setDoc(doc(db, 'contas', d.id!), { ...serie, mes: d.mes, ano: d.ano, parcelaAtual: d.parcelaAtual, status: d.status, grupoId }, { merge: true });
+  }));
+
+  // recria as parcelas seguintes conforme o novo total
+  const restantes = (c.totalParcelas ?? 1) - (c.parcelaAtual ?? 1);
+  await Promise.all(Array.from({ length: Math.max(0, restantes) }, (_, i) => {
+    const pos = addMonths(c.mes, c.ano, i + 1);
+    return addDoc(collection(db, 'contas'), {
+      ...serie, grupoId, parcelaAtual: (c.parcelaAtual ?? 1) + i + 1, mes: pos.mes, ano: pos.ano, status: 'pendente',
+    });
+  }));
+}
+
 // Apaga a conta e todos os meses futuros com o mesmo grupoId
 export async function deleteContaAndFuture(id: string, conta: Conta): Promise<void> {
   await deleteDoc(doc(db, 'contas', id));
@@ -591,6 +631,26 @@ export async function getCustosDoGrupo(original: CustoEmpresa): Promise<CustoEmp
   return snap.docs
     .map((d) => ({ id: d.id, ...d.data() } as CustoEmpresa))
     .filter((d) => d.id !== original.id && d.totalParcelas === original.totalParcelas);
+}
+
+// Todos os custos futuros da mesma série, exceto o próprio
+export async function getCustosFuturosDoGrupo(original: CustoEmpresa): Promise<CustoEmpresa[]> {
+  const doGrupo = await getCustosDoGrupo(original);
+  const currentAbs = original.ano * 12 + original.mes;
+  return doGrupo.filter((d) => (d.ano * 12 + d.mes) > currentAbs);
+}
+
+// Atualiza o custo e propaga descrição/valor/categoria para os meses futuros da série,
+// mantendo o mês/ano e a parcela de cada um (usado quando o nº de parcelas não muda).
+export async function updateCustoEmpresaAndFuture(id: string, c: Omit<CustoEmpresa, 'id'>, original: CustoEmpresa): Promise<void> {
+  const futuras = await getCustosFuturosDoGrupo(original);
+  const grupoId = original.grupoId ?? makeGrupoId();
+  await setDoc(doc(db, 'custos_empresa', id), { ...c, grupoId });
+
+  const { mes: _mes, ano: _ano, parcelaAtual: _parcelaAtual, ...resto } = c;
+  await Promise.all(
+    futuras.map((f) => setDoc(doc(db, 'custos_empresa', f.id!), { ...resto, mes: f.mes, ano: f.ano, parcelaAtual: f.parcelaAtual, grupoId }, { merge: true })),
+  );
 }
 
 // Reparcelamento do custo: reconstrói a série na edição (muda nº de parcelas ou propaga

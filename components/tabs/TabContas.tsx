@@ -7,7 +7,7 @@ import Card from '../ui/Card';
 import { Plus, Trash, Check, Pencil, ChevronRight } from '../ui/Icons';
 import { useRefetchOnFocus } from '@/lib/useRefetchOnFocus';
 import {
-  getContas, addConta, updateConta, updateContaAndFuture,
+  getContas, addConta, updateConta, updateContaAndFuture, updateContaReparcelada, getContasFuturasDoGrupo,
   deleteConta, deleteContaAndFuture,
   updateContaStatus, toggleContaFixa, getContasPorGrupo,
   getCategoriasContas, addCategoriaContas, deleteCategoriaContas,
@@ -506,6 +506,22 @@ export default function TabContas({ mes, ano }: Props) {
     const data = buildContaData();
     if (editId) {
       const atual = editConta!;
+      const isSerie = !data.fixa && ((atual.totalParcelas ?? 1) > 1 || (data.totalParcelas ?? 1) > 1);
+
+      if (atual.grupoId && isSerie) {
+        const futuras = await getContasFuturasDoGrupo(atual);
+        const countChanged     = atual.totalParcelas !== data.totalParcelas;
+        const futurosEsperados = Math.max(0, (data.totalParcelas ?? 1) - (data.parcelaAtual ?? 1));
+        // Reparcela se o total mudou ou se a série está inconsistente (nº de docs futuros
+        // diferente do esperado) — também conserta séries já corrompidas.
+        if (countChanged || futuras.length !== futurosEsperados) {
+          await updateContaReparcelada(editId, data, atual);
+          fecharModal();
+          load();
+          return;
+        }
+      }
+
       if (atual.grupoId) {
         // Tem meses futuros linkados → perguntar escopo
         setShowModal(false);
