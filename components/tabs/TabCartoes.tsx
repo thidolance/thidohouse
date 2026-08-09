@@ -12,6 +12,7 @@ import Card from '../ui/Card';
 import DatePicker from '../ui/DatePicker';
 import { Plus, Trash, Pencil } from '../ui/Icons';
 import { useRefetchOnFocus } from '@/lib/useRefetchOnFocus';
+import { formatCurrencyInput, parseCurrencyInput, formatCurrencyBRL } from '@/lib/currency';
 import {
   getCompras, addCompra, updateCompra, updateCompraAndFuture, updateCompraReparcelada, getComprasFuturasDoGrupo,
   deleteCompra, deleteCompraAndFuture, toggleCompraFixa,
@@ -163,7 +164,7 @@ export default function TabCartoes({ mes, ano }: Props) {
   // ── compras ────────────────────────────────────────────────────────────────
   async function handleSaveCompra(e: React.SubmitEvent<HTMLFormElement>) {
     e.preventDefault();
-    const total   = parseFloat(formCompra.valorTotal.replace(',', '.'));
+    const total   = parseCurrencyInput(formCompra.valorTotal);
     const parcelas = parseInt(formCompra.totalParcelas);
     const data: Omit<CompraParcelada, 'id'> = {
       cartaoId:      formCompra.cartaoId,
@@ -240,7 +241,7 @@ export default function TabCartoes({ mes, ano }: Props) {
       descricao:     p.descricao,
       tipo:          p.tipo,
       data:          p.data ?? '',
-      valorTotal:    p.valorTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2 }),
+      valorTotal:    formatCurrencyBRL(p.valorTotal),
       totalParcelas: String(p.totalParcelas),
       parcelaAtual:  String(p.parcelaAtual),
       fixa:          p.fixa ?? false,
@@ -281,7 +282,7 @@ export default function TabCartoes({ mes, ano }: Props) {
 
   function abrirEditCartao(c: Cartao) {
     setEditCartaoId(c.id!);
-    setFormCartao({ nome: c.nome, cor: c.cor, bandeira: c.bandeira ?? 'Visa', limite: c.limite ? String(c.limite) : '' });
+    setFormCartao({ nome: c.nome, cor: c.cor, bandeira: c.bandeira ?? 'Visa', limite: c.limite ? formatCurrencyBRL(c.limite) : '' });
     setShowCartaoForm(true);
   }
 
@@ -291,7 +292,7 @@ export default function TabCartoes({ mes, ano }: Props) {
       nome: formCartao.nome,
       cor: formCartao.cor,
       bandeira: formCartao.bandeira,
-      limite: parseFloat(formCartao.limite.replace(',', '.')) || 0,
+      limite: parseCurrencyInput(formCartao.limite),
     };
     if (editCartaoId) await updateCartao(editCartaoId, data);
     else              await addCartao(data);
@@ -742,7 +743,7 @@ export default function TabCartoes({ mes, ano }: Props) {
 
             <div>
               <label className="block text-sm font-medium text-slate-700 dark:text-zinc-200 mb-1">Valor Total (R$)</label>
-              <input required value={formCompra.valorTotal} onChange={(e) => setFormCompra({ ...formCompra, valorTotal: e.target.value })} className={INPUT} placeholder="0,00" inputMode="decimal" />
+              <input required value={formCompra.valorTotal} onChange={(e) => setFormCompra({ ...formCompra, valorTotal: formatCurrencyInput(e.target.value) })} className={INPUT} placeholder="0,00" inputMode="decimal" />
             </div>
 
             <div>
@@ -763,7 +764,7 @@ export default function TabCartoes({ mes, ano }: Props) {
 
             {formCompra.valorTotal && formCompra.totalParcelas && parseInt(formCompra.totalParcelas) > 0 && (
               <p className="text-xs text-slate-500 dark:text-zinc-400 bg-slate-50 dark:bg-zinc-950 rounded-lg p-2">
-                Valor por parcela: <strong>{fmt(parseFloat(formCompra.valorTotal.replace(',', '.')) / parseInt(formCompra.totalParcelas) || 0)}</strong>
+                Valor por parcela: <strong>{fmt(parseCurrencyInput(formCompra.valorTotal) / parseInt(formCompra.totalParcelas) || 0)}</strong>
               </p>
             )}
 
@@ -857,7 +858,7 @@ export default function TabCartoes({ mes, ano }: Props) {
                   </div>
                   <div>
                     <label className="block text-xs text-slate-500 dark:text-zinc-400 mb-1">Limite (R$)</label>
-                    <input value={formCartao.limite} onChange={(e) => setFormCartao({ ...formCartao, limite: e.target.value })} className={INPUT} placeholder="0,00" inputMode="decimal" />
+                    <input value={formCartao.limite} onChange={(e) => setFormCartao({ ...formCartao, limite: formatCurrencyInput(e.target.value) })} className={INPUT} placeholder="0,00" inputMode="decimal" />
                   </div>
                   {/* Preview — mesma borda aurora derivada da cor escolhida */}
                   <div className="relative overflow-hidden rounded-xl h-20 flex items-center px-4" style={{ backgroundColor: formCartao.cor }}>

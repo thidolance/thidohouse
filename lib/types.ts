@@ -17,6 +17,17 @@ export interface Distribuicao {
   planosFuturos: number;
 }
 
+// Saque manual de uma reserva (ex: usou parte do dinheiro de Planos Futuros).
+// Abate do balanço acumulado daquela categoria no mês em que foi feito.
+export interface SaqueReserva {
+  id?: string;
+  categoria: 'ferias' | 'investimento' | 'planosFuturos';
+  valor: number;
+  descricao?: string;
+  mes: number;
+  ano: number;
+}
+
 export interface CategoriaContaConfig {
   id?: string;
   nome: string;

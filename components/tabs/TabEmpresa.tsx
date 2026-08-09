@@ -6,6 +6,7 @@ import Modal from '../ui/Modal';
 import Card from '../ui/Card';
 import { Plus, Trash, Pencil } from '../ui/Icons';
 import { useRefetchOnFocus } from '@/lib/useRefetchOnFocus';
+import { formatCurrencyInput, parseCurrencyInput, formatCurrencyBRL } from '@/lib/currency';
 import {
   getCustosEmpresa, addCustoEmpresa, updateCustoEmpresa, updateCustoReparcelado, updateCustoEmpresaFixa,
   updateCustoEmpresaAndFuture, getCustosFuturosDoGrupo,
@@ -94,7 +95,7 @@ export default function TabEmpresa({ mes, ano }: Props) {
 
   async function handleSaveCusto(e: React.SubmitEvent<HTMLFormElement>) {
     e.preventDefault();
-    const total    = parseFloat(formCusto.valor.replace(',', '.'));
+    const total    = parseCurrencyInput(formCusto.valor);
     const parcelas = parseInt(formCusto.totalParcelas);
     const data: Omit<CustoEmpresa, 'id'> = {
       categoriaId:   formCusto.categoriaId,
@@ -178,7 +179,7 @@ export default function TabEmpresa({ mes, ano }: Props) {
     setFormCusto({
       categoriaId:   c.categoriaId,
       descricao:     c.descricao,
-      valor:         c.valor.toLocaleString('pt-BR', { minimumFractionDigits: 2 }),
+      valor:         formatCurrencyBRL(c.valor),
       totalParcelas: String(c.totalParcelas),
       parcelaAtual:  String(c.parcelaAtual),
       fixa:          c.fixa ?? false,
@@ -476,7 +477,7 @@ export default function TabEmpresa({ mes, ano }: Props) {
 
             <div>
               <label className="block text-sm font-medium text-slate-700 dark:text-zinc-200 mb-1">Valor Total (R$)</label>
-              <input required value={formCusto.valor} onChange={(e) => setFormCusto({ ...formCusto, valor: e.target.value })} className={INPUT} placeholder="0,00" inputMode="decimal" />
+              <input required value={formCusto.valor} onChange={(e) => setFormCusto({ ...formCusto, valor: formatCurrencyInput(e.target.value) })} className={INPUT} placeholder="0,00" inputMode="decimal" />
             </div>
 
             <div className="grid grid-cols-2 gap-3">
@@ -492,7 +493,7 @@ export default function TabEmpresa({ mes, ano }: Props) {
 
             {formCusto.valor && parseInt(formCusto.totalParcelas) > 1 && (
               <p className="text-xs text-slate-500 dark:text-zinc-400 bg-violet-50 rounded-lg p-2">
-                Valor por parcela: <strong>{fmt(parseFloat(formCusto.valor.replace(',', '.')) / parseInt(formCusto.totalParcelas) || 0)}</strong>
+                Valor por parcela: <strong>{fmt(parseCurrencyInput(formCusto.valor) / parseInt(formCusto.totalParcelas) || 0)}</strong>
               </p>
             )}
 

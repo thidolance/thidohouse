@@ -6,6 +6,7 @@ import Card from '../ui/Card';
 import { Plus, Trash, Pencil, Check, LinkIcon } from '../ui/Icons';
 import { getMetas, addMeta, updateMeta, deleteMeta } from '@/lib/firestore';
 import { useRefetchOnFocus } from '@/lib/useRefetchOnFocus';
+import { formatCurrencyInput, parseCurrencyInput, formatCurrencyBRL } from '@/lib/currency';
 import type { Meta } from '@/lib/types';
 
 const fmt = (v: number) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
@@ -40,7 +41,7 @@ export default function TabMetas({ ano }: Props) {
 
   function abrirEditar(m: Meta) {
     setEditId(m.id!);
-    setForm({ nome: m.nome, valor: m.valor.toLocaleString('pt-BR', { minimumFractionDigits: 2 }), link: m.link ?? '' });
+    setForm({ nome: m.nome, valor: formatCurrencyBRL(m.valor), link: m.link ?? '' });
     setShowModal(true);
   }
 
@@ -55,7 +56,7 @@ export default function TabMetas({ ano }: Props) {
     const data: Omit<Meta, 'id'> = {
       ano,
       nome: form.nome,
-      valor: parseFloat(form.valor.replace(',', '.')) || 0,
+      valor: parseCurrencyInput(form.valor),
       concluida: editId ? (metas.find((m) => m.id === editId)?.concluida ?? false) : false,
       ...(form.link ? { link: form.link } : {}),
     };
@@ -176,7 +177,7 @@ export default function TabMetas({ ano }: Props) {
             </div>
             <div>
               <label className="block text-sm font-medium text-slate-700 dark:text-zinc-200 mb-1">Valor (R$)</label>
-              <input required value={form.valor} onChange={(e) => setForm({ ...form, valor: e.target.value })} className={INPUT} placeholder="0,00" inputMode="decimal" />
+              <input required value={form.valor} onChange={(e) => setForm({ ...form, valor: formatCurrencyInput(e.target.value) })} className={INPUT} placeholder="0,00" inputMode="decimal" />
             </div>
             <div>
               <label className="block text-sm font-medium text-slate-700 dark:text-zinc-200 mb-1">Link <span className="text-slate-400 dark:text-zinc-400 font-normal">(opcional)</span></label>

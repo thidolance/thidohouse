@@ -11,8 +11,10 @@ import {
   getEntradas, addEntrada, updateEntrada, deleteEntrada,
   getEntradasHistorico, getDistribuicao, saveDistribuicao,
   getDistribuicoesHistorico,
+  getSaquesReserva, getSaquesReservaHistorico, addSaqueReserva, deleteSaqueReserva,
 } from '@/lib/firestore';
-import type { Entrada, Distribuicao } from '@/lib/types';
+import { formatCurrencyInput as formatBRL, parseCurrencyInput as parseBRL, formatCurrencyBRL } from '@/lib/currency';
+import type { Entrada, Distribuicao, SaqueReserva } from '@/lib/types';
 
 const VChart = dynamic(
   () => import('@visactor/react-vchart').then((m) => m.VChart),
@@ -20,17 +22,6 @@ const VChart = dynamic(
 );
 
 // ── helpers ───────────────────────────────────────────────────────────────────
-
-function formatBRL(raw: string): string {
-  const digits = raw.replace(/\D/g, '');
-  if (!digits) return '';
-  const num = parseInt(digits, 10) / 100;
-  return num.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-}
-
-function parseBRL(formatted: string): number {
-  return parseFloat(formatted.replace(/\./g, '').replace(',', '.')) || 0;
-}
 
 function toInt(value: string): number {
   return parseInt(value) || 0;
@@ -71,6 +62,13 @@ const INPUT = 'w-full border border-slate-200 dark:border-zinc-800 rounded-xl px
 
 interface Props { mes: number; ano: number; }
 
+type ReservaKey = Exclude<DistKey, 'contas'>;
+const RESERVA_LABELS: { key: ReservaKey; label: string }[] = [
+  { key: 'investimento',  label: 'Investimento' },
+  { key: 'ferias',        label: 'Férias' },
+  { key: 'planosFuturos', label: 'Planos Futuros' },
+];
+
 export default function TabEntradas({ mes, ano }: Props) {
   const [entradas, setEntradas]   = useState<Entrada[]>([]);
   const [historico, setHistorico] = useState<{ mes: string; total: number; fill: string }[]>([]);
@@ -81,11 +79,14 @@ export default function TabEntradas({ mes, ano }: Props) {
   const [distribuicao, setDistribuicao] = useState<Distribuicao>({
     mes, ano, contas: 50, ferias: 10, investimento: 20, planosFuturos: 20,
   });
+  const [saquesMes, setSaquesMes]       = useState<SaqueReserva[]>([]);
   const [showModal, setShowModal]       = useState(false);
   const [showDistModal, setShowDistModal] = useState(false);
+  const [showSaqueModal, setShowSaqueModal] = useState(false);
   const [loading, setLoading]           = useState(false);
   const [editId, setEditId]             = useState<string | null>(null);
   const [form, setForm]                 = useState({ descricao: '', valor: '', data: '' });
+  const [saqueForm, setSaqueForm]       = useState<{ categoria: ReservaKey; valor: string; descricao: string }>({ categoria: 'planosFuturos', valor: '', descricao: '' });
   const [distForm, setDistForm]         = useState<Record<DistKey, string>>({ contas: '50', ferias: '10', investimento: '20', planosFuturos: '20' });
   const [distColors, setDistColors]     = useState<DistColors>(DEFAULT_DIST_COLORS);
   const [distColorForm, setDistColorForm] = useState<DistColors>(DEFAULT_DIST_COLORS);
@@ -99,13 +100,16 @@ export default function TabEntradas({ mes, ano }: Props) {
 
   const load = useCallback(async () => {
     setLoading(true);
-    const [list, hist, dist, distHist] = await Promise.all([
+    const [list, hist, dist, distHist, saquesDoMes, saquesHist] = await Promise.all([
       getEntradas(mes, ano),
       getEntradasHistorico(),
       getDistribuicao(mes, ano),
       getDistribuicoesHistorico(),
+      getSaquesReserva(mes, ano),
+      getSaquesReservaHistorico(),
     ]);
     setEntradas(list);
+    setSaquesMes(saquesDoMes);
 
     // ── Balanço do que foi guardado (acumulado nos últimos 12 meses até o mês
     // selecionado) — mesma janela do "Investimentos por categoria" da Visão Geral. ──
@@ -114,6 +118,15 @@ export default function TabEntradas({ mes, ano }: Props) {
     hist.forEach((e) => {
       const k = `${e.ano}-${e.mes}`;
       ganhosByKey[k] = (ganhosByKey[k] ?? 0) + e.valor;
+    });
+    // Saques (retiradas manuais de reserva) somados por mês/categoria — abatem o
+    // que foi guardado naquele mês, como se fosse uma contribuição negativa.
+    const saquesByKey: Record<string, Record<ReservaKey, number>> = {};
+    saquesHist.forEach((s) => {
+      const k = `${s.ano}-${s.mes}`;
+      const atual = saquesByKey[k] ?? { ferias: 0, investimento: 0, planosFuturos: 0 };
+      atual[s.categoria] += s.valor;
+      saquesByKey[k] = atual;
     });
     // Janela rolante de 12 meses terminando em (mes, ano).
     const janela: string[] = [];
@@ -126,18 +139,27 @@ export default function TabEntradas({ mes, ano }: Props) {
     janela.forEach((k) => {
       const d = distByKey.get(k);
       const g = ganhosByKey[k];
-      if (!d || !g) return;
-      accInvest += g * (d.investimento / 100);
-      accFerias += g * (d.ferias / 100);
-      accPlanos += g * (d.planosFuturos / 100);
+      const s = saquesByKey[k];
+      if (d && g) {
+        accInvest += g * (d.investimento / 100);
+        accFerias += g * (d.ferias / 100);
+        accPlanos += g * (d.planosFuturos / 100);
+      }
+      if (s) {
+        accInvest -= s.investimento;
+        accFerias -= s.ferias;
+        accPlanos -= s.planosFuturos;
+      }
     });
     const totalAcc = accInvest + accFerias + accPlanos;
     const kAtual = `${ano}-${mes}`;
     const gAtual = ganhosByKey[kAtual] ?? 0;
     const dAtual = distByKey.get(kAtual);
-    const contribMes = dAtual
+    const sAtual = saquesByKey[kAtual];
+    const saquesMesTotal = sAtual ? sAtual.investimento + sAtual.ferias + sAtual.planosFuturos : 0;
+    const contribMes = (dAtual
       ? gAtual * ((dAtual.investimento + dAtual.ferias + dAtual.planosFuturos) / 100)
-      : 0;
+      : 0) - saquesMesTotal;
     const priorTotal = totalAcc - contribMes;
     const deltaPct = priorTotal > 0 ? (contribMes / priorTotal) * 100 : 0;
     setBalanco({ invest: accInvest, ferias: accFerias, planos: accPlanos, total: totalAcc, contribMes, deltaPct });
@@ -189,7 +211,7 @@ export default function TabEntradas({ mes, ano }: Props) {
 
   function handleEdit(e: Entrada) {
     setEditId(e.id!);
-    setForm({ descricao: e.descricao, valor: e.valor.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }), data: e.data });
+    setForm({ descricao: e.descricao, valor: formatCurrencyBRL(e.valor), data: e.data });
     setShowModal(true);
   }
 
@@ -212,6 +234,30 @@ export default function TabEntradas({ mes, ano }: Props) {
     setDistColors(distColorForm);
     localStorage.setItem(LS_COLORS_KEY, JSON.stringify(distColorForm));
     setShowDistModal(false);
+    load();
+  }
+
+  function abrirSaque() {
+    setSaqueForm({ categoria: 'planosFuturos', valor: '', descricao: '' });
+    setShowSaqueModal(true);
+  }
+
+  async function handleSaveSaque(e: React.SubmitEvent<HTMLFormElement>) {
+    e.preventDefault();
+    const valor = parseBRL(saqueForm.valor);
+    if (valor <= 0) return;
+    await addSaqueReserva({
+      categoria: saqueForm.categoria,
+      valor,
+      ...(saqueForm.descricao ? { descricao: saqueForm.descricao } : {}),
+      mes, ano,
+    });
+    setShowSaqueModal(false);
+    load();
+  }
+
+  async function handleDeleteSaque(id: string) {
+    await deleteSaqueReserva(id);
     load();
   }
 
@@ -428,17 +474,23 @@ export default function TabEntradas({ mes, ano }: Props) {
             <p className="text-sm font-semibold text-slate-500 dark:text-zinc-400">Investimentos &amp; Reservas</p>
             <p className="text-[11px] text-slate-400 dark:text-zinc-500">Com base na distribuição · acumulado dos últimos 12 meses</p>
           </div>
-          <div className="h-9 w-9 rounded-xl bg-indigo-100 dark:bg-purple-500/20 flex items-center justify-center text-indigo-600 dark:text-purple-400 flex-shrink-0">
-            <TrendingUp />
+          <div className="flex items-center gap-2 flex-shrink-0">
+            <button onClick={abrirSaque}
+              className="inline-flex items-center gap-1 px-2.5 py-1.5 border border-slate-200 dark:border-zinc-800 rounded-lg text-xs font-medium text-slate-500 dark:text-zinc-400 hover:bg-slate-50 dark:hover:bg-zinc-800 hover:text-slate-700 dark:hover:text-zinc-200 transition-colors">
+              <span className="font-bold leading-none">−</span> Saque
+            </button>
+            <div className="h-9 w-9 rounded-xl bg-indigo-100 dark:bg-purple-500/20 flex items-center justify-center text-indigo-600 dark:text-purple-400 flex-shrink-0">
+              <TrendingUp />
+            </div>
           </div>
         </div>
 
         <div className="flex flex-wrap items-end gap-x-3 gap-y-1 mb-4">
           <span className="text-3xl font-bold tracking-tight text-slate-800 dark:text-white tabular-nums">{fmt(balanco.total)}</span>
-          {balanco.contribMes > 0 && (
-            <span className="mb-1 text-sm font-semibold text-emerald-600 dark:text-emerald-400">
-              +{fmt(balanco.contribMes)}
-              {balanco.deltaPct > 0 && <span className="ml-1 text-emerald-500/80">(+{balanco.deltaPct.toFixed(1)}%)</span>}
+          {balanco.contribMes !== 0 && (
+            <span className={`mb-1 text-sm font-semibold ${balanco.contribMes > 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-500 dark:text-red-400'}`}>
+              {balanco.contribMes > 0 ? '+' : '-'}{fmt(Math.abs(balanco.contribMes))}
+              {balanco.contribMes > 0 && balanco.deltaPct > 0 && <span className="ml-1 text-emerald-500/80">(+{balanco.deltaPct.toFixed(1)}%)</span>}
               <span className="ml-1 font-normal text-slate-400 dark:text-zinc-500">este mês</span>
             </span>
           )}
@@ -480,6 +532,30 @@ export default function TabEntradas({ mes, ano }: Props) {
           <p className="text-sm text-slate-400 dark:text-zinc-400 py-2 text-center">
             Configure a distribuição e adicione entradas para acompanhar o crescimento.
           </p>
+        )}
+
+        {/* ── Saques deste mês ── */}
+        {saquesMes.length > 0 && (
+          <div className="mt-4 pt-4 border-t border-slate-100 dark:border-zinc-800 space-y-2">
+            <p className="text-[11px] font-semibold text-slate-400 dark:text-zinc-500 uppercase tracking-wide">Saques deste mês</p>
+            {saquesMes.map((s) => (
+              <div key={s.id} className="group flex items-center justify-between gap-2">
+                <div className="flex items-center gap-1.5 min-w-0">
+                  <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: distColors[s.categoria] }} />
+                  <span className="text-xs text-slate-500 dark:text-zinc-400 truncate">
+                    {RESERVA_LABELS.find((r) => r.key === s.categoria)?.label}{s.descricao ? ` · ${s.descricao}` : ''}
+                  </span>
+                </div>
+                <div className="flex items-center gap-1.5 flex-shrink-0">
+                  <span className="text-xs font-semibold text-red-500 dark:text-red-400 tabular-nums">-{fmt(s.valor)}</span>
+                  <button onClick={() => handleDeleteSaque(s.id!)}
+                    className="p-1 rounded-lg text-slate-300 dark:text-zinc-500 hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors opacity-100 sm:opacity-0 sm:group-hover:opacity-100">
+                    <Trash />
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
         )}
       </Card>
 
@@ -536,6 +612,47 @@ export default function TabEntradas({ mes, ano }: Props) {
             <div className="flex gap-3 pt-1">
               <button type="button" onClick={() => setShowDistModal(false)} className="flex-1 py-2.5 border border-slate-200 dark:border-zinc-800 rounded-xl text-sm text-slate-600 dark:text-zinc-300 hover:bg-slate-50 dark:hover:bg-zinc-800">Cancelar</button>
               <button type="submit" className="flex-1 py-2.5 bg-indigo-600 dark:bg-purple-600 text-white rounded-xl text-sm font-semibold hover:bg-indigo-700 dark:hover:bg-purple-700 shadow-sm">Salvar</button>
+            </div>
+          </form>
+        </Modal>
+      )}
+
+      {/* ── Modal Novo Saque de Reserva ── */}
+      {showSaqueModal && (
+        <Modal title="Registrar Saque" onClose={() => setShowSaqueModal(false)}>
+          <form onSubmit={handleSaveSaque} className="space-y-4">
+            <p className="text-xs text-slate-400 dark:text-zinc-400 bg-slate-50 dark:bg-zinc-950 rounded-lg p-2">
+              Use quando retirar dinheiro de uma reserva (ex: usou parte dos Planos Futuros). O valor é abatido do saldo acumulado desta categoria neste mês.
+            </p>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 dark:text-zinc-200 mb-1.5">Reserva</label>
+              <div className="flex flex-wrap gap-2">
+                {RESERVA_LABELS.map(({ key, label }) => (
+                  <button
+                    key={key}
+                    type="button"
+                    onClick={() => setSaqueForm({ ...saqueForm, categoria: key })}
+                    className="px-3 py-1.5 rounded-full text-xs font-medium transition-all border"
+                    style={saqueForm.categoria === key
+                      ? { backgroundColor: distColors[key], color: '#fff', borderColor: distColors[key] }
+                      : { borderColor: '#e2e8f0', color: '#64748b' }}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 dark:text-zinc-200 mb-1">Valor (R$)</label>
+              <input required value={saqueForm.valor} onChange={(e) => setSaqueForm({ ...saqueForm, valor: formatBRL(e.target.value) })} className={INPUT} placeholder="0,00" inputMode="decimal" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 dark:text-zinc-200 mb-1">Descrição (opcional)</label>
+              <input value={saqueForm.descricao} onChange={(e) => setSaqueForm({ ...saqueForm, descricao: e.target.value })} className={INPUT} placeholder="Ex: conserto do carro" />
+            </div>
+            <div className="flex gap-3 pt-1">
+              <button type="button" onClick={() => setShowSaqueModal(false)} className="flex-1 py-2.5 border border-slate-200 dark:border-zinc-800 rounded-xl text-sm text-slate-600 dark:text-zinc-300 hover:bg-slate-50 dark:hover:bg-zinc-800">Cancelar</button>
+              <button type="submit" className="flex-1 py-2.5 bg-red-500 text-white rounded-xl text-sm font-semibold hover:bg-red-600 shadow-sm">Registrar Saque</button>
             </div>
           </form>
         </Modal>

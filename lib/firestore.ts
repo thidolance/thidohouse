@@ -12,7 +12,7 @@ import {
 } from 'firebase/firestore';
 import { db } from './firebase';
 import type {
-  Entrada, Distribuicao, Conta, CategoriaContaConfig,
+  Entrada, Distribuicao, SaqueReserva, Conta, CategoriaContaConfig,
   Cartao, CategoriaCompra, CompraParcelada, FaturaCartao,
   CategoriaEmpresa, CustoEmpresa, FaturaEmpresa, Meta, NotaMes,
 } from './types';
@@ -73,6 +73,27 @@ export async function saveDistribuicao(d: Omit<Distribuicao, 'id'>, id?: string)
 export async function getDistribuicoesHistorico(): Promise<Distribuicao[]> {
   const snap = await getDocs(collection(db, 'distribuicoes'));
   return snap.docs.map((d) => ({ id: d.id, ...d.data() } as Distribuicao));
+}
+
+// ─── Saques de Reserva ────────────────────────────────────────────────────────
+
+export async function getSaquesReserva(mes: number, ano: number): Promise<SaqueReserva[]> {
+  const q = query(collection(db, 'saques_reserva'), where('mes', '==', mes), where('ano', '==', ano));
+  const snap = await getDocs(q);
+  return snap.docs.map((d) => ({ id: d.id, ...d.data() } as SaqueReserva));
+}
+
+export async function getSaquesReservaHistorico(): Promise<SaqueReserva[]> {
+  const snap = await getDocs(collection(db, 'saques_reserva'));
+  return snap.docs.map((d) => ({ id: d.id, ...d.data() } as SaqueReserva));
+}
+
+export async function addSaqueReserva(s: Omit<SaqueReserva, 'id'>): Promise<void> {
+  await addDoc(collection(db, 'saques_reserva'), s);
+}
+
+export async function deleteSaqueReserva(id: string): Promise<void> {
+  await deleteDoc(doc(db, 'saques_reserva', id));
 }
 
 // ─── Contas ─────────────────────────────────────────────────────────────────

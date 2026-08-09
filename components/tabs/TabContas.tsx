@@ -6,6 +6,7 @@ import Modal from '../ui/Modal';
 import Card from '../ui/Card';
 import { Plus, Trash, Check, Pencil, ChevronRight } from '../ui/Icons';
 import { useRefetchOnFocus } from '@/lib/useRefetchOnFocus';
+import { formatCurrencyInput, parseCurrencyInput, formatCurrencyBRL } from '@/lib/currency';
 import {
   getContas, addConta, updateConta, updateContaAndFuture, updateContaReparcelada, getContasFuturasDoGrupo,
   deleteConta, deleteContaAndFuture,
@@ -474,7 +475,7 @@ export default function TabContas({ mes, ano }: Props) {
     setForm({
       descricao:     c.descricao,
       categoria:     c.categoria,
-      valor:         c.valor.toLocaleString('pt-BR', { minimumFractionDigits: 2 }),
+      valor:         formatCurrencyBRL(c.valor),
       vencimento:    String(c.vencimento),
       parcelaAtual:  c.parcelaAtual  ? String(c.parcelaAtual)  : '',
       totalParcelas: c.totalParcelas ? String(c.totalParcelas) : '',
@@ -486,7 +487,7 @@ export default function TabContas({ mes, ano }: Props) {
   // ── handlers ─────────────────────────────────────────────────────────────
 
   function buildContaData(): Omit<Conta, 'id'> {
-    const valor      = parseFloat(form.valor.replace(/\./g, '').replace(',', '.'));
+    const valor      = parseCurrencyInput(form.valor);
     const vencimento = parseInt(form.vencimento);
     return {
       descricao:     form.descricao,
@@ -600,13 +601,13 @@ export default function TabContas({ mes, ano }: Props) {
 
   function abrirEditFatura(c: CartaoItem) {
     setEditFatura(c);
-    setEditFaturaValor(String(c.valor).replace('.', ','));
+    setEditFaturaValor(formatCurrencyBRL(c.valor));
   }
 
   async function handleSaveFaturaValor(e: React.SubmitEvent<HTMLFormElement>) {
     e.preventDefault();
     const { cartaoId } = editFatura!;
-    const novo = parseFloat(editFaturaValor.replace(',', '.'));
+    const novo = parseCurrencyInput(editFaturaValor);
     if (isNaN(novo)) return;
     setItensCartao((prev) => prev.map((c) => c.cartaoId === cartaoId ? { ...c, valor: novo } : c));
     setEditFatura(null);
@@ -998,7 +999,7 @@ export default function TabContas({ mes, ano }: Props) {
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="block text-sm font-medium text-slate-700 dark:text-zinc-200 mb-1">Valor (R$)</label>
-                <input required value={form.valor} onChange={(e) => setForm({ ...form, valor: e.target.value })} className={INPUT} placeholder="0,00" inputMode="decimal" />
+                <input required value={form.valor} onChange={(e) => setForm({ ...form, valor: formatCurrencyInput(e.target.value) })} className={INPUT} placeholder="0,00" inputMode="decimal" />
               </div>
               <div>
                 <label className="block text-sm font-medium text-slate-700 dark:text-zinc-200 mb-1">Vencimento (dia)</label>
@@ -1044,7 +1045,7 @@ export default function TabContas({ mes, ano }: Props) {
               <input
                 autoFocus
                 value={editFaturaValor}
-                onChange={(e) => setEditFaturaValor(e.target.value)}
+                onChange={(e) => setEditFaturaValor(formatCurrencyInput(e.target.value))}
                 className={INPUT}
                 placeholder="0,00"
                 inputMode="decimal"
