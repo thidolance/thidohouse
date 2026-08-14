@@ -12,7 +12,7 @@ import {
   deleteConta, deleteContaAndFuture,
   updateContaStatus, toggleContaFixa, getContasPorGrupo,
   getCategoriasContas, addCategoriaContas, deleteCategoriaContas,
-  getRecebedores, addRecebedor, deleteRecebedor, setContaRecebedor,
+  getRecebedores, addRecebedor, deleteRecebedor, setContaRecebedor, setCartaoRecebedor,
   getCompras, getFaturasCartao, setFaturaCartaoStatus, setFaturaCartaoValor, getCartoes,
   getCustosEmpresa, getFaturasEmpresa, setFaturaEmpresaStatus, getCategoriasEmpresa,
 } from '@/lib/firestore';
@@ -144,7 +144,7 @@ type FormState = {
   parcelaAtual: string; totalParcelas: string; fixa: boolean; recebedorId: string;
 };
 
-type CartaoItem  = { tipo: 'cartao';  cartaoId: string; cartaoNome: string; cartaoCor: string; valor: number; valorCalculado: number; status: 'pago' | 'pendente' };
+type CartaoItem  = { tipo: 'cartao';  cartaoId: string; cartaoNome: string; cartaoCor: string; valor: number; valorCalculado: number; status: 'pago' | 'pendente'; recebedorId?: string };
 type EmpresaItem = { categoriaId: string; categoriaNome: string; categoriaCor: string; valor: number; status: 'pago' | 'pendente' };
 
 type DeleteDialog = { conta: Conta };
@@ -183,6 +183,9 @@ export default function TabContas({ mes, ano }: Props) {
   // edição do valor da fatura de cartão (ajuste manual só na aba Contas)
   const [editFatura, setEditFatura]     = useState<CartaoItem | null>(null);
   const [editFaturaValor, setEditFaturaValor] = useState('');
+
+  // detalhe/Pix da fatura de cartão
+  const [detalheCartao, setDetalheCartao] = useState<CartaoItem | null>(null);
 
   // acompanhamento de parcelas
   const [acompanhar, setAcompanhar]               = useState<Conta | null>(null);
@@ -239,7 +242,7 @@ export default function TabContas({ mes, ano }: Props) {
       const fatura = faturasList.find((f) => f.cartaoId === c.id);
       // valorAjustado sobrepõe a soma das compras, se definido
       const valor = fatura?.valorAjustado != null ? fatura.valorAjustado : total;
-      return [{ tipo: 'cartao', cartaoId: c.id as string, cartaoNome: c.nome, cartaoCor: c.cor, valor, valorCalculado: total, status: fatura?.status ?? 'pendente' }];
+      return [{ tipo: 'cartao', cartaoId: c.id as string, cartaoNome: c.nome, cartaoCor: c.cor, valor, valorCalculado: total, status: fatura?.status ?? 'pendente', recebedorId: c.recebedorId }];
     });
     setItensCartao(cards);
 
@@ -541,6 +544,8 @@ export default function TabContas({ mes, ano }: Props) {
         // diferente do esperado) — também conserta séries já corrompidas.
         if (countChanged || futuras.length !== futurosEsperados) {
           await updateContaReparcelada(editId, data, atual);
+          // Recebedor vale para a série toda, não só para o mês editado.
+          await setContaRecebedor(atual, data.recebedorId ?? null);
           fecharModal();
           load();
           return;
@@ -569,6 +574,9 @@ export default function TabContas({ mes, ano }: Props) {
     } else {
       await updateConta(conta.id!, data);
     }
+    // Recebedor é da série inteira: propaga para todos os meses do grupo,
+    // mesmo quando o escopo escolhido para os demais campos foi "só este mês".
+    await setContaRecebedor(conta, data.recebedorId ?? null);
     fecharModal();
     load();
   }
@@ -694,16 +702,20 @@ export default function TabContas({ mes, ano }: Props) {
     setAcompanhar((prev) => prev && prev.id === conta.id ? { ...prev, recebedorId: novo ?? undefined } : prev);
   }
 
-  async function handleCopyPix(conta: Conta, rec: Recebedor) {
-    const payload = buildPixPayload({
-      chave:  rec.chave,
-      nome:   rec.nome,
-      cidade: rec.cidade,
-      valor:  conta.valor,
-    });
+  async function copiarPix(valor: number, rec: Recebedor) {
+    const payload = buildPixPayload({ chave: rec.chave, nome: rec.nome, cidade: rec.cidade, valor });
     await navigator.clipboard.writeText(payload);
     setPixCopiado(true);
     setTimeout(() => setPixCopiado(false), 2000);
+  }
+
+  // ── recebedor Pix da fatura de cartão ───────────────────────────────────────
+
+  async function handleVincularRecebedorCartao(item: CartaoItem, recebedorId: string) {
+    const novo = recebedorId || null;
+    await setCartaoRecebedor(item.cartaoId, novo);
+    setItensCartao((prev) => prev.map((c) => c.cartaoId === item.cartaoId ? { ...c, recebedorId: novo ?? undefined } : c));
+    setDetalheCartao((prev) => prev && prev.cartaoId === item.cartaoId ? { ...prev, recebedorId: novo ?? undefined } : prev);
   }
 
   function limparFiltros() {
@@ -996,7 +1008,7 @@ export default function TabContas({ mes, ano }: Props) {
                       className={`w-7 h-7 rounded-full border-2 flex items-center justify-center transition-all flex-shrink-0 shadow-sm ${c.status === 'pago' ? 'bg-gradient-to-br from-emerald-400 to-emerald-600 border-emerald-500 text-white shadow-emerald-500/30' : 'border-slate-200 dark:border-zinc-800 hover:border-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-500/10'}`}>
                       {c.status === 'pago' && <Check />}
                     </button>
-                    <div className="flex-1 min-w-0">
+                    <div className="flex-1 min-w-0 cursor-pointer" onClick={() => setDetalheCartao(c)}>
                       <p className={`font-semibold text-sm ${c.status === 'pago' ? 'line-through text-slate-400 dark:text-zinc-400' : 'text-slate-800 dark:text-zinc-100'}`}>Fatura {c.cartaoNome}</p>
                       <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
                         <span className="text-[11px] px-1.5 py-0.5 rounded-md font-semibold inline-block" style={{ backgroundColor: `${c.cartaoCor}18`, color: c.cartaoCor }}>{c.cartaoNome}</span>
@@ -1329,12 +1341,31 @@ export default function TabContas({ mes, ano }: Props) {
             )}
 
             {/* Pagamento via Pix */}
-            <PixDetalhe
-              conta={acompanhar}
+            <PixBox
+              recebedorId={acompanhar.recebedorId}
               recebedores={recebedores}
               copiado={pixCopiado}
               onVincular={(id) => handleVincularRecebedor(acompanhar, id)}
-              onCopiar={(rec) => handleCopyPix(acompanhar, rec)}
+              onCopiar={(rec) => copiarPix(acompanhar.valor, rec)}
+            />
+          </div>
+        </Modal>
+      )}
+
+      {/* ── Modal detalhe/Pix da fatura de cartão ── */}
+      {detalheCartao && (
+        <Modal title={`Fatura ${detalheCartao.cartaoNome}`} onClose={() => { setDetalheCartao(null); setPixCopiado(false); }}>
+          <div className="space-y-5">
+            <div className="flex items-baseline justify-between border border-slate-100 dark:border-zinc-800 rounded-2xl px-4 py-3">
+              <span className="text-[11px] text-slate-400 dark:text-zinc-400 uppercase tracking-wide font-medium">Valor da fatura</span>
+              <span className="text-2xl font-bold text-slate-800 dark:text-zinc-100 tabular-nums">{fmt(detalheCartao.valor)}</span>
+            </div>
+            <PixBox
+              recebedorId={detalheCartao.recebedorId}
+              recebedores={recebedores}
+              copiado={pixCopiado}
+              onVincular={(id) => handleVincularRecebedorCartao(detalheCartao, id)}
+              onCopiar={(rec) => copiarPix(detalheCartao.valor, rec)}
             />
           </div>
         </Modal>
@@ -1343,19 +1374,19 @@ export default function TabContas({ mes, ano }: Props) {
   );
 }
 
-// ── Seção Pix dentro do modal de detalhes ─────────────────────────────────────
-// Deixa vincular um recebedor à conta e copiar o "Pix Copia e Cola" já com o
-// valor da conta, pronto para colar no app do banco.
-function PixDetalhe({
-  conta, recebedores, copiado, onVincular, onCopiar,
+// ── Seção Pix reutilizável (conta ou fatura de cartão) ────────────────────────
+// Deixa vincular um recebedor ao item e copiar o "Pix Copia e Cola" já com o
+// valor, pronto para colar no app do banco.
+function PixBox({
+  recebedorId, recebedores, copiado, onVincular, onCopiar,
 }: {
-  conta: Conta;
+  recebedorId?: string;
   recebedores: Recebedor[];
   copiado: boolean;
   onVincular: (recebedorId: string) => void;
   onCopiar: (rec: Recebedor) => void;
 }) {
-  const rec = recebedores.find((r) => r.id === conta.recebedorId);
+  const rec = recebedores.find((r) => r.id === recebedorId);
 
   return (
     <div className="border-t border-slate-100 dark:border-zinc-800 pt-4 space-y-3">
@@ -1368,7 +1399,7 @@ function PixDetalhe({
       ) : (
         <>
           <select
-            value={conta.recebedorId ?? ''}
+            value={recebedorId ?? ''}
             onChange={(e) => onVincular(e.target.value)}
             className="w-full px-3 py-2.5 rounded-xl border border-slate-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-sm text-slate-700 dark:text-zinc-200 focus:outline-none focus:ring-2 focus:ring-indigo-400 dark:focus:ring-purple-500"
           >

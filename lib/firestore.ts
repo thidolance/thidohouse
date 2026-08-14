@@ -382,6 +382,12 @@ export async function deleteCartao(id: string): Promise<void> {
   await deleteDoc(doc(db, 'cartoes', id));
 }
 
+// Vincula (ou desvincula, com recebedorId = null) um recebedor Pix ao cartão,
+// para gerar o "copia e cola" da fatura na aba Contas.
+export async function setCartaoRecebedor(cartaoId: string, recebedorId: string | null): Promise<void> {
+  await updateDoc(doc(db, 'cartoes', cartaoId), { recebedorId: recebedorId ?? deleteField() });
+}
+
 // ─── Categorias de Compra ────────────────────────────────────────────────────
 
 export async function getCategorias(): Promise<CategoriaCompra[]> {

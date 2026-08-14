@@ -67,6 +67,8 @@ export interface Cartao {
   cor: string;
   bandeira?: 'Visa' | 'Mastercard';
   limite?: number;
+  // Recebedor Pix para pagar a fatura (ex: quando o cartão é de outra pessoa)
+  recebedorId?: string;
 }
 
 export interface CategoriaCompra {
