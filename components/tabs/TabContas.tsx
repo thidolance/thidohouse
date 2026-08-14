@@ -141,7 +141,7 @@ interface Props { mes: number; ano: number; }
 
 type FormState = {
   descricao: string; categoria: string; valor: string; vencimento: string;
-  parcelaAtual: string; totalParcelas: string; fixa: boolean;
+  parcelaAtual: string; totalParcelas: string; fixa: boolean; recebedorId: string;
 };
 
 type CartaoItem  = { tipo: 'cartao';  cartaoId: string; cartaoNome: string; cartaoCor: string; valor: number; valorCalculado: number; status: 'pago' | 'pendente' };
@@ -199,10 +199,10 @@ export default function TabContas({ mes, ano }: Props) {
   // form
   const makeEmpty = useCallback((c: CategoriaContaConfig[]) => ({
     descricao: '', categoria: c[0]?.nome ?? '', valor: '', vencimento: '',
-    parcelaAtual: '', totalParcelas: '', fixa: false,
+    parcelaAtual: '', totalParcelas: '', fixa: false, recebedorId: '',
   }), []);
   const [form, setForm] = useState<FormState>({
-    descricao: '', categoria: '', valor: '', vencimento: '', parcelaAtual: '', totalParcelas: '', fixa: false,
+    descricao: '', categoria: '', valor: '', vencimento: '', parcelaAtual: '', totalParcelas: '', fixa: false, recebedorId: '',
   });
 
   // ── carregamento ──────────────────────────────────────────────────────────
@@ -502,6 +502,7 @@ export default function TabContas({ mes, ano }: Props) {
       parcelaAtual:  c.parcelaAtual  ? String(c.parcelaAtual)  : '',
       totalParcelas: c.totalParcelas ? String(c.totalParcelas) : '',
       fixa:          c.fixa ?? false,
+      recebedorId:   c.recebedorId ?? '',
     });
     setShowModal(true);
   }
@@ -520,6 +521,7 @@ export default function TabContas({ mes, ano }: Props) {
       mes, ano,
       ...(form.parcelaAtual  ? { parcelaAtual:  parseInt(form.parcelaAtual)  } : {}),
       ...(form.totalParcelas ? { totalParcelas: parseInt(form.totalParcelas) } : {}),
+      ...(form.recebedorId   ? { recebedorId:   form.recebedorId } : {}),
       fixa: form.fixa && !form.parcelaAtual,
     };
   }
@@ -1058,6 +1060,17 @@ export default function TabContas({ mes, ano }: Props) {
               <select value={form.categoria} onChange={(e) => setForm({ ...form, categoria: e.target.value })} className={INPUT}>
                 {cats.map((c) => <option key={c.id} value={c.nome}>{c.nome}</option>)}
               </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 dark:text-zinc-200 mb-1">Recebedor Pix <span className="text-slate-400 dark:text-zinc-400 font-normal">(opcional)</span></label>
+              {recebedores.length === 0 ? (
+                <p className="text-xs text-slate-400 dark:text-zinc-400">Cadastre um recebedor em Configurações para copiar o Pix com valor.</p>
+              ) : (
+                <select value={form.recebedorId} onChange={(e) => setForm({ ...form, recebedorId: e.target.value })} className={INPUT}>
+                  <option value="">Sem recebedor</option>
+                  {recebedores.map((r) => <option key={r.id} value={r.id}>{r.apelido}</option>)}
+                </select>
+              )}
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
