@@ -12,7 +12,7 @@ import {
   deleteConta, deleteContaAndFuture,
   updateContaStatus, toggleContaFixa, getContasPorGrupo,
   getCategoriasContas, addCategoriaContas, deleteCategoriaContas,
-  getRecebedores, addRecebedor, deleteRecebedor, setContaRecebedor, setCartaoRecebedor,
+  getRecebedores, addRecebedor, updateRecebedor, deleteRecebedor, setContaRecebedor, setCartaoRecebedor,
   getCompras, getFaturasCartao, setFaturaCartaoStatus, setFaturaCartaoValor, getCartoes,
   getCustosEmpresa, getFaturasEmpresa, setFaturaEmpresaStatus, getCategoriasEmpresa,
 } from '@/lib/firestore';
@@ -173,6 +173,7 @@ export default function TabContas({ mes, ano }: Props) {
 
   // recebedores Pix (config + vínculo na conta)
   const [showRecForm, setShowRecForm]    = useState(false);
+  const [editRecId, setEditRecId]        = useState<string | null>(null);
   const [formRec, setFormRec]            = useState({ apelido: '', chave: '', nome: '', cidade: '' });
   const [pixCopiado, setPixCopiado]      = useState(false);
 
@@ -682,10 +683,27 @@ export default function TabContas({ mes, ano }: Props) {
 
   async function handleSaveRec(e: React.SubmitEvent<HTMLFormElement>) {
     e.preventDefault();
-    await addRecebedor(formRec);
-    setShowRecForm(false);
-    setFormRec({ apelido: '', chave: '', nome: '', cidade: '' });
+    // Editar mantém o mesmo id → o vínculo nas contas/cartões continua valendo
+    // e os novos dados aparecem em todos automaticamente.
+    if (editRecId) {
+      await updateRecebedor(editRecId, formRec);
+    } else {
+      await addRecebedor(formRec);
+    }
+    fecharRecForm();
     loadRecebedores();
+  }
+
+  function abrirEditarRec(r: Recebedor) {
+    setEditRecId(r.id!);
+    setFormRec({ apelido: r.apelido, chave: r.chave, nome: r.nome, cidade: r.cidade });
+    setShowRecForm(true);
+  }
+
+  function fecharRecForm() {
+    setShowRecForm(false);
+    setEditRecId(null);
+    setFormRec({ apelido: '', chave: '', nome: '', cidade: '' });
   }
 
   async function handleDeleteRec(id: string) {
@@ -1176,7 +1194,7 @@ export default function TabContas({ mes, ano }: Props) {
 
       {/* ── Modal configurações ── */}
       {showConfigModal && (
-        <Modal title="Configurações — Contas" onClose={() => { setShowConfig(false); setShowCatForm(false); setShowRecForm(false); }}>
+        <Modal title="Configurações — Contas" onClose={() => { setShowConfig(false); setShowCatForm(false); setShowRecForm(false); setEditRecId(null); }}>
           <div className="space-y-3">
             <p className="text-xs font-semibold text-slate-500 dark:text-zinc-400 uppercase tracking-wide">Categorias</p>
             {cats.map((cat) => (
@@ -1218,17 +1236,18 @@ export default function TabContas({ mes, ano }: Props) {
                   <p className="text-sm font-medium text-slate-700 dark:text-zinc-200 truncate">{r.apelido}</p>
                   <p className="text-[11px] text-slate-400 dark:text-zinc-400 truncate">{r.chave}</p>
                 </div>
+                <button onClick={() => abrirEditarRec(r)} className="p-1.5 rounded-lg text-slate-400 dark:text-zinc-400 hover:text-indigo-500 dark:hover:text-purple-400 hover:bg-indigo-50 dark:hover:bg-purple-500/10 transition-colors"><Pencil /></button>
                 <button onClick={() => handleDeleteRec(r.id!)} className="p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-500/10 text-slate-300 dark:text-zinc-500 hover:text-red-400 transition-colors"><Trash /></button>
               </div>
             ))}
             {!showRecForm ? (
-              <button onClick={() => setShowRecForm(true)}
+              <button onClick={() => { setEditRecId(null); setShowRecForm(true); }}
                 className="w-full py-2.5 border-2 border-dashed border-slate-200 dark:border-zinc-800 rounded-xl text-sm text-slate-400 dark:text-zinc-400 hover:border-indigo-300 hover:text-indigo-500 dark:hover:text-purple-400 flex items-center justify-center gap-2">
                 <Plus /> Novo Recebedor
               </button>
             ) : (
               <form onSubmit={handleSaveRec} className="border border-slate-200 dark:border-zinc-800 rounded-xl p-4 space-y-3 bg-slate-50 dark:bg-zinc-950">
-                <p className="text-sm font-semibold text-slate-700 dark:text-zinc-200">Novo Recebedor</p>
+                <p className="text-sm font-semibold text-slate-700 dark:text-zinc-200">{editRecId ? 'Editar Recebedor' : 'Novo Recebedor'}</p>
                 <div>
                   <label className="block text-xs text-slate-500 dark:text-zinc-400 mb-1">Apelido <span className="text-slate-400 dark:text-zinc-500">(como aparece na lista)</span></label>
                   <input required value={formRec.apelido} onChange={(e) => setFormRec({ ...formRec, apelido: e.target.value })} className={INPUT} placeholder="Ex: João — aluguel" />
@@ -1248,7 +1267,7 @@ export default function TabContas({ mes, ano }: Props) {
                   </div>
                 </div>
                 <div className="flex gap-2">
-                  <button type="button" onClick={() => { setShowRecForm(false); setFormRec({ apelido: '', chave: '', nome: '', cidade: '' }); }} className="flex-1 py-2 border border-slate-200 dark:border-zinc-800 rounded-xl text-xs text-slate-600 dark:text-zinc-300 hover:bg-white dark:hover:bg-zinc-800">Cancelar</button>
+                  <button type="button" onClick={fecharRecForm} className="flex-1 py-2 border border-slate-200 dark:border-zinc-800 rounded-xl text-xs text-slate-600 dark:text-zinc-300 hover:bg-white dark:hover:bg-zinc-800">Cancelar</button>
                   <button type="submit" className="flex-1 py-2 bg-indigo-600 dark:bg-purple-600 text-white rounded-xl text-xs font-semibold hover:bg-indigo-700 dark:hover:bg-purple-700">Salvar</button>
                 </div>
               </form>
