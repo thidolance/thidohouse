@@ -12,10 +12,12 @@ import {
   deleteConta, deleteContaAndFuture,
   updateContaStatus, toggleContaFixa, getContasPorGrupo,
   getCategoriasContas, addCategoriaContas, deleteCategoriaContas,
+  getRecebedores, addRecebedor, deleteRecebedor, setContaRecebedor,
   getCompras, getFaturasCartao, setFaturaCartaoStatus, setFaturaCartaoValor, getCartoes,
   getCustosEmpresa, getFaturasEmpresa, setFaturaEmpresaStatus, getCategoriasEmpresa,
 } from '@/lib/firestore';
-import type { Conta, CategoriaContaConfig } from '@/lib/types';
+import type { Conta, CategoriaContaConfig, Recebedor } from '@/lib/types';
+import { buildPixPayload } from '@/lib/pix';
 
 // ── VChart (SSR-safe) ────────────────────────────────────────────────────────
 const VChart = dynamic(
@@ -30,6 +32,14 @@ function GearIcon() {
     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
       <path strokeLinecap="round" strokeLinejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
       <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+    </svg>
+  );
+}
+
+function CopyIcon() {
+  return (
+    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
     </svg>
   );
 }
@@ -148,6 +158,7 @@ export default function TabContas({ mes, ano }: Props) {
   // dados
   const [contas, setContas]             = useState<Conta[]>([]);
   const [cats, setCats]                 = useState<CategoriaContaConfig[]>([]);
+  const [recebedores, setRecebedores]   = useState<Recebedor[]>([]);
   const [itensCartao, setItensCartao]   = useState<CartaoItem[]>([]);
   const [itensEmpresa, setItensEmpresa] = useState<EmpresaItem[]>([]);
   const [loading, setLoading]           = useState(false);
@@ -159,6 +170,11 @@ export default function TabContas({ mes, ano }: Props) {
   const [editId, setEditId]              = useState<string | null>(null);
   const [editConta, setEditConta]        = useState<Conta | null>(null);
   const [formCat, setFormCat]            = useState({ nome: '', cor: '#6366f1' });
+
+  // recebedores Pix (config + vínculo na conta)
+  const [showRecForm, setShowRecForm]    = useState(false);
+  const [formRec, setFormRec]            = useState({ apelido: '', chave: '', nome: '', cidade: '' });
+  const [pixCopiado, setPixCopiado]      = useState(false);
 
   // dialogs escopo
   const [deleteDialog, setDeleteDialog]       = useState<DeleteDialog | null>(null);
@@ -197,9 +213,13 @@ export default function TabContas({ mes, ano }: Props) {
     return c;
   }, []);
 
+  const loadRecebedores = useCallback(async () => {
+    setRecebedores(await getRecebedores());
+  }, []);
+
   const load = useCallback(async () => {
     setLoading(true);
-    const [contasList, comprasList, faturasList, cartoesList, custosList, faturasEmpresaList, catsEmpresaList] = await Promise.all([
+    const [contasList, comprasList, faturasList, cartoesList, custosList, faturasEmpresaList, catsEmpresaList, recebedoresList] = await Promise.all([
       getContas(mes, ano),
       getCompras(mes, ano),
       getFaturasCartao(mes, ano),
@@ -207,9 +227,11 @@ export default function TabContas({ mes, ano }: Props) {
       getCustosEmpresa(mes, ano),
       getFaturasEmpresa(mes, ano),
       getCategoriasEmpresa(),
+      getRecebedores(),
     ]);
 
     setContas(contasList);
+    setRecebedores(recebedoresList);
 
     const cards: CartaoItem[] = cartoesList.flatMap((c): CartaoItem[] => {
       const total = comprasList.filter((p) => p.cartaoId === c.id).reduce((s, p) => s + p.valorParcela, 0);
@@ -567,11 +589,16 @@ export default function TabContas({ mes, ano }: Props) {
     load();
   }
 
-  async function abrirAcompanhamento(c: Conta) {
+  async function abrirDetalhe(c: Conta) {
     setAcompanhar(c);
-    setLoadingAcompanhar(true);
-    setParcelasGrupo(c.grupoId ? await getContasPorGrupo(c.grupoId) : []);
-    setLoadingAcompanhar(false);
+    // Só contas parceladas têm linha do tempo de parcelas para carregar.
+    if (c.totalParcelas) {
+      setLoadingAcompanhar(true);
+      setParcelasGrupo(c.grupoId ? await getContasPorGrupo(c.grupoId) : []);
+      setLoadingAcompanhar(false);
+    } else {
+      setParcelasGrupo([]);
+    }
   }
 
   function iniciarDelete(c: Conta) {
@@ -641,6 +668,42 @@ export default function TabContas({ mes, ano }: Props) {
     loadCats();
   }
 
+  // ── recebedores Pix ─────────────────────────────────────────────────────────
+
+  async function handleSaveRec(e: React.SubmitEvent<HTMLFormElement>) {
+    e.preventDefault();
+    await addRecebedor(formRec);
+    setShowRecForm(false);
+    setFormRec({ apelido: '', chave: '', nome: '', cidade: '' });
+    loadRecebedores();
+  }
+
+  async function handleDeleteRec(id: string) {
+    await deleteRecebedor(id);
+    loadRecebedores();
+  }
+
+  // Vincula/desvincula o recebedor na conta e reflete no estado local (o modal
+  // de detalhes usa `acompanhar`, então atualizamos os dois).
+  async function handleVincularRecebedor(conta: Conta, recebedorId: string) {
+    const novo = recebedorId || null;
+    await setContaRecebedor(conta, novo);
+    setContas((prev) => prev.map((c) => c.id === conta.id ? { ...c, recebedorId: novo ?? undefined } : c));
+    setAcompanhar((prev) => prev && prev.id === conta.id ? { ...prev, recebedorId: novo ?? undefined } : prev);
+  }
+
+  async function handleCopyPix(conta: Conta, rec: Recebedor) {
+    const payload = buildPixPayload({
+      chave:  rec.chave,
+      nome:   rec.nome,
+      cidade: rec.cidade,
+      valor:  conta.valor,
+    });
+    await navigator.clipboard.writeText(payload);
+    setPixCopiado(true);
+    setTimeout(() => setPixCopiado(false), 2000);
+  }
+
   function limparFiltros() {
     setBusca('');
     setFiltroStatus('todos');
@@ -665,7 +728,7 @@ export default function TabContas({ mes, ano }: Props) {
         >
           {pago && <Check />}
         </button>
-        <div className="flex-1 min-w-0">
+        <div className="flex-1 min-w-0 cursor-pointer" onClick={() => abrirDetalhe(c)}>
           <div className="flex items-center gap-1.5 flex-wrap">
             <p className={`font-semibold text-sm leading-tight ${pago ? 'line-through text-slate-400 dark:text-zinc-400' : 'text-slate-800 dark:text-zinc-100'}`}>{c.descricao}</p>
           </div>
@@ -675,7 +738,7 @@ export default function TabContas({ mes, ano }: Props) {
           </div>
           {c.totalParcelas && c.parcelaAtual && (
             <button
-              onClick={() => abrirAcompanhamento(c)}
+              onClick={(e) => { e.stopPropagation(); abrirDetalhe(c); }}
               className="mt-1.5 flex items-center gap-2 w-full max-w-[180px] group/prog"
             >
               <div className="flex-1 max-w-[100px] bg-slate-100 dark:bg-zinc-800 rounded-full h-1.5">
@@ -1088,7 +1151,7 @@ export default function TabContas({ mes, ano }: Props) {
 
       {/* ── Modal configurações ── */}
       {showConfigModal && (
-        <Modal title="Configurações — Contas" onClose={() => { setShowConfig(false); setShowCatForm(false); }}>
+        <Modal title="Configurações — Contas" onClose={() => { setShowConfig(false); setShowCatForm(false); setShowRecForm(false); }}>
           <div className="space-y-3">
             <p className="text-xs font-semibold text-slate-500 dark:text-zinc-400 uppercase tracking-wide">Categorias</p>
             {cats.map((cat) => (
@@ -1121,79 +1184,198 @@ export default function TabContas({ mes, ano }: Props) {
                 </div>
               </form>
             )}
+
+            {/* ── Recebedores Pix ── */}
+            <p className="text-xs font-semibold text-slate-500 dark:text-zinc-400 uppercase tracking-wide pt-4">Recebedores Pix</p>
+            {recebedores.map((r) => (
+              <div key={r.id} className="flex items-center gap-3 p-3 rounded-xl border border-slate-100 dark:border-zinc-800 hover:bg-slate-50 dark:hover:bg-zinc-800">
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-slate-700 dark:text-zinc-200 truncate">{r.apelido}</p>
+                  <p className="text-[11px] text-slate-400 dark:text-zinc-400 truncate">{r.chave}</p>
+                </div>
+                <button onClick={() => handleDeleteRec(r.id!)} className="p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-500/10 text-slate-300 dark:text-zinc-500 hover:text-red-400 transition-colors"><Trash /></button>
+              </div>
+            ))}
+            {!showRecForm ? (
+              <button onClick={() => setShowRecForm(true)}
+                className="w-full py-2.5 border-2 border-dashed border-slate-200 dark:border-zinc-800 rounded-xl text-sm text-slate-400 dark:text-zinc-400 hover:border-indigo-300 hover:text-indigo-500 dark:hover:text-purple-400 flex items-center justify-center gap-2">
+                <Plus /> Novo Recebedor
+              </button>
+            ) : (
+              <form onSubmit={handleSaveRec} className="border border-slate-200 dark:border-zinc-800 rounded-xl p-4 space-y-3 bg-slate-50 dark:bg-zinc-950">
+                <p className="text-sm font-semibold text-slate-700 dark:text-zinc-200">Novo Recebedor</p>
+                <div>
+                  <label className="block text-xs text-slate-500 dark:text-zinc-400 mb-1">Apelido <span className="text-slate-400 dark:text-zinc-500">(como aparece na lista)</span></label>
+                  <input required value={formRec.apelido} onChange={(e) => setFormRec({ ...formRec, apelido: e.target.value })} className={INPUT} placeholder="Ex: João — aluguel" />
+                </div>
+                <div>
+                  <label className="block text-xs text-slate-500 dark:text-zinc-400 mb-1">Chave Pix</label>
+                  <input required value={formRec.chave} onChange={(e) => setFormRec({ ...formRec, chave: e.target.value })} className={INPUT} placeholder="email, telefone, CPF/CNPJ ou aleatória" />
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs text-slate-500 dark:text-zinc-400 mb-1">Nome <span className="text-slate-400 dark:text-zinc-500">(máx 25)</span></label>
+                    <input required maxLength={25} value={formRec.nome} onChange={(e) => setFormRec({ ...formRec, nome: e.target.value })} className={INPUT} placeholder="Nome do recebedor" />
+                  </div>
+                  <div>
+                    <label className="block text-xs text-slate-500 dark:text-zinc-400 mb-1">Cidade <span className="text-slate-400 dark:text-zinc-500">(máx 15)</span></label>
+                    <input required maxLength={15} value={formRec.cidade} onChange={(e) => setFormRec({ ...formRec, cidade: e.target.value })} className={INPUT} placeholder="Cidade" />
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <button type="button" onClick={() => { setShowRecForm(false); setFormRec({ apelido: '', chave: '', nome: '', cidade: '' }); }} className="flex-1 py-2 border border-slate-200 dark:border-zinc-800 rounded-xl text-xs text-slate-600 dark:text-zinc-300 hover:bg-white dark:hover:bg-zinc-800">Cancelar</button>
+                  <button type="submit" className="flex-1 py-2 bg-indigo-600 dark:bg-purple-600 text-white rounded-xl text-xs font-semibold hover:bg-indigo-700 dark:hover:bg-purple-700">Salvar</button>
+                </div>
+              </form>
+            )}
           </div>
         </Modal>
       )}
 
-      {/* ── Modal acompanhamento de parcelas ── */}
+      {/* ── Modal detalhes da conta ── */}
       {acompanhar && (
-        <Modal title="Acompanhamento da Conta" onClose={() => setAcompanhar(null)}>
-          {loadingAcompanhar || !acompanhamentoStats ? (
-            <p className="text-slate-400 dark:text-zinc-400 text-sm text-center py-8">Carregando...</p>
-          ) : (
-            <div className="space-y-5">
-              <div>
-                <p className="font-bold text-slate-800 dark:text-zinc-100 text-base leading-tight">{acompanhar.descricao}</p>
+        <Modal title="Detalhes da Conta" onClose={() => { setAcompanhar(null); setPixCopiado(false); }}>
+          <div className="space-y-5">
+            {/* Cabeçalho: descrição, categoria e vencimento */}
+            <div>
+              <p className="font-bold text-slate-800 dark:text-zinc-100 text-base leading-tight">{acompanhar.descricao}</p>
+              <div className="flex items-center gap-2 mt-1.5 flex-wrap">
                 <span
-                  className="inline-block mt-1.5 text-[11px] px-2 py-0.5 rounded-md font-semibold"
+                  className="text-[11px] px-2 py-0.5 rounded-md font-semibold"
                   style={{ backgroundColor: `${catCor(acompanhar.categoria)}18`, color: catCor(acompanhar.categoria) }}
                 >
                   {acompanhar.categoria}
                 </span>
-              </div>
-
-              {/* Progresso circular + valor da parcela */}
-              <div className="flex items-center gap-5">
-                <div className="relative flex-shrink-0">
-                  <CircularProgress percent={acompanhamentoStats.percent} />
-                  <div className="absolute inset-0 flex flex-col items-center justify-center">
-                    <span className="text-lg font-bold text-slate-800 dark:text-zinc-100 tabular-nums">{acompanhamentoStats.countPago}</span>
-                    <span className="text-[10px] text-slate-400 dark:text-zinc-400">de {acompanhamentoStats.totalParcelas}</span>
-                  </div>
-                </div>
-                <div className="flex-1 space-y-1">
-                  <p className="text-[11px] text-slate-400 dark:text-zinc-400 uppercase tracking-wide font-medium">Valor da parcela</p>
-                  <p className="text-2xl font-bold text-slate-800 dark:text-zinc-100 tabular-nums">{fmt(acompanhamentoStats.valorParcela)}</p>
-                  <p className="text-xs text-slate-400 dark:text-zinc-400">{acompanhamentoStats.percent.toFixed(0)}% concluído</p>
-                </div>
-              </div>
-
-              {/* Já pago vs restante */}
-              <div className="grid grid-cols-2 gap-3">
-                <div className="bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-100 rounded-2xl p-3.5">
-                  <p className="text-emerald-600 dark:text-emerald-400 text-[11px] font-semibold uppercase tracking-wide">Já pago</p>
-                  <p className="text-lg font-bold text-emerald-700 dark:text-emerald-300 mt-1 tabular-nums">{fmt(acompanhamentoStats.valorPago)}</p>
-                  <p className="text-[11px] text-emerald-500 mt-0.5">{acompanhamentoStats.countPago} parcela(s)</p>
-                </div>
-                <div className="bg-indigo-50 dark:bg-purple-500/10 border border-indigo-100 dark:border-purple-500/30 rounded-2xl p-3.5">
-                  <p className="text-indigo-600 dark:text-purple-400 text-[11px] font-semibold uppercase tracking-wide">Para quitar</p>
-                  <p className="text-lg font-bold text-indigo-700 dark:text-purple-300 mt-1 tabular-nums">{fmt(acompanhamentoStats.valorRestante)}</p>
-                  <p className="text-[11px] text-indigo-500 dark:text-purple-400 mt-0.5">{acompanhamentoStats.countRestante} parcela(s)</p>
-                </div>
-              </div>
-
-              {/* Linha do tempo das parcelas */}
-              <div>
-                <p className="text-[11px] text-slate-400 dark:text-zinc-400 uppercase tracking-wide font-medium mb-2">Linha do tempo</p>
-                <div className="flex flex-wrap gap-1.5">
-                  {Array.from({ length: acompanhamentoStats.totalParcelas }, (_, i) => {
-                    const num = i + 1;
-                    const doc = acompanhamentoStats.ordenado.find((p) => p.parcelaAtual === num);
-                    const paga = doc ? doc.status === 'pago' : num < acompanhamentoStats.minParcela;
-                    const atual = num === acompanhar.parcelaAtual;
-                    return (
-                      <div
-                        key={num}
-                        title={`Parcela ${num}/${acompanhamentoStats.totalParcelas}${doc ? ` · ${MESES_CURTOS[doc.mes - 1]}/${String(doc.ano).slice(2)}` : ''} · ${paga ? 'paga' : 'pendente'}`}
-                        className={`h-6 flex-1 min-w-[16px] rounded-md transition-colors ${paga ? 'bg-emerald-400' : 'bg-slate-100 dark:bg-zinc-800'} ${atual ? 'ring-2 ring-indigo-500 dark:ring-purple-500 ring-offset-1' : ''}`}
-                      />
-                    );
-                  })}
-                </div>
+                <span className="text-[11px] text-slate-400 dark:text-zinc-400">vence dia {acompanhar.vencimento}</span>
               </div>
             </div>
-          )}
+
+            {/* Valor da conta (sempre visível) */}
+            <div className="flex items-baseline justify-between border border-slate-100 dark:border-zinc-800 rounded-2xl px-4 py-3">
+              <span className="text-[11px] text-slate-400 dark:text-zinc-400 uppercase tracking-wide font-medium">Valor</span>
+              <span className="text-2xl font-bold text-slate-800 dark:text-zinc-100 tabular-nums">{fmt(acompanhar.valor)}</span>
+            </div>
+
+            {/* Acompanhamento de parcelas — só para contas parceladas */}
+            {acompanhar.totalParcelas && (
+              loadingAcompanhar || !acompanhamentoStats ? (
+                <p className="text-slate-400 dark:text-zinc-400 text-sm text-center py-4">Carregando parcelas...</p>
+              ) : (
+                <div className="space-y-5">
+                  {/* Progresso circular + valor da parcela */}
+                  <div className="flex items-center gap-5">
+                    <div className="relative flex-shrink-0">
+                      <CircularProgress percent={acompanhamentoStats.percent} />
+                      <div className="absolute inset-0 flex flex-col items-center justify-center">
+                        <span className="text-lg font-bold text-slate-800 dark:text-zinc-100 tabular-nums">{acompanhamentoStats.countPago}</span>
+                        <span className="text-[10px] text-slate-400 dark:text-zinc-400">de {acompanhamentoStats.totalParcelas}</span>
+                      </div>
+                    </div>
+                    <div className="flex-1 space-y-1">
+                      <p className="text-[11px] text-slate-400 dark:text-zinc-400 uppercase tracking-wide font-medium">Valor da parcela</p>
+                      <p className="text-2xl font-bold text-slate-800 dark:text-zinc-100 tabular-nums">{fmt(acompanhamentoStats.valorParcela)}</p>
+                      <p className="text-xs text-slate-400 dark:text-zinc-400">{acompanhamentoStats.percent.toFixed(0)}% concluído</p>
+                    </div>
+                  </div>
+
+                  {/* Já pago vs restante */}
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-100 rounded-2xl p-3.5">
+                      <p className="text-emerald-600 dark:text-emerald-400 text-[11px] font-semibold uppercase tracking-wide">Já pago</p>
+                      <p className="text-lg font-bold text-emerald-700 dark:text-emerald-300 mt-1 tabular-nums">{fmt(acompanhamentoStats.valorPago)}</p>
+                      <p className="text-[11px] text-emerald-500 mt-0.5">{acompanhamentoStats.countPago} parcela(s)</p>
+                    </div>
+                    <div className="bg-indigo-50 dark:bg-purple-500/10 border border-indigo-100 dark:border-purple-500/30 rounded-2xl p-3.5">
+                      <p className="text-indigo-600 dark:text-purple-400 text-[11px] font-semibold uppercase tracking-wide">Para quitar</p>
+                      <p className="text-lg font-bold text-indigo-700 dark:text-purple-300 mt-1 tabular-nums">{fmt(acompanhamentoStats.valorRestante)}</p>
+                      <p className="text-[11px] text-indigo-500 dark:text-purple-400 mt-0.5">{acompanhamentoStats.countRestante} parcela(s)</p>
+                    </div>
+                  </div>
+
+                  {/* Linha do tempo das parcelas */}
+                  <div>
+                    <p className="text-[11px] text-slate-400 dark:text-zinc-400 uppercase tracking-wide font-medium mb-2">Linha do tempo</p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {Array.from({ length: acompanhamentoStats.totalParcelas }, (_, i) => {
+                        const num = i + 1;
+                        const doc = acompanhamentoStats.ordenado.find((p) => p.parcelaAtual === num);
+                        const paga = doc ? doc.status === 'pago' : num < acompanhamentoStats.minParcela;
+                        const atual = num === acompanhar.parcelaAtual;
+                        return (
+                          <div
+                            key={num}
+                            title={`Parcela ${num}/${acompanhamentoStats.totalParcelas}${doc ? ` · ${MESES_CURTOS[doc.mes - 1]}/${String(doc.ano).slice(2)}` : ''} · ${paga ? 'paga' : 'pendente'}`}
+                            className={`h-6 flex-1 min-w-[16px] rounded-md transition-colors ${paga ? 'bg-emerald-400' : 'bg-slate-100 dark:bg-zinc-800'} ${atual ? 'ring-2 ring-indigo-500 dark:ring-purple-500 ring-offset-1' : ''}`}
+                          />
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+              )
+            )}
+
+            {/* Pagamento via Pix */}
+            <PixDetalhe
+              conta={acompanhar}
+              recebedores={recebedores}
+              copiado={pixCopiado}
+              onVincular={(id) => handleVincularRecebedor(acompanhar, id)}
+              onCopiar={(rec) => handleCopyPix(acompanhar, rec)}
+            />
+          </div>
         </Modal>
+      )}
+    </div>
+  );
+}
+
+// ── Seção Pix dentro do modal de detalhes ─────────────────────────────────────
+// Deixa vincular um recebedor à conta e copiar o "Pix Copia e Cola" já com o
+// valor da conta, pronto para colar no app do banco.
+function PixDetalhe({
+  conta, recebedores, copiado, onVincular, onCopiar,
+}: {
+  conta: Conta;
+  recebedores: Recebedor[];
+  copiado: boolean;
+  onVincular: (recebedorId: string) => void;
+  onCopiar: (rec: Recebedor) => void;
+}) {
+  const rec = recebedores.find((r) => r.id === conta.recebedorId);
+
+  return (
+    <div className="border-t border-slate-100 dark:border-zinc-800 pt-4 space-y-3">
+      <p className="text-[11px] text-slate-400 dark:text-zinc-400 uppercase tracking-wide font-medium">Pagamento via Pix</p>
+
+      {recebedores.length === 0 ? (
+        <p className="text-sm text-slate-400 dark:text-zinc-400">
+          Nenhum recebedor cadastrado. Adicione um em <span className="font-medium text-slate-500 dark:text-zinc-300">Configurações → Recebedores</span> para copiar o Pix com valor.
+        </p>
+      ) : (
+        <>
+          <select
+            value={conta.recebedorId ?? ''}
+            onChange={(e) => onVincular(e.target.value)}
+            className="w-full px-3 py-2.5 rounded-xl border border-slate-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-sm text-slate-700 dark:text-zinc-200 focus:outline-none focus:ring-2 focus:ring-indigo-400 dark:focus:ring-purple-500"
+          >
+            <option value="">Sem recebedor</option>
+            {recebedores.map((r) => <option key={r.id} value={r.id}>{r.apelido}</option>)}
+          </select>
+
+          {rec && (
+            <button
+              onClick={() => onCopiar(rec)}
+              className={`w-full py-3 rounded-xl text-sm font-semibold flex items-center justify-center gap-2 transition-colors ${
+                copiado
+                  ? 'bg-emerald-500 text-white'
+                  : 'bg-indigo-600 dark:bg-purple-600 text-white hover:bg-indigo-700 dark:hover:bg-purple-700'
+              }`}
+            >
+              {copiado ? <><Check /> Copiado!</> : <><CopyIcon /> Copiar Pix com valor</>}
+            </button>
+          )}
+        </>
       )}
     </div>
   );

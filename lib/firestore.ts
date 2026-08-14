@@ -1,20 +1,58 @@
 import {
   collection,
-  addDoc,
-  updateDoc,
-  deleteDoc,
+  addDoc as _addDoc,
+  updateDoc as _updateDoc,
+  deleteDoc as _deleteDoc,
   doc,
   getDocs,
   getDoc,
   query,
   where,
-  setDoc,
+  setDoc as _setDoc,
+  deleteField,
 } from 'firebase/firestore';
 import { db } from './firebase';
+
+// ─── Cache em memória das leituras de coleção inteira ─────────────────────────
+// As funções *Historico() / listas fixas leem a coleção toda e são chamadas em
+// todo load de aba e refoco. Guardamos o resultado por um TTL curto para não
+// re-ler a mesma coisa repetidamente. Qualquer escrita limpa o cache (ver os
+// wrappers abaixo), então o load() logo após um add/edit já enxerga o dado novo.
+const CACHE_TTL_MS = 60_000;
+const cache = new Map<string, { at: number; data: unknown }>();
+
+async function cachedCollection<T>(name: string): Promise<T[]> {
+  const hit = cache.get(name);
+  if (hit && Date.now() - hit.at < CACHE_TTL_MS) return hit.data as T[];
+  const snap = await getDocs(collection(db, name));
+  const data = snap.docs.map((d) => ({ id: d.id, ...d.data() })) as T[];
+  cache.set(name, { at: Date.now(), data });
+  return data;
+}
+
+// Wrappers das escritas: limpam o cache (qualquer coleção) antes de gravar, para
+// que a próxima leitura reflita a mudança. Como todo add/set/update/delete passa
+// por aqui, os call sites não precisam saber do cache.
+const addDoc: typeof _addDoc = ((...args: Parameters<typeof _addDoc>) => {
+  cache.clear();
+  return _addDoc(...args);
+}) as typeof _addDoc;
+const setDoc: typeof _setDoc = ((...args: unknown[]) => {
+  cache.clear();
+  return (_setDoc as (...a: unknown[]) => unknown)(...args);
+}) as typeof _setDoc;
+const updateDoc: typeof _updateDoc = ((...args: unknown[]) => {
+  cache.clear();
+  return (_updateDoc as (...a: unknown[]) => unknown)(...args);
+}) as typeof _updateDoc;
+const deleteDoc: typeof _deleteDoc = ((...args: Parameters<typeof _deleteDoc>) => {
+  cache.clear();
+  return _deleteDoc(...args);
+}) as typeof _deleteDoc;
 import type {
   Entrada, Distribuicao, SaqueReserva, Conta, CategoriaContaConfig,
   Cartao, CategoriaCompra, CompraParcelada, FaturaCartao,
-  CategoriaEmpresa, CustoEmpresa, FaturaEmpresa, Meta, NotaMes,
+  CategoriaEmpresa, CustoEmpresa, FaturaEmpresa, Meta, NotaMes, Recebedor,
 } from './types';
 import { DEFAULT_CARTOES, DEFAULT_CATEGORIAS } from './cartoes';
 
@@ -33,8 +71,7 @@ export async function getEntradas(mes: number, ano: number): Promise<Entrada[]> 
 }
 
 export async function getEntradasHistorico(): Promise<Entrada[]> {
-  const snap = await getDocs(collection(db, 'entradas'));
-  return snap.docs.map((d) => ({ id: d.id, ...d.data() } as Entrada));
+  return cachedCollection<Entrada>('entradas');
 }
 
 export async function addEntrada(e: Omit<Entrada, 'id'>): Promise<void> {
@@ -71,8 +108,7 @@ export async function saveDistribuicao(d: Omit<Distribuicao, 'id'>, id?: string)
 }
 
 export async function getDistribuicoesHistorico(): Promise<Distribuicao[]> {
-  const snap = await getDocs(collection(db, 'distribuicoes'));
-  return snap.docs.map((d) => ({ id: d.id, ...d.data() } as Distribuicao));
+  return cachedCollection<Distribuicao>('distribuicoes');
 }
 
 // ─── Saques de Reserva ────────────────────────────────────────────────────────
@@ -84,8 +120,7 @@ export async function getSaquesReserva(mes: number, ano: number): Promise<SaqueR
 }
 
 export async function getSaquesReservaHistorico(): Promise<SaqueReserva[]> {
-  const snap = await getDocs(collection(db, 'saques_reserva'));
-  return snap.docs.map((d) => ({ id: d.id, ...d.data() } as SaqueReserva));
+  return cachedCollection<SaqueReserva>('saques_reserva');
 }
 
 export async function addSaqueReserva(s: Omit<SaqueReserva, 'id'>): Promise<void> {
@@ -264,8 +299,7 @@ export async function deleteContaAndFuture(id: string, conta: Conta): Promise<vo
 }
 
 export async function getContasHistorico(): Promise<Conta[]> {
-  const snap = await getDocs(collection(db, 'contas'));
-  return snap.docs.map((d) => ({ id: d.id, ...d.data() } as Conta));
+  return cachedCollection<Conta>('contas');
 }
 
 // ─── Categorias de Contas ────────────────────────────────────────────────────
@@ -281,11 +315,10 @@ const DEFAULT_CATEGORIAS_CONTAS: Omit<CategoriaContaConfig, 'id'>[] = [
 ];
 
 export async function getCategoriasContas(): Promise<CategoriaContaConfig[]> {
-  const snap = await getDocs(collection(db, 'categorias_contas'));
-  if (!snap.empty) return snap.docs.map((d) => ({ id: d.id, ...d.data() } as CategoriaContaConfig));
+  const list = await cachedCollection<CategoriaContaConfig>('categorias_contas');
+  if (list.length) return list;
   await Promise.all(DEFAULT_CATEGORIAS_CONTAS.map((c) => addDoc(collection(db, 'categorias_contas'), c)));
-  const seeded = await getDocs(collection(db, 'categorias_contas'));
-  return seeded.docs.map((d) => ({ id: d.id, ...d.data() } as CategoriaContaConfig));
+  return cachedCollection<CategoriaContaConfig>('categorias_contas');
 }
 
 export async function addCategoriaContas(c: Omit<CategoriaContaConfig, 'id'>): Promise<void> {
@@ -296,15 +329,45 @@ export async function deleteCategoriaContas(id: string): Promise<void> {
   await deleteDoc(doc(db, 'categorias_contas', id));
 }
 
+// ─── Recebedores Pix ──────────────────────────────────────────────────────────
+
+export async function getRecebedores(): Promise<Recebedor[]> {
+  return cachedCollection<Recebedor>('recebedores');
+}
+
+export async function addRecebedor(r: Omit<Recebedor, 'id'>): Promise<void> {
+  await addDoc(collection(db, 'recebedores'), r);
+}
+
+export async function updateRecebedor(id: string, r: Omit<Recebedor, 'id'>): Promise<void> {
+  await setDoc(doc(db, 'recebedores', id), r);
+}
+
+export async function deleteRecebedor(id: string): Promise<void> {
+  await deleteDoc(doc(db, 'recebedores', id));
+}
+
+// Vincula (ou desvincula, com recebedorId = null) um recebedor a uma conta.
+// Se a conta for fixa/parcelada (tem grupoId), propaga para todas as ocorrências
+// do grupo — o recebedor é o mesmo em todos os meses.
+export async function setContaRecebedor(conta: Conta, recebedorId: string | null): Promise<void> {
+  const valor = recebedorId ?? deleteField();
+  if (conta.grupoId) {
+    const snap = await getDocs(query(collection(db, 'contas'), where('grupoId', '==', conta.grupoId)));
+    await Promise.all(snap.docs.map((d) => updateDoc(d.ref, { recebedorId: valor })));
+  } else {
+    await updateDoc(doc(db, 'contas', conta.id!), { recebedorId: valor });
+  }
+}
+
 // ─── Cartões ────────────────────────────────────────────────────────────────
 
 export async function getCartoes(): Promise<Cartao[]> {
-  const snap = await getDocs(collection(db, 'cartoes'));
-  if (!snap.empty) return snap.docs.map((d) => ({ id: d.id, ...d.data() } as Cartao));
+  const list = await cachedCollection<Cartao>('cartoes');
+  if (list.length) return list;
   // Seed na primeira vez
   await Promise.all(DEFAULT_CARTOES.map((c) => addDoc(collection(db, 'cartoes'), c)));
-  const seeded = await getDocs(collection(db, 'cartoes'));
-  return seeded.docs.map((d) => ({ id: d.id, ...d.data() } as Cartao));
+  return cachedCollection<Cartao>('cartoes');
 }
 
 export async function addCartao(c: Omit<Cartao, 'id'>): Promise<void> {
@@ -322,12 +385,11 @@ export async function deleteCartao(id: string): Promise<void> {
 // ─── Categorias de Compra ────────────────────────────────────────────────────
 
 export async function getCategorias(): Promise<CategoriaCompra[]> {
-  const snap = await getDocs(collection(db, 'categorias'));
-  if (!snap.empty) return snap.docs.map((d) => ({ id: d.id, ...d.data() } as CategoriaCompra));
+  const list = await cachedCollection<CategoriaCompra>('categorias');
+  if (list.length) return list;
   // Seed na primeira vez
   await Promise.all(DEFAULT_CATEGORIAS.map((c) => addDoc(collection(db, 'categorias'), c)));
-  const seeded = await getDocs(collection(db, 'categorias'));
-  return seeded.docs.map((d) => ({ id: d.id, ...d.data() } as CategoriaCompra));
+  return cachedCollection<CategoriaCompra>('categorias');
 }
 
 export async function addCategoria(c: Omit<CategoriaCompra, 'id'>): Promise<void> {
@@ -509,8 +571,7 @@ export async function deleteCompraAndFuture(id: string, compra: CompraParcelada)
 }
 
 export async function getComprasHistorico(): Promise<CompraParcelada[]> {
-  const snap = await getDocs(collection(db, 'compras'));
-  return snap.docs.map((d) => ({ id: d.id, ...d.data() } as CompraParcelada));
+  return cachedCollection<CompraParcelada>('compras');
 }
 
 // ─── Faturas de Cartão ───────────────────────────────────────────────────────
@@ -522,8 +583,7 @@ export async function getFaturasCartao(mes: number, ano: number): Promise<Fatura
 }
 
 export async function getFaturasCartaoHistorico(): Promise<FaturaCartao[]> {
-  const snap = await getDocs(collection(db, 'faturas_cartao'));
-  return snap.docs.map((d) => ({ id: d.id, ...d.data() } as FaturaCartao));
+  return cachedCollection<FaturaCartao>('faturas_cartao');
 }
 
 export async function setFaturaCartaoStatus(
@@ -545,11 +605,10 @@ export async function setFaturaCartaoValor(
 // ─── Categorias de Empresa ───────────────────────────────────────────────────
 
 export async function getCategoriasEmpresa(): Promise<CategoriaEmpresa[]> {
-  const snap = await getDocs(collection(db, 'categorias_empresa'));
-  if (!snap.empty) return snap.docs.map((d) => ({ id: d.id, ...d.data() } as CategoriaEmpresa));
+  const list = await cachedCollection<CategoriaEmpresa>('categorias_empresa');
+  if (list.length) return list;
   await Promise.all(DEFAULT_CATEGORIAS_EMPRESA.map((c) => addDoc(collection(db, 'categorias_empresa'), c)));
-  const seeded = await getDocs(collection(db, 'categorias_empresa'));
-  return seeded.docs.map((d) => ({ id: d.id, ...d.data() } as CategoriaEmpresa));
+  return cachedCollection<CategoriaEmpresa>('categorias_empresa');
 }
 
 export async function addCategoriaEmpresa(c: Omit<CategoriaEmpresa, 'id'>): Promise<void> {
@@ -731,8 +790,7 @@ export async function deleteCustoEmpresaAndFuture(id: string, custo: CustoEmpres
 }
 
 export async function getCustosEmpresaHistorico(): Promise<CustoEmpresa[]> {
-  const snap = await getDocs(collection(db, 'custos_empresa'));
-  return snap.docs.map((d) => ({ id: d.id, ...d.data() } as CustoEmpresa));
+  return cachedCollection<CustoEmpresa>('custos_empresa');
 }
 
 // ─── Faturas Empresa ─────────────────────────────────────────────────────────

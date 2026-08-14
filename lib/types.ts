@@ -47,6 +47,18 @@ export interface Conta {
   totalParcelas?: number;
   fixa?: boolean;
   grupoId?: string;
+  // Recebedor Pix vinculado (para gerar o "copia e cola" com valor no dia de pagar)
+  recebedorId?: string;
+}
+
+// Pessoa/empresa que recebe o pagamento via Pix. Os campos nome e cidade são
+// exigidos pelo padrão BR Code do Banco Central (aparecem no comprovante).
+export interface Recebedor {
+  id?: string;
+  apelido: string; // como aparece na lista do app (ex: "João — aluguel")
+  chave: string;   // chave Pix (email, telefone, CPF/CNPJ ou aleatória)
+  nome: string;    // nome do recebedor no comprovante (máx. 25 caracteres)
+  cidade: string;  // cidade do recebedor (máx. 15 caracteres)
 }
 
 export interface Cartao {
