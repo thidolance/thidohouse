@@ -86,3 +86,12 @@ body {
 .dark input[type="date"]::-webkit-calendar-picker-indicator:hover {
   opacity: 1;
 }
+
+/* No mobile, o botão flutuante de anotações fura o modal (stacking context).
+   Enquanto houver um modal aberto, escondemos ele — só nas telas pequenas. */
+@media (max-width: 640px) {
+  body[data-modal-aberto] .notas-fab {
+    opacity: 0;
+    pointer-events: none;
+  }
+}

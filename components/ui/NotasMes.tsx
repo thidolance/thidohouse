@@ -112,7 +112,7 @@ export default function NotasMes({ mes, ano }: Props) {
       <button
         onClick={() => setAberto((v) => !v)}
         title="Anotações do mês"
-        className={`fixed bottom-4 right-4 z-50 h-12 w-12 rounded-full shadow-lg flex items-center justify-center transition-all duration-200 ${
+        className={`notas-fab fixed bottom-4 right-4 z-50 h-12 w-12 rounded-full shadow-lg flex items-center justify-center transition-all duration-200 ${
           aberto
             ? 'bg-indigo-700 dark:bg-purple-700 scale-95'
             : 'bg-indigo-600 dark:bg-purple-600 hover:bg-indigo-700 dark:hover:bg-purple-700 hover:scale-110'

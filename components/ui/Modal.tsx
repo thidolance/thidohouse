@@ -9,6 +9,10 @@ interface Props {
   children: React.ReactNode;
 }
 
+// Conta quantos modais estão abertos para marcar/desmarcar o body só quando o
+// último fecha (suporta modais aninhados).
+let modaisAbertos = 0;
+
 export default function Modal({ title, onClose, children }: Props) {
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
@@ -17,6 +21,17 @@ export default function Modal({ title, onClose, children }: Props) {
     document.addEventListener('keydown', onKey);
     return () => document.removeEventListener('keydown', onKey);
   }, [onClose]);
+
+  // Sinaliza no body que há um modal aberto — usado pelo CSS para esconder o
+  // botão flutuante de anotações no mobile (ele fura o modal por stacking context).
+  useEffect(() => {
+    modaisAbertos += 1;
+    document.body.dataset.modalAberto = 'true';
+    return () => {
+      modaisAbertos -= 1;
+      if (modaisAbertos <= 0) delete document.body.dataset.modalAberto;
+    };
+  }, []);
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
