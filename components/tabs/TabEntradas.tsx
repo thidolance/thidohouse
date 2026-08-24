@@ -87,8 +87,6 @@ export default function TabEntradas({ mes, ano }: Props) {
   const [editId, setEditId]             = useState<string | null>(null);
   const [form, setForm]                 = useState({ descricao: '', valor: '', data: '' });
   const [saqueForm, setSaqueForm]       = useState<{ categoria: ReservaKey; valor: string; descricao: string }>({ categoria: 'planosFuturos', valor: '', descricao: '' });
-  // Saldo acumulado desde o início por reserva — base para validar saques.
-  const [saldoCat, setSaldoCat]         = useState<Record<ReservaKey, number>>({ ferias: 0, investimento: 0, planosFuturos: 0 });
   const [editSaque, setEditSaque]       = useState<SaqueReserva | null>(null);
   // 'form' = tela normal do saque; 'split' = escolher de qual outra reserva tirar o restante.
   const [saqueStep, setSaqueStep]       = useState<'form' | 'split'>('form');
@@ -158,27 +156,6 @@ export default function TabEntradas({ mes, ano }: Props) {
       }
     });
     const totalAcc = accInvest + accFerias + accPlanos;
-
-    // ── Saldo por reserva acumulado desde o início (todos os meses, sem janela) —
-    // usado só para validar/limitar saques. ──
-    const todosKeys = new Set<string>([...distByKey.keys(), ...Object.keys(ganhosByKey), ...Object.keys(saquesByKey)]);
-    let allInvest = 0, allFerias = 0, allPlanos = 0;
-    todosKeys.forEach((k) => {
-      const d = distByKey.get(k);
-      const g = ganhosByKey[k];
-      const s = saquesByKey[k];
-      if (d && g) {
-        allInvest += g * (d.investimento / 100);
-        allFerias += g * (d.ferias / 100);
-        allPlanos += g * (d.planosFuturos / 100);
-      }
-      if (s) {
-        allInvest -= s.investimento;
-        allFerias -= s.ferias;
-        allPlanos -= s.planosFuturos;
-      }
-    });
-    setSaldoCat({ investimento: allInvest, ferias: allFerias, planosFuturos: allPlanos });
 
     const kAtual = `${ano}-${mes}`;
     const gAtual = ganhosByKey[kAtual] ?? 0;
@@ -279,11 +256,15 @@ export default function TabEntradas({ mes, ano }: Props) {
     setShowSaqueModal(true);
   }
 
-  // Saldo disponível na reserva. Ao editar, devolve o valor do próprio saque
-  // (que já está descontado em saldoCat) para não contar duas vezes.
+  // Disponível na reserva NESTE mês: o que foi alocado no mês (entradas do mês ×
+  // % da distribuição) menos os saques já feitos no mês naquela reserva. O saque
+  // em edição é ignorado na soma (não conta contra o próprio limite).
   function dispCategoria(cat: ReservaKey): number {
-    const base = saldoCat[cat];
-    return editSaque && editSaque.categoria === cat ? base + editSaque.valor : base;
+    const alocado = totalMes * ((distribuicao[cat] ?? 0) / 100);
+    const jaSacado = saquesMes
+      .filter((s) => s.categoria === cat && s.id !== editSaque?.id)
+      .reduce((acc, s) => acc + s.valor, 0);
+    return alocado - jaSacado;
   }
 
   async function commitSaque(categoria: ReservaKey, valor: number, descricao?: string) {
