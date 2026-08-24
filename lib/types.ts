@@ -26,6 +26,12 @@ export interface SaqueReserva {
   descricao?: string;
   mes: number;
   ano: number;
+  // Quando um saque estoura o saldo da reserva, o excedente vira um segundo saque
+  // em outra reserva. Os dois compartilham o mesmo grupoId e são tratados como
+  // uma unidade (editar recalcula os dois; excluir apaga os dois). O excedente é
+  // marcado com restante=true.
+  grupoId?: string;
+  restante?: boolean;
 }
 
 export interface CategoriaContaConfig {

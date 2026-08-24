@@ -11,7 +11,7 @@ import {
   getEntradas, addEntrada, updateEntrada, deleteEntrada,
   getEntradasHistorico, getDistribuicao, saveDistribuicao,
   getDistribuicoesHistorico,
-  getSaquesReserva, getSaquesReservaHistorico, addSaqueReserva, updateSaqueReserva, deleteSaqueReserva,
+  getSaquesReserva, getSaquesReservaHistorico, addSaqueReserva, deleteSaqueReserva,
 } from '@/lib/firestore';
 import { formatCurrencyInput as formatBRL, parseCurrencyInput as parseBRL, formatCurrencyBRL } from '@/lib/currency';
 import type { Entrada, Distribuicao, SaqueReserva } from '@/lib/types';
@@ -86,11 +86,11 @@ export default function TabEntradas({ mes, ano }: Props) {
   const [loading, setLoading]           = useState(false);
   const [editId, setEditId]             = useState<string | null>(null);
   const [form, setForm]                 = useState({ descricao: '', valor: '', data: '' });
-  const [saqueForm, setSaqueForm]       = useState<{ categoria: ReservaKey; valor: string; descricao: string }>({ categoria: 'planosFuturos', valor: '', descricao: '' });
-  const [editSaque, setEditSaque]       = useState<SaqueReserva | null>(null);
-  // 'form' = tela normal do saque; 'split' = escolher de qual outra reserva tirar o restante.
-  const [saqueStep, setSaqueStep]       = useState<'form' | 'split'>('form');
-  const [saqueFalta, setSaqueFalta]     = useState(0);
+  // `restante` = reserva de onde tirar o excedente quando o valor estoura a reserva principal.
+  const [saqueForm, setSaqueForm]       = useState<{ categoria: ReservaKey; valor: string; descricao: string; restante: ReservaKey | null }>({ categoria: 'planosFuturos', valor: '', descricao: '', restante: null });
+  // Ids do saque em edição (principal + restante, se houver). Ignorados no cálculo
+  // do disponível para não contarem contra o próprio limite.
+  const [editGroupIds, setEditGroupIds] = useState<string[]>([]);
   const [distForm, setDistForm]         = useState<Record<DistKey, string>>({ contas: '50', ferias: '10', investimento: '20', planosFuturos: '20' });
   const [distColors, setDistColors]     = useState<DistColors>(DEFAULT_DIST_COLORS);
   const [distColorForm, setDistColorForm] = useState<DistColors>(DEFAULT_DIST_COLORS);
@@ -242,82 +242,88 @@ export default function TabEntradas({ mes, ano }: Props) {
     load();
   }
 
+  const editandoSaque = editGroupIds.length > 0;
+
   function abrirSaque() {
-    setSaqueForm({ categoria: 'planosFuturos', valor: '', descricao: '' });
-    setEditSaque(null);
-    setSaqueStep('form');
+    setSaqueForm({ categoria: 'planosFuturos', valor: '', descricao: '', restante: null });
+    setEditGroupIds([]);
     setShowSaqueModal(true);
   }
 
+  // Membros do grupo de um saque (principal + restante). Saques antigos sem
+  // grupoId são tratados isoladamente.
+  function membrosGrupo(s: SaqueReserva): SaqueReserva[] {
+    if (!s.grupoId) return [s];
+    return saquesMes.filter((x) => x.grupoId === s.grupoId);
+  }
+
   function handleEditSaque(s: SaqueReserva) {
-    setEditSaque(s);
-    setSaqueForm({ categoria: s.categoria, valor: formatCurrencyBRL(s.valor), descricao: s.descricao ?? '' });
-    setSaqueStep('form');
+    const grupo = membrosGrupo(s);
+    const principal = grupo.find((x) => !x.restante) ?? grupo[0];
+    const restante = grupo.find((x) => x.restante);
+    const total = grupo.reduce((acc, x) => acc + x.valor, 0);
+    setSaqueForm({
+      categoria: principal.categoria,
+      valor: formatCurrencyBRL(total),
+      descricao: principal.descricao ?? '',
+      restante: restante?.categoria ?? null,
+    });
+    setEditGroupIds(grupo.map((x) => x.id!));
     setShowSaqueModal(true);
   }
 
   // Disponível na reserva NESTE mês: o que foi alocado no mês (entradas do mês ×
-  // % da distribuição) menos os saques já feitos no mês naquela reserva. O saque
-  // em edição é ignorado na soma (não conta contra o próprio limite).
+  // % da distribuição) menos os saques já feitos no mês naquela reserva. Os saques
+  // do grupo em edição são ignorados (não contam contra o próprio limite).
   function dispCategoria(cat: ReservaKey): number {
     const alocado = totalMes * ((distribuicao[cat] ?? 0) / 100);
     const jaSacado = saquesMes
-      .filter((s) => s.categoria === cat && s.id !== editSaque?.id)
+      .filter((s) => s.categoria === cat && !editGroupIds.includes(s.id!))
       .reduce((acc, s) => acc + s.valor, 0);
     return alocado - jaSacado;
   }
 
-  async function commitSaque(categoria: ReservaKey, valor: number, descricao?: string) {
-    const dados = { categoria, valor, ...(descricao ? { descricao } : {}), mes, ano };
-    if (editSaque?.id) await updateSaqueReserva(editSaque.id, dados);
-    else               await addSaqueReserva(dados);
-  }
-
   async function handleSaveSaque(e: React.SubmitEvent<HTMLFormElement>) {
     e.preventDefault();
-    const valor = parseBRL(saqueForm.valor);
-    if (valor <= 0) return;
-    const disp = dispCategoria(saqueForm.categoria);
-    // Cabe no saldo da categoria → grava direto.
-    if (valor <= disp + 0.005) {
-      await commitSaque(saqueForm.categoria, valor, saqueForm.descricao);
-      setShowSaqueModal(false);
-      load();
-      return;
-    }
-    // Estourou. Ao editar, apenas confirma que a reserva vai ficar negativa.
-    if (editSaque) {
-      const label = RESERVA_LABELS.find((r) => r.key === saqueForm.categoria)?.label;
-      if (!confirm(`${label} tem só ${fmt(Math.max(disp, 0))} guardado. Salvar mesmo assim deixa a reserva negativa em ${fmt(valor - disp)}. Continuar?`)) return;
-      await commitSaque(saqueForm.categoria, valor, saqueForm.descricao);
-      setShowSaqueModal(false);
-      load();
-      return;
-    }
-    // Criação nova: oferece tirar o restante de outra reserva.
-    setSaqueFalta(valor - Math.max(disp, 0));
-    setSaqueStep('split');
-  }
+    const total = parseBRL(saqueForm.valor);
+    if (total <= 0) return;
+    const { categoria, descricao } = saqueForm;
+    const disp = dispCategoria(categoria);
+    const maxPrincipal = Math.max(disp, 0);
+    const precisaRestante = total > disp + 0.005;
+    const labelPrincipal = RESERVA_LABELS.find((r) => r.key === categoria)?.label ?? '';
 
-  // Registra o máximo possível na reserva original + o restante na escolhida.
-  async function handleSplitSaque(outra: ReservaKey) {
-    const maxOrig = Math.max(dispCategoria(saqueForm.categoria), 0);
-    const labelOrig = RESERVA_LABELS.find((r) => r.key === saqueForm.categoria)?.label ?? '';
-    if (maxOrig > 0) {
-      await addSaqueReserva({ categoria: saqueForm.categoria, valor: maxOrig, ...(saqueForm.descricao ? { descricao: saqueForm.descricao } : {}), mes, ano });
+    // Reserva de onde tirar o excedente (a escolhida, ou a primeira outra por padrão).
+    const restanteCat: ReservaKey | null = precisaRestante
+      ? (saqueForm.restante && saqueForm.restante !== categoria
+          ? saqueForm.restante
+          : RESERVA_LABELS.find((r) => r.key !== categoria)!.key)
+      : null;
+
+    // Idempotente: apaga o grupo atual (se editando) e regrava do zero.
+    await Promise.all(editGroupIds.map((id) => deleteSaqueReserva(id)));
+
+    if (!precisaRestante) {
+      await addSaqueReserva({ categoria, valor: total, ...(descricao ? { descricao } : {}), mes, ano });
+    } else if (maxPrincipal <= 0.005) {
+      // Reserva principal vazia no mês → tudo vem da outra reserva.
+      await addSaqueReserva({ categoria: restanteCat!, valor: total, ...(descricao ? { descricao } : {}), mes, ano });
+    } else {
+      const grupoId = crypto.randomUUID();
+      await addSaqueReserva({ categoria, valor: maxPrincipal, ...(descricao ? { descricao } : {}), mes, ano, grupoId });
+      await addSaqueReserva({
+        categoria: restanteCat!,
+        valor: total - maxPrincipal,
+        descricao: descricao ? `${descricao} (restante de ${labelPrincipal})` : `Restante de ${labelPrincipal}`,
+        mes, ano, grupoId, restante: true,
+      });
     }
-    await addSaqueReserva({
-      categoria: outra,
-      valor: saqueFalta,
-      descricao: saqueForm.descricao ? `${saqueForm.descricao} (restante de ${labelOrig})` : `Restante de ${labelOrig}`,
-      mes, ano,
-    });
     setShowSaqueModal(false);
     load();
   }
 
-  async function handleDeleteSaque(id: string) {
-    await deleteSaqueReserva(id);
+  async function handleDeleteSaque(s: SaqueReserva) {
+    await Promise.all(membrosGrupo(s).map((x) => deleteSaqueReserva(x.id!)));
     load();
   }
 
@@ -598,27 +604,46 @@ export default function TabEntradas({ mes, ano }: Props) {
         {saquesMes.length > 0 && (
           <div className="mt-4 pt-4 border-t border-slate-100 dark:border-zinc-800 space-y-2">
             <p className="text-[11px] font-semibold text-slate-400 dark:text-zinc-500 uppercase tracking-wide">Saques deste mês</p>
-            {saquesMes.map((s) => (
-              <div key={s.id} className="group flex items-center justify-between gap-2">
-                <div className="flex items-center gap-1.5 min-w-0">
-                  <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: distColors[s.categoria] }} />
-                  <span className="text-xs text-slate-500 dark:text-zinc-400 truncate">
-                    {RESERVA_LABELS.find((r) => r.key === s.categoria)?.label}{s.descricao ? ` · ${s.descricao}` : ''}
-                  </span>
+            {saquesMes.filter((s) => !s.restante).map((principal) => {
+              const restante = principal.grupoId
+                ? saquesMes.find((x) => x.restante && x.grupoId === principal.grupoId)
+                : undefined;
+              return (
+                <div key={principal.id} className="group">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-1.5 min-w-0">
+                      <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: distColors[principal.categoria] }} />
+                      <span className="text-xs text-slate-500 dark:text-zinc-400 truncate">
+                        {RESERVA_LABELS.find((r) => r.key === principal.categoria)?.label}{principal.descricao ? ` · ${principal.descricao}` : ''}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-1.5 flex-shrink-0">
+                      <span className="text-xs font-semibold text-red-500 dark:text-red-400 tabular-nums">-{fmt(principal.valor)}</span>
+                      <button onClick={() => handleEditSaque(principal)}
+                        className="p-1 rounded-lg text-slate-300 dark:text-zinc-500 hover:text-indigo-500 dark:hover:text-purple-400 hover:bg-indigo-50 dark:hover:bg-purple-500/10 transition-colors opacity-100 sm:opacity-0 sm:group-hover:opacity-100">
+                        <Pencil />
+                      </button>
+                      <button onClick={() => handleDeleteSaque(principal)}
+                        className="p-1 rounded-lg text-slate-300 dark:text-zinc-500 hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors opacity-100 sm:opacity-0 sm:group-hover:opacity-100">
+                        <Trash />
+                      </button>
+                    </div>
+                  </div>
+                  {restante && (
+                    <div className="flex items-center justify-between gap-2 mt-1 pl-3 ml-0.5 border-l border-slate-200 dark:border-zinc-700">
+                      <div className="flex items-center gap-1.5 min-w-0">
+                        <span className="text-[10px] text-slate-300 dark:text-zinc-600">↳</span>
+                        <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: distColors[restante.categoria] }} />
+                        <span className="text-[11px] text-slate-400 dark:text-zinc-500 truncate">
+                          restante em {RESERVA_LABELS.find((r) => r.key === restante.categoria)?.label}
+                        </span>
+                      </div>
+                      <span className="text-[11px] font-semibold text-red-400 dark:text-red-400/80 tabular-nums flex-shrink-0">-{fmt(restante.valor)}</span>
+                    </div>
+                  )}
                 </div>
-                <div className="flex items-center gap-1.5 flex-shrink-0">
-                  <span className="text-xs font-semibold text-red-500 dark:text-red-400 tabular-nums">-{fmt(s.valor)}</span>
-                  <button onClick={() => handleEditSaque(s)}
-                    className="p-1 rounded-lg text-slate-300 dark:text-zinc-500 hover:text-indigo-500 dark:hover:text-purple-400 hover:bg-indigo-50 dark:hover:bg-purple-500/10 transition-colors opacity-100 sm:opacity-0 sm:group-hover:opacity-100">
-                    <Pencil />
-                  </button>
-                  <button onClick={() => handleDeleteSaque(s.id!)}
-                    className="p-1 rounded-lg text-slate-300 dark:text-zinc-500 hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors opacity-100 sm:opacity-0 sm:group-hover:opacity-100">
-                    <Trash />
-                  </button>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </Card>
@@ -685,13 +710,18 @@ export default function TabEntradas({ mes, ano }: Props) {
       {showSaqueModal && (() => {
         const dispSel = dispCategoria(saqueForm.categoria);
         const valorNum = parseBRL(saqueForm.valor);
+        const maxPrincipal = Math.max(dispSel, 0);
         const estoura = valorNum > dispSel + 0.005;
+        const falta = valorNum - maxPrincipal;
+        // Restante efetivo (default = primeira outra reserva) quando estoura.
+        const restanteCat = saqueForm.restante && saqueForm.restante !== saqueForm.categoria
+          ? saqueForm.restante
+          : RESERVA_LABELS.find((r) => r.key !== saqueForm.categoria)!.key;
         return (
-        <Modal title={editSaque ? 'Editar Saque' : 'Registrar Saque'} onClose={() => setShowSaqueModal(false)}>
-          {saqueStep === 'form' ? (
+        <Modal title={editandoSaque ? 'Editar Saque' : 'Registrar Saque'} onClose={() => setShowSaqueModal(false)}>
           <form onSubmit={handleSaveSaque} className="space-y-4">
             <p className="text-xs text-slate-400 dark:text-zinc-400 bg-slate-50 dark:bg-zinc-950 rounded-lg p-2">
-              Use quando retirar dinheiro de uma reserva (ex: usou parte dos Planos Futuros). O valor é abatido do saldo acumulado desta categoria neste mês.
+              Use quando retirar dinheiro de uma reserva (ex: usou parte dos Planos Futuros). O valor é abatido do que foi guardado nesta reserva neste mês.
             </p>
             <div>
               <label className="block text-sm font-medium text-slate-700 dark:text-zinc-200 mb-1.5">Reserva</label>
@@ -700,7 +730,7 @@ export default function TabEntradas({ mes, ano }: Props) {
                   <button
                     key={key}
                     type="button"
-                    onClick={() => setSaqueForm({ ...saqueForm, categoria: key })}
+                    onClick={() => setSaqueForm({ ...saqueForm, categoria: key, restante: saqueForm.restante === key ? null : saqueForm.restante })}
                     className="px-3 py-1.5 rounded-full text-xs font-medium transition-all border"
                     style={saqueForm.categoria === key
                       ? { backgroundColor: distColors[key], color: '#fff', borderColor: distColors[key] }
@@ -716,10 +746,40 @@ export default function TabEntradas({ mes, ano }: Props) {
               <input required value={saqueForm.valor} onChange={(e) => setSaqueForm({ ...saqueForm, valor: formatBRL(e.target.value) })} className={INPUT} placeholder="0,00" inputMode="decimal" />
               <p className={`mt-1.5 text-xs ${estoura ? 'text-red-500 dark:text-red-400 font-medium' : 'text-slate-400 dark:text-zinc-500'}`}>
                 {estoura
-                  ? `Disponível nesta reserva: ${fmt(Math.max(dispSel, 0))} — faltam ${fmt(valorNum - Math.max(dispSel, 0))}`
-                  : `Disponível nesta reserva: ${fmt(Math.max(dispSel, 0))}`}
+                  ? `Disponível nesta reserva: ${fmt(maxPrincipal)} — faltam ${fmt(falta)}`
+                  : `Disponível nesta reserva: ${fmt(maxPrincipal)}`}
               </p>
             </div>
+
+            {/* Transbordo: de qual reserva tirar o que faltar */}
+            {estoura && (
+              <div className="rounded-xl border border-amber-200 dark:border-amber-500/30 bg-amber-50 dark:bg-amber-500/10 p-3 space-y-2">
+                <p className="text-xs text-amber-700 dark:text-amber-400">
+                  {maxPrincipal > 0
+                    ? <>Saem {fmt(maxPrincipal)} de <span className="font-semibold">{RESERVA_LABELS.find((r) => r.key === saqueForm.categoria)?.label}</span> e os {fmt(falta)} restantes de:</>
+                    : <>Esta reserva não tem saldo no mês. Tirar os {fmt(falta)} de:</>}
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {RESERVA_LABELS.filter((r) => r.key !== saqueForm.categoria).map(({ key, label }) => {
+                    const saldo = Math.max(dispCategoria(key), 0);
+                    return (
+                      <button
+                        key={key}
+                        type="button"
+                        onClick={() => setSaqueForm({ ...saqueForm, restante: key })}
+                        className="px-3 py-1.5 rounded-full text-xs font-medium transition-all border"
+                        style={restanteCat === key
+                          ? { backgroundColor: distColors[key], color: '#fff', borderColor: distColors[key] }
+                          : { borderColor: '#e2e8f0', color: '#64748b' }}
+                      >
+                        {label} · {fmt(saldo)}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
             <div>
               <label className="block text-sm font-medium text-slate-700 dark:text-zinc-200 mb-1">Descrição (opcional)</label>
               <input value={saqueForm.descricao} onChange={(e) => setSaqueForm({ ...saqueForm, descricao: e.target.value })} className={INPUT} placeholder="Ex: conserto do carro" />
@@ -727,40 +787,10 @@ export default function TabEntradas({ mes, ano }: Props) {
             <div className="flex gap-3 pt-1">
               <button type="button" onClick={() => setShowSaqueModal(false)} className="flex-1 py-2.5 border border-slate-200 dark:border-zinc-800 rounded-xl text-sm text-slate-600 dark:text-zinc-300 hover:bg-slate-50 dark:hover:bg-zinc-800">Cancelar</button>
               <button type="submit" className="flex-1 py-2.5 bg-red-500 text-white rounded-xl text-sm font-semibold hover:bg-red-600 shadow-sm">
-                {editSaque ? 'Salvar' : estoura ? 'Continuar' : 'Registrar Saque'}
+                {editandoSaque ? 'Salvar' : 'Registrar Saque'}
               </button>
             </div>
           </form>
-          ) : (
-            <div className="space-y-4">
-              <div className="text-sm bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-400 rounded-lg p-3">
-                <span className="font-semibold">{RESERVA_LABELS.find((r) => r.key === saqueForm.categoria)?.label}</span> não tem saldo suficiente.
-                Faltam <span className="font-semibold">{fmt(saqueFalta)}</span>. De qual reserva tirar o restante?
-              </div>
-              <div className="space-y-2">
-                {RESERVA_LABELS.filter((r) => r.key !== saqueForm.categoria).map(({ key, label }) => {
-                  const saldo = dispCategoria(key);
-                  return (
-                    <button
-                      key={key}
-                      type="button"
-                      onClick={() => handleSplitSaque(key)}
-                      className="w-full flex items-center justify-between gap-2 px-3 py-2.5 border border-slate-200 dark:border-zinc-800 rounded-xl text-sm hover:bg-slate-50 dark:hover:bg-zinc-800 transition-colors"
-                    >
-                      <span className="flex items-center gap-2 text-slate-700 dark:text-zinc-200 font-medium">
-                        <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: distColors[key] }} />
-                        {label}
-                      </span>
-                      <span className={`tabular-nums text-xs ${saldo < saqueFalta ? 'text-red-500 dark:text-red-400' : 'text-slate-400 dark:text-zinc-500'}`}>
-                        {fmt(Math.max(saldo, 0))} disp.
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
-              <button type="button" onClick={() => setSaqueStep('form')} className="w-full py-2.5 border border-slate-200 dark:border-zinc-800 rounded-xl text-sm text-slate-600 dark:text-zinc-300 hover:bg-slate-50 dark:hover:bg-zinc-800">Voltar</button>
-            </div>
-          )}
         </Modal>
         );
       })()}
