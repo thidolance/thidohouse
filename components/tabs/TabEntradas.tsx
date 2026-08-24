@@ -11,7 +11,7 @@ import {
   getEntradas, addEntrada, updateEntrada, deleteEntrada,
   getEntradasHistorico, getDistribuicao, saveDistribuicao,
   getDistribuicoesHistorico,
-  getSaquesReserva, getSaquesReservaHistorico, addSaqueReserva, deleteSaqueReserva,
+  getSaquesReserva, getSaquesReservaHistorico, addSaqueReserva, updateSaqueReserva, deleteSaqueReserva,
 } from '@/lib/firestore';
 import { formatCurrencyInput as formatBRL, parseCurrencyInput as parseBRL, formatCurrencyBRL } from '@/lib/currency';
 import type { Entrada, Distribuicao, SaqueReserva } from '@/lib/types';
@@ -87,6 +87,12 @@ export default function TabEntradas({ mes, ano }: Props) {
   const [editId, setEditId]             = useState<string | null>(null);
   const [form, setForm]                 = useState({ descricao: '', valor: '', data: '' });
   const [saqueForm, setSaqueForm]       = useState<{ categoria: ReservaKey; valor: string; descricao: string }>({ categoria: 'planosFuturos', valor: '', descricao: '' });
+  // Saldo acumulado desde o início por reserva — base para validar saques.
+  const [saldoCat, setSaldoCat]         = useState<Record<ReservaKey, number>>({ ferias: 0, investimento: 0, planosFuturos: 0 });
+  const [editSaque, setEditSaque]       = useState<SaqueReserva | null>(null);
+  // 'form' = tela normal do saque; 'split' = escolher de qual outra reserva tirar o restante.
+  const [saqueStep, setSaqueStep]       = useState<'form' | 'split'>('form');
+  const [saqueFalta, setSaqueFalta]     = useState(0);
   const [distForm, setDistForm]         = useState<Record<DistKey, string>>({ contas: '50', ferias: '10', investimento: '20', planosFuturos: '20' });
   const [distColors, setDistColors]     = useState<DistColors>(DEFAULT_DIST_COLORS);
   const [distColorForm, setDistColorForm] = useState<DistColors>(DEFAULT_DIST_COLORS);
@@ -152,6 +158,28 @@ export default function TabEntradas({ mes, ano }: Props) {
       }
     });
     const totalAcc = accInvest + accFerias + accPlanos;
+
+    // ── Saldo por reserva acumulado desde o início (todos os meses, sem janela) —
+    // usado só para validar/limitar saques. ──
+    const todosKeys = new Set<string>([...distByKey.keys(), ...Object.keys(ganhosByKey), ...Object.keys(saquesByKey)]);
+    let allInvest = 0, allFerias = 0, allPlanos = 0;
+    todosKeys.forEach((k) => {
+      const d = distByKey.get(k);
+      const g = ganhosByKey[k];
+      const s = saquesByKey[k];
+      if (d && g) {
+        allInvest += g * (d.investimento / 100);
+        allFerias += g * (d.ferias / 100);
+        allPlanos += g * (d.planosFuturos / 100);
+      }
+      if (s) {
+        allInvest -= s.investimento;
+        allFerias -= s.ferias;
+        allPlanos -= s.planosFuturos;
+      }
+    });
+    setSaldoCat({ investimento: allInvest, ferias: allFerias, planosFuturos: allPlanos });
+
     const kAtual = `${ano}-${mes}`;
     const gAtual = ganhosByKey[kAtual] ?? 0;
     const dAtual = distByKey.get(kAtual);
@@ -239,17 +267,68 @@ export default function TabEntradas({ mes, ano }: Props) {
 
   function abrirSaque() {
     setSaqueForm({ categoria: 'planosFuturos', valor: '', descricao: '' });
+    setEditSaque(null);
+    setSaqueStep('form');
     setShowSaqueModal(true);
+  }
+
+  function handleEditSaque(s: SaqueReserva) {
+    setEditSaque(s);
+    setSaqueForm({ categoria: s.categoria, valor: formatCurrencyBRL(s.valor), descricao: s.descricao ?? '' });
+    setSaqueStep('form');
+    setShowSaqueModal(true);
+  }
+
+  // Saldo disponível na reserva. Ao editar, devolve o valor do próprio saque
+  // (que já está descontado em saldoCat) para não contar duas vezes.
+  function dispCategoria(cat: ReservaKey): number {
+    const base = saldoCat[cat];
+    return editSaque && editSaque.categoria === cat ? base + editSaque.valor : base;
+  }
+
+  async function commitSaque(categoria: ReservaKey, valor: number, descricao?: string) {
+    const dados = { categoria, valor, ...(descricao ? { descricao } : {}), mes, ano };
+    if (editSaque?.id) await updateSaqueReserva(editSaque.id, dados);
+    else               await addSaqueReserva(dados);
   }
 
   async function handleSaveSaque(e: React.SubmitEvent<HTMLFormElement>) {
     e.preventDefault();
     const valor = parseBRL(saqueForm.valor);
     if (valor <= 0) return;
+    const disp = dispCategoria(saqueForm.categoria);
+    // Cabe no saldo da categoria → grava direto.
+    if (valor <= disp + 0.005) {
+      await commitSaque(saqueForm.categoria, valor, saqueForm.descricao);
+      setShowSaqueModal(false);
+      load();
+      return;
+    }
+    // Estourou. Ao editar, apenas confirma que a reserva vai ficar negativa.
+    if (editSaque) {
+      const label = RESERVA_LABELS.find((r) => r.key === saqueForm.categoria)?.label;
+      if (!confirm(`${label} tem só ${fmt(Math.max(disp, 0))} guardado. Salvar mesmo assim deixa a reserva negativa em ${fmt(valor - disp)}. Continuar?`)) return;
+      await commitSaque(saqueForm.categoria, valor, saqueForm.descricao);
+      setShowSaqueModal(false);
+      load();
+      return;
+    }
+    // Criação nova: oferece tirar o restante de outra reserva.
+    setSaqueFalta(valor - Math.max(disp, 0));
+    setSaqueStep('split');
+  }
+
+  // Registra o máximo possível na reserva original + o restante na escolhida.
+  async function handleSplitSaque(outra: ReservaKey) {
+    const maxOrig = Math.max(dispCategoria(saqueForm.categoria), 0);
+    const labelOrig = RESERVA_LABELS.find((r) => r.key === saqueForm.categoria)?.label ?? '';
+    if (maxOrig > 0) {
+      await addSaqueReserva({ categoria: saqueForm.categoria, valor: maxOrig, ...(saqueForm.descricao ? { descricao: saqueForm.descricao } : {}), mes, ano });
+    }
     await addSaqueReserva({
-      categoria: saqueForm.categoria,
-      valor,
-      ...(saqueForm.descricao ? { descricao: saqueForm.descricao } : {}),
+      categoria: outra,
+      valor: saqueFalta,
+      descricao: saqueForm.descricao ? `${saqueForm.descricao} (restante de ${labelOrig})` : `Restante de ${labelOrig}`,
       mes, ano,
     });
     setShowSaqueModal(false);
@@ -548,6 +627,10 @@ export default function TabEntradas({ mes, ano }: Props) {
                 </div>
                 <div className="flex items-center gap-1.5 flex-shrink-0">
                   <span className="text-xs font-semibold text-red-500 dark:text-red-400 tabular-nums">-{fmt(s.valor)}</span>
+                  <button onClick={() => handleEditSaque(s)}
+                    className="p-1 rounded-lg text-slate-300 dark:text-zinc-500 hover:text-indigo-500 dark:hover:text-purple-400 hover:bg-indigo-50 dark:hover:bg-purple-500/10 transition-colors opacity-100 sm:opacity-0 sm:group-hover:opacity-100">
+                    <Pencil />
+                  </button>
                   <button onClick={() => handleDeleteSaque(s.id!)}
                     className="p-1 rounded-lg text-slate-300 dark:text-zinc-500 hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors opacity-100 sm:opacity-0 sm:group-hover:opacity-100">
                     <Trash />
@@ -617,9 +700,14 @@ export default function TabEntradas({ mes, ano }: Props) {
         </Modal>
       )}
 
-      {/* ── Modal Novo Saque de Reserva ── */}
-      {showSaqueModal && (
-        <Modal title="Registrar Saque" onClose={() => setShowSaqueModal(false)}>
+      {/* ── Modal Saque de Reserva (novo / editar) ── */}
+      {showSaqueModal && (() => {
+        const dispSel = dispCategoria(saqueForm.categoria);
+        const valorNum = parseBRL(saqueForm.valor);
+        const estoura = valorNum > dispSel + 0.005;
+        return (
+        <Modal title={editSaque ? 'Editar Saque' : 'Registrar Saque'} onClose={() => setShowSaqueModal(false)}>
+          {saqueStep === 'form' ? (
           <form onSubmit={handleSaveSaque} className="space-y-4">
             <p className="text-xs text-slate-400 dark:text-zinc-400 bg-slate-50 dark:bg-zinc-950 rounded-lg p-2">
               Use quando retirar dinheiro de uma reserva (ex: usou parte dos Planos Futuros). O valor é abatido do saldo acumulado desta categoria neste mês.
@@ -645,6 +733,11 @@ export default function TabEntradas({ mes, ano }: Props) {
             <div>
               <label className="block text-sm font-medium text-slate-700 dark:text-zinc-200 mb-1">Valor (R$)</label>
               <input required value={saqueForm.valor} onChange={(e) => setSaqueForm({ ...saqueForm, valor: formatBRL(e.target.value) })} className={INPUT} placeholder="0,00" inputMode="decimal" />
+              <p className={`mt-1.5 text-xs ${estoura ? 'text-red-500 dark:text-red-400 font-medium' : 'text-slate-400 dark:text-zinc-500'}`}>
+                {estoura
+                  ? `Disponível nesta reserva: ${fmt(Math.max(dispSel, 0))} — faltam ${fmt(valorNum - Math.max(dispSel, 0))}`
+                  : `Disponível nesta reserva: ${fmt(Math.max(dispSel, 0))}`}
+              </p>
             </div>
             <div>
               <label className="block text-sm font-medium text-slate-700 dark:text-zinc-200 mb-1">Descrição (opcional)</label>
@@ -652,11 +745,44 @@ export default function TabEntradas({ mes, ano }: Props) {
             </div>
             <div className="flex gap-3 pt-1">
               <button type="button" onClick={() => setShowSaqueModal(false)} className="flex-1 py-2.5 border border-slate-200 dark:border-zinc-800 rounded-xl text-sm text-slate-600 dark:text-zinc-300 hover:bg-slate-50 dark:hover:bg-zinc-800">Cancelar</button>
-              <button type="submit" className="flex-1 py-2.5 bg-red-500 text-white rounded-xl text-sm font-semibold hover:bg-red-600 shadow-sm">Registrar Saque</button>
+              <button type="submit" className="flex-1 py-2.5 bg-red-500 text-white rounded-xl text-sm font-semibold hover:bg-red-600 shadow-sm">
+                {editSaque ? 'Salvar' : estoura ? 'Continuar' : 'Registrar Saque'}
+              </button>
             </div>
           </form>
+          ) : (
+            <div className="space-y-4">
+              <div className="text-sm bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-400 rounded-lg p-3">
+                <span className="font-semibold">{RESERVA_LABELS.find((r) => r.key === saqueForm.categoria)?.label}</span> não tem saldo suficiente.
+                Faltam <span className="font-semibold">{fmt(saqueFalta)}</span>. De qual reserva tirar o restante?
+              </div>
+              <div className="space-y-2">
+                {RESERVA_LABELS.filter((r) => r.key !== saqueForm.categoria).map(({ key, label }) => {
+                  const saldo = dispCategoria(key);
+                  return (
+                    <button
+                      key={key}
+                      type="button"
+                      onClick={() => handleSplitSaque(key)}
+                      className="w-full flex items-center justify-between gap-2 px-3 py-2.5 border border-slate-200 dark:border-zinc-800 rounded-xl text-sm hover:bg-slate-50 dark:hover:bg-zinc-800 transition-colors"
+                    >
+                      <span className="flex items-center gap-2 text-slate-700 dark:text-zinc-200 font-medium">
+                        <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: distColors[key] }} />
+                        {label}
+                      </span>
+                      <span className={`tabular-nums text-xs ${saldo < saqueFalta ? 'text-red-500 dark:text-red-400' : 'text-slate-400 dark:text-zinc-500'}`}>
+                        {fmt(Math.max(saldo, 0))} disp.
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+              <button type="button" onClick={() => setSaqueStep('form')} className="w-full py-2.5 border border-slate-200 dark:border-zinc-800 rounded-xl text-sm text-slate-600 dark:text-zinc-300 hover:bg-slate-50 dark:hover:bg-zinc-800">Voltar</button>
+            </div>
+          )}
         </Modal>
-      )}
+        );
+      })()}
     </div>
   );
 }

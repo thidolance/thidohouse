@@ -127,6 +127,10 @@ export async function addSaqueReserva(s: Omit<SaqueReserva, 'id'>): Promise<void
   await addDoc(collection(db, 'saques_reserva'), s);
 }
 
+export async function updateSaqueReserva(id: string, s: Omit<SaqueReserva, 'id'>): Promise<void> {
+  await setDoc(doc(db, 'saques_reserva', id), s);
+}
+
 export async function deleteSaqueReserva(id: string): Promise<void> {
   await deleteDoc(doc(db, 'saques_reserva', id));
 }
