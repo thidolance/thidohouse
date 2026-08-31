@@ -114,17 +114,29 @@ export default function TabVisaoGeral({ mes, ano, onNavigate }: Props) {
       const gastoEmpresa = custosEmpresa.filter((c) => c.mes === m && c.ano === a).reduce((s, c) => s + c.valorParcela, 0);
       const gastos = gastoContas + gastoCartoes + gastoEmpresa;
       const dist = distribuicoes.find((d) => d.mes === m && d.ano === a);
-      // Transferências para Contas deste mês reduzem a reserva de origem: o dinheiro
-      // saiu do que seria guardado e virou orçamento de contas (mesma lógica do
-      // balanço da aba Entradas). Saques comuns não entram aqui.
-      const transf = saques.filter((s) => s.mes === m && s.ano === a && s.destino === 'contas');
+      const mesSaques = saques.filter((s) => s.mes === m && s.ano === a);
+      const saqueDe = (cat: 'ferias' | 'investimento' | 'planosFuturos') =>
+        mesSaques.filter((s) => s.categoria === cat && s.destino !== 'contas').reduce((sum, s) => sum + s.valor, 0);
       const transfDe = (cat: 'ferias' | 'investimento' | 'planosFuturos') =>
-        transf.filter((s) => s.categoria === cat).reduce((sum, s) => sum + s.valor, 0);
-      const ferias = Math.max(ganhos * (dist?.ferias ?? 0) / 100 - transfDe('ferias'), 0);
-      const investimento = Math.max(ganhos * (dist?.investimento ?? 0) / 100 - transfDe('investimento'), 0);
-      const planosFuturos = Math.max(ganhos * (dist?.planosFuturos ?? 0) / 100 - transfDe('planosFuturos'), 0);
-      const guardado = ferias + investimento + planosFuturos;
-      return { label, mesAno, ganhos, gastos, saldo: ganhos - gastos - guardado, ferias, investimento, planosFuturos, isAtual: m === mes && a === ano };
+        mesSaques.filter((s) => s.categoria === cat && s.destino === 'contas').reduce((sum, s) => sum + s.valor, 0);
+
+      const baseFerias = ganhos * (dist?.ferias ?? 0) / 100;
+      const baseInvest = ganhos * (dist?.investimento ?? 0) / 100;
+      const basePlanos = ganhos * (dist?.planosFuturos ?? 0) / 100;
+
+      // Reservas exibidas (gráficos + "Guardado no mês"): todo saque OU transferência
+      // reduz a reserva de origem — senão os investimentos mostrariam valor errado.
+      const ferias = Math.max(baseFerias - saqueDe('ferias') - transfDe('ferias'), 0);
+      const investimento = Math.max(baseInvest - saqueDe('investimento') - transfDe('investimento'), 0);
+      const planosFuturos = Math.max(basePlanos - saqueDe('planosFuturos') - transfDe('planosFuturos'), 0);
+
+      // Saldo do mês = o que sobra do Contas (orçamento de Contas − gastos). Só a
+      // transferência entra aqui, pois vira orçamento de Contas; o saque puro sai de
+      // casa e não é sobra. Por isso o saldo usa o guardado PLANEJADO (não o sacado).
+      const guardadoPlanejado = baseFerias + baseInvest + basePlanos;
+      const transfTotal = transfDe('ferias') + transfDe('investimento') + transfDe('planosFuturos');
+      const saldo = ganhos - gastos - guardadoPlanejado + transfTotal;
+      return { label, mesAno, ganhos, gastos, saldo, ferias, investimento, planosFuturos, isAtual: m === mes && a === ano };
     });
 
     // Gastos por categoria — mês atual
