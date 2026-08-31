@@ -13,6 +13,7 @@ import {
   getCustosEmpresaHistorico,
   getCategoriasContas,
   getFaturasCartaoHistorico,
+  getSaquesReservaHistorico,
 } from '@/lib/firestore';
 import type { CategoriaContaConfig, CompraParcelada, FaturaCartao } from '@/lib/types';
 
@@ -93,7 +94,7 @@ export default function TabVisaoGeral({ mes, ano, onNavigate }: Props) {
 
   const load = useCallback(async () => {
     setLoading(true);
-    const [entradas, contas, distribuicoes, compras, custosEmpresa, catContas, faturas] = await Promise.all([
+    const [entradas, contas, distribuicoes, compras, custosEmpresa, catContas, faturas, saques] = await Promise.all([
       getEntradasHistorico(),
       getContasHistorico(),
       getDistribuicoesHistorico(),
@@ -101,6 +102,7 @@ export default function TabVisaoGeral({ mes, ano, onNavigate }: Props) {
       getCustosEmpresaHistorico(),
       getCategoriasContas() as Promise<CategoriaContaConfig[]>,
       getFaturasCartaoHistorico(),
+      getSaquesReservaHistorico(),
     ]);
 
     const meses = getLast12Months(mes, ano);
@@ -112,9 +114,15 @@ export default function TabVisaoGeral({ mes, ano, onNavigate }: Props) {
       const gastoEmpresa = custosEmpresa.filter((c) => c.mes === m && c.ano === a).reduce((s, c) => s + c.valorParcela, 0);
       const gastos = gastoContas + gastoCartoes + gastoEmpresa;
       const dist = distribuicoes.find((d) => d.mes === m && d.ano === a);
-      const ferias = ganhos * (dist?.ferias ?? 0) / 100;
-      const investimento = ganhos * (dist?.investimento ?? 0) / 100;
-      const planosFuturos = ganhos * (dist?.planosFuturos ?? 0) / 100;
+      // Transferências para Contas deste mês reduzem a reserva de origem: o dinheiro
+      // saiu do que seria guardado e virou orçamento de contas (mesma lógica do
+      // balanço da aba Entradas). Saques comuns não entram aqui.
+      const transf = saques.filter((s) => s.mes === m && s.ano === a && s.destino === 'contas');
+      const transfDe = (cat: 'ferias' | 'investimento' | 'planosFuturos') =>
+        transf.filter((s) => s.categoria === cat).reduce((sum, s) => sum + s.valor, 0);
+      const ferias = Math.max(ganhos * (dist?.ferias ?? 0) / 100 - transfDe('ferias'), 0);
+      const investimento = Math.max(ganhos * (dist?.investimento ?? 0) / 100 - transfDe('investimento'), 0);
+      const planosFuturos = Math.max(ganhos * (dist?.planosFuturos ?? 0) / 100 - transfDe('planosFuturos'), 0);
       const guardado = ferias + investimento + planosFuturos;
       return { label, mesAno, ganhos, gastos, saldo: ganhos - gastos - guardado, ferias, investimento, planosFuturos, isAtual: m === mes && a === ano };
     });
