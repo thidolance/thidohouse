@@ -32,6 +32,11 @@ export interface SaqueReserva {
   // marcado com restante=true.
   grupoId?: string;
   restante?: boolean;
+  // Quando presente, não é um saque comum (dinheiro que sai de casa) e sim uma
+  // transferência interna: o valor sai da reserva e é somado à fatia de Contas do
+  // mês na distribuição. Debita a reserva igual a um saque; a diferença é só o
+  // destino do dinheiro.
+  destino?: 'contas';
 }
 
 export interface CategoriaContaConfig {

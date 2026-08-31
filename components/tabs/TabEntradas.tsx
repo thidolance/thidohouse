@@ -87,7 +87,8 @@ export default function TabEntradas({ mes, ano }: Props) {
   const [editId, setEditId]             = useState<string | null>(null);
   const [form, setForm]                 = useState({ descricao: '', valor: '', data: '' });
   // `restante` = reserva de onde tirar o excedente quando o valor estoura a reserva principal.
-  const [saqueForm, setSaqueForm]       = useState<{ categoria: ReservaKey; valor: string; descricao: string; restante: ReservaKey | null }>({ categoria: 'planosFuturos', valor: '', descricao: '', restante: null });
+  // `tipo` = 'saque' (dinheiro sai de casa) ou 'transferencia' (vai para Contas do mês).
+  const [saqueForm, setSaqueForm]       = useState<{ tipo: 'saque' | 'transferencia'; categoria: ReservaKey; valor: string; descricao: string; restante: ReservaKey | null }>({ tipo: 'saque', categoria: 'planosFuturos', valor: '', descricao: '', restante: null });
   // Ids do saque em edição (principal + restante, se houver). Ignorados no cálculo
   // do disponível para não contarem contra o próprio limite.
   const [editGroupIds, setEditGroupIds] = useState<string[]>([]);
@@ -245,7 +246,13 @@ export default function TabEntradas({ mes, ano }: Props) {
   const editandoSaque = editGroupIds.length > 0;
 
   function abrirSaque() {
-    setSaqueForm({ categoria: 'planosFuturos', valor: '', descricao: '', restante: null });
+    setSaqueForm({ tipo: 'saque', categoria: 'planosFuturos', valor: '', descricao: '', restante: null });
+    setEditGroupIds([]);
+    setShowSaqueModal(true);
+  }
+
+  function abrirTransferencia() {
+    setSaqueForm({ tipo: 'transferencia', categoria: 'planosFuturos', valor: '', descricao: '', restante: null });
     setEditGroupIds([]);
     setShowSaqueModal(true);
   }
@@ -263,6 +270,7 @@ export default function TabEntradas({ mes, ano }: Props) {
     const restante = grupo.find((x) => x.restante);
     const total = grupo.reduce((acc, x) => acc + x.valor, 0);
     setSaqueForm({
+      tipo: principal.destino === 'contas' ? 'transferencia' : 'saque',
       categoria: principal.categoria,
       valor: formatCurrencyBRL(total),
       descricao: principal.descricao ?? '',
@@ -288,6 +296,8 @@ export default function TabEntradas({ mes, ano }: Props) {
     const total = parseBRL(saqueForm.valor);
     if (total <= 0) return;
     const { categoria, descricao } = saqueForm;
+    // Transferência para Contas debita a reserva igual a um saque; só marca o destino.
+    const destinoExtra = saqueForm.tipo === 'transferencia' ? { destino: 'contas' as const } : {};
     const disp = dispCategoria(categoria);
     const maxPrincipal = Math.max(disp, 0);
     const precisaRestante = total > disp + 0.005;
@@ -304,18 +314,18 @@ export default function TabEntradas({ mes, ano }: Props) {
     await Promise.all(editGroupIds.map((id) => deleteSaqueReserva(id)));
 
     if (!precisaRestante) {
-      await addSaqueReserva({ categoria, valor: total, ...(descricao ? { descricao } : {}), mes, ano });
+      await addSaqueReserva({ categoria, valor: total, ...(descricao ? { descricao } : {}), mes, ano, ...destinoExtra });
     } else if (maxPrincipal <= 0.005) {
       // Reserva principal vazia no mês → tudo vem da outra reserva.
-      await addSaqueReserva({ categoria: restanteCat!, valor: total, ...(descricao ? { descricao } : {}), mes, ano });
+      await addSaqueReserva({ categoria: restanteCat!, valor: total, ...(descricao ? { descricao } : {}), mes, ano, ...destinoExtra });
     } else {
       const grupoId = crypto.randomUUID();
-      await addSaqueReserva({ categoria, valor: maxPrincipal, ...(descricao ? { descricao } : {}), mes, ano, grupoId });
+      await addSaqueReserva({ categoria, valor: maxPrincipal, ...(descricao ? { descricao } : {}), mes, ano, grupoId, ...destinoExtra });
       await addSaqueReserva({
         categoria: restanteCat!,
         valor: total - maxPrincipal,
         descricao: descricao ? `${descricao} (restante de ${labelPrincipal})` : `Restante de ${labelPrincipal}`,
-        mes, ano, grupoId, restante: true,
+        mes, ano, grupoId, restante: true, ...destinoExtra,
       });
     }
     setShowSaqueModal(false);
@@ -329,10 +339,29 @@ export default function TabEntradas({ mes, ano }: Props) {
 
   // ── dados derivados ───────────────────────────────────────────────────────
 
+  // Transferências deste mês para Contas, somadas por reserva de origem. Elas
+  // saem da fatia da reserva e entram na fatia de Contas, sem mudar o total do mês.
+  const transferPorReserva = useMemo(() => {
+    const acc: Record<ReservaKey, number> = { ferias: 0, investimento: 0, planosFuturos: 0 };
+    saquesMes.forEach((s) => { if (s.destino === 'contas') acc[s.categoria] += s.valor; });
+    return acc;
+  }, [saquesMes]);
+  const totalTransferContas = transferPorReserva.ferias + transferPorReserva.investimento + transferPorReserva.planosFuturos;
+
+  // Valor efetivo (R$) de cada fatia já considerando as transferências para Contas.
+  const alocEfetiva: Record<DistKey, number> = {
+    contas:        totalMes * (distribuicao.contas / 100) + totalTransferContas,
+    ferias:        Math.max(totalMes * (distribuicao.ferias / 100) - transferPorReserva.ferias, 0),
+    investimento:  Math.max(totalMes * (distribuicao.investimento / 100) - transferPorReserva.investimento, 0),
+    planosFuturos: Math.max(totalMes * (distribuicao.planosFuturos / 100) - transferPorReserva.planosFuturos, 0),
+  };
+  const alocTotal = alocEfetiva.contas + alocEfetiva.ferias + alocEfetiva.investimento + alocEfetiva.planosFuturos;
+  const pctEfetivo = (k: DistKey) => (alocTotal > 0 ? (alocEfetiva[k] / alocTotal) * 100 : 0);
+
   const distPieData = DIST_LABELS.map(({ key, label }) => ({
     name: label,
-    value: distribuicao[key],
-    valor: totalMes * (distribuicao[key] / 100),
+    value: Math.round(pctEfetivo(key)),
+    valor: alocEfetiva[key],
     fill: distColors[key],
   }));
 
@@ -475,12 +504,17 @@ export default function TabEntradas({ mes, ano }: Props) {
                 <div key={key} className="flex items-center justify-between gap-2">
                   <div className="flex items-center gap-1.5 min-w-0">
                     <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: distColors[key] }} />
-                    <span className="text-[11px] text-slate-500 dark:text-zinc-400 truncate">{label} {distribuicao[key]}%</span>
+                    <span className="text-[11px] text-slate-500 dark:text-zinc-400 truncate">{label} {Math.round(pctEfetivo(key))}%</span>
                   </div>
-                  <span className="text-[11px] font-semibold text-slate-700 dark:text-zinc-200 tabular-nums flex-shrink-0">{fmt(totalMes * distribuicao[key] / 100)}</span>
+                  <span className="text-[11px] font-semibold text-slate-700 dark:text-zinc-200 tabular-nums flex-shrink-0">{fmt(alocEfetiva[key])}</span>
                 </div>
               ))}
             </div>
+          )}
+          {totalTransferContas > 0 && (
+            <p className="mt-2 text-[11px] text-slate-400 dark:text-zinc-500">
+              Inclui <span className="font-semibold text-emerald-600 dark:text-emerald-400">+{fmt(totalTransferContas)}</span> transferido de reservas para Contas.
+            </p>
           )}
         </Card>
       </div>
@@ -541,6 +575,10 @@ export default function TabEntradas({ mes, ano }: Props) {
             <p className="text-[11px] text-slate-400 dark:text-zinc-500">Com base na distribuição · acumulado dos últimos 12 meses</p>
           </div>
           <div className="flex items-center gap-2 flex-shrink-0">
+            <button onClick={abrirTransferencia}
+              className="inline-flex items-center gap-1 px-2.5 py-1.5 border border-slate-200 dark:border-zinc-800 rounded-lg text-xs font-medium text-slate-500 dark:text-zinc-400 hover:bg-slate-50 dark:hover:bg-zinc-800 hover:text-slate-700 dark:hover:text-zinc-200 transition-colors">
+              <span className="font-bold leading-none">⇄</span> Transferir
+            </button>
             <button onClick={abrirSaque}
               className="inline-flex items-center gap-1 px-2.5 py-1.5 border border-slate-200 dark:border-zinc-800 rounded-lg text-xs font-medium text-slate-500 dark:text-zinc-400 hover:bg-slate-50 dark:hover:bg-zinc-800 hover:text-slate-700 dark:hover:text-zinc-200 transition-colors">
               <span className="font-bold leading-none">−</span> Saque
@@ -603,7 +641,7 @@ export default function TabEntradas({ mes, ano }: Props) {
         {/* ── Saques deste mês ── */}
         {saquesMes.length > 0 && (
           <div className="mt-4 pt-4 border-t border-slate-100 dark:border-zinc-800 space-y-2">
-            <p className="text-[11px] font-semibold text-slate-400 dark:text-zinc-500 uppercase tracking-wide">Saques deste mês</p>
+            <p className="text-[11px] font-semibold text-slate-400 dark:text-zinc-500 uppercase tracking-wide">Saques e transferências deste mês</p>
             {saquesMes.filter((s) => !s.restante).map((principal) => {
               const restante = principal.grupoId
                 ? saquesMes.find((x) => x.restante && x.grupoId === principal.grupoId)
@@ -616,6 +654,11 @@ export default function TabEntradas({ mes, ano }: Props) {
                       <span className="text-xs text-slate-500 dark:text-zinc-400 truncate">
                         {RESERVA_LABELS.find((r) => r.key === principal.categoria)?.label}{principal.descricao ? ` · ${principal.descricao}` : ''}
                       </span>
+                      {principal.destino === 'contas' && (
+                        <span className="flex-shrink-0 inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-indigo-50 dark:bg-purple-500/15 text-indigo-600 dark:text-purple-300">
+                          ⇄ Contas
+                        </span>
+                      )}
                     </div>
                     <div className="flex items-center gap-1.5 flex-shrink-0">
                       <span className="text-xs font-semibold text-red-500 dark:text-red-400 tabular-nums">-{fmt(principal.valor)}</span>
@@ -717,14 +760,40 @@ export default function TabEntradas({ mes, ano }: Props) {
         const restanteCat = saqueForm.restante && saqueForm.restante !== saqueForm.categoria
           ? saqueForm.restante
           : RESERVA_LABELS.find((r) => r.key !== saqueForm.categoria)!.key;
+        const isTransfer = saqueForm.tipo === 'transferencia';
+        const titulo = editandoSaque
+          ? (isTransfer ? 'Editar Transferência' : 'Editar Saque')
+          : (isTransfer ? 'Nova Transferência' : 'Registrar Saque');
         return (
-        <Modal title={editandoSaque ? 'Editar Saque' : 'Registrar Saque'} onClose={() => setShowSaqueModal(false)}>
+        <Modal title={titulo} onClose={() => setShowSaqueModal(false)}>
           <form onSubmit={handleSaveSaque} className="space-y-4">
+            {/* Toggle Saque | Transferência */}
+            <div className="flex gap-1 p-1 rounded-xl bg-slate-100 dark:bg-zinc-800">
+              {([
+                { key: 'saque' as const, label: 'Saque' },
+                { key: 'transferencia' as const, label: 'Transferir p/ Contas' },
+              ]).map(({ key, label }) => (
+                <button
+                  key={key}
+                  type="button"
+                  onClick={() => setSaqueForm({ ...saqueForm, tipo: key })}
+                  className={`flex-1 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
+                    saqueForm.tipo === key
+                      ? 'bg-white dark:bg-zinc-900 text-slate-800 dark:text-zinc-100 shadow-sm'
+                      : 'text-slate-500 dark:text-zinc-400'
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
             <p className="text-xs text-slate-400 dark:text-zinc-400 bg-slate-50 dark:bg-zinc-950 rounded-lg p-2">
-              Use quando retirar dinheiro de uma reserva (ex: usou parte dos Planos Futuros). O valor é abatido do que foi guardado nesta reserva neste mês.
+              {isTransfer
+                ? 'Move dinheiro de uma reserva para as Contas do mês (ex: usar Planos Futuros para pagar contas). Sai da reserva e entra na fatia de Contas da distribuição.'
+                : 'Use quando retirar dinheiro de uma reserva (ex: usou parte dos Planos Futuros). O valor é abatido do que foi guardado nesta reserva neste mês.'}
             </p>
             <div>
-              <label className="block text-sm font-medium text-slate-700 dark:text-zinc-200 mb-1.5">Reserva</label>
+              <label className="block text-sm font-medium text-slate-700 dark:text-zinc-200 mb-1.5">{isTransfer ? 'De (reserva)' : 'Reserva'}</label>
               <div className="flex flex-wrap gap-2">
                 {RESERVA_LABELS.map(({ key, label }) => (
                   <button
@@ -786,8 +855,8 @@ export default function TabEntradas({ mes, ano }: Props) {
             </div>
             <div className="flex gap-3 pt-1">
               <button type="button" onClick={() => setShowSaqueModal(false)} className="flex-1 py-2.5 border border-slate-200 dark:border-zinc-800 rounded-xl text-sm text-slate-600 dark:text-zinc-300 hover:bg-slate-50 dark:hover:bg-zinc-800">Cancelar</button>
-              <button type="submit" className="flex-1 py-2.5 bg-red-500 text-white rounded-xl text-sm font-semibold hover:bg-red-600 shadow-sm">
-                {editandoSaque ? 'Salvar' : 'Registrar Saque'}
+              <button type="submit" className={`flex-1 py-2.5 text-white rounded-xl text-sm font-semibold shadow-sm ${isTransfer ? 'bg-indigo-600 dark:bg-purple-600 hover:bg-indigo-700 dark:hover:bg-purple-700' : 'bg-red-500 hover:bg-red-600'}`}>
+                {editandoSaque ? 'Salvar' : (isTransfer ? 'Transferir' : 'Registrar Saque')}
               </button>
             </div>
           </form>
