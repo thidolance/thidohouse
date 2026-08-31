@@ -5,6 +5,7 @@ import dynamic from 'next/dynamic';
 import Modal from '../ui/Modal';
 import Card from '../ui/Card';
 import DatePicker from '../ui/DatePicker';
+import { Slider } from '../ui/slider';
 import { Plus, Trash, Pencil, TrendingUp } from '../ui/Icons';
 import { useRefetchOnFocus } from '@/lib/useRefetchOnFocus';
 import {
@@ -716,38 +717,85 @@ export default function TabEntradas({ mes, ano }: Props) {
       )}
 
       {/* ── Modal Distribuição ── */}
-      {showDistModal && (
+      {showDistModal && (() => {
+        const restantePct = 100 - distSoma;              // >0 falta, <0 passou
+        const restanteValor = totalMes * (restantePct / 100);
+        const ok = distSoma === 100;
+        return (
         <Modal title="Editar Distribuição" onClose={() => setShowDistModal(false)}>
           <form onSubmit={handleSaveDistribuicao} className="space-y-4">
-            <p className="text-xs text-slate-400 dark:text-zinc-400 bg-slate-50 dark:bg-zinc-950 rounded-lg p-2">Os percentuais devem somar exatamente 100%.</p>
-            {DIST_LABELS.map(({ key, label }) => (
-              <div key={key}>
-                <label className="flex items-center gap-2 text-sm font-medium text-slate-700 dark:text-zinc-200 mb-1.5">
-                  <input
-                    type="color"
-                    value={distColorForm[key]}
-                    onChange={(e) => setDistColorForm({ ...distColorForm, [key]: e.target.value })}
-                    className="w-7 h-7 rounded-lg border border-slate-200 dark:border-zinc-800 cursor-pointer p-0.5 bg-white dark:bg-zinc-900 flex-shrink-0"
+            <p className="text-xs text-slate-400 dark:text-zinc-400 bg-slate-50 dark:bg-zinc-950 rounded-lg p-2">
+              Arraste para ajustar cada fatia. Os percentuais devem somar 100%
+              {totalMes > 0 && <> · base do mês: <span className="font-semibold">{fmt(totalMes)}</span></>}.
+            </p>
+
+            {DIST_LABELS.map(({ key, label }) => {
+              const pct = toInt(distForm[key]);
+              const valor = totalMes * (pct / 100);
+              return (
+                <div key={key} className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="color"
+                      value={distColorForm[key]}
+                      onChange={(e) => setDistColorForm({ ...distColorForm, [key]: e.target.value })}
+                      className="w-6 h-6 rounded-lg border border-slate-200 dark:border-zinc-800 cursor-pointer p-0.5 bg-white dark:bg-zinc-900 flex-shrink-0"
+                      aria-label={`Cor de ${label}`}
+                    />
+                    <span className="text-sm font-medium text-slate-700 dark:text-zinc-200 flex-1 truncate">{label}</span>
+                    {totalMes > 0 && (
+                      <span className="text-xs font-semibold text-slate-500 dark:text-zinc-400 tabular-nums">{fmt(valor)}</span>
+                    )}
+                    <div className="flex items-center gap-1 flex-shrink-0">
+                      <input
+                        type="number" min={0} max={100}
+                        value={distForm[key]}
+                        onChange={(e) => setDistForm({ ...distForm, [key]: e.target.value })}
+                        className="w-14 text-right border border-slate-200 dark:border-zinc-800 rounded-lg px-2 py-1 text-sm tabular-nums text-slate-900 dark:text-zinc-50 bg-white dark:bg-zinc-900 focus:outline-none focus:ring-2 focus:ring-indigo-300 dark:focus:ring-purple-500"
+                      />
+                      <span className="text-xs text-slate-400 dark:text-zinc-500">%</span>
+                    </div>
+                  </div>
+                  <Slider
+                    value={[Math.min(Math.max(pct, 0), 100)]}
+                    min={0} max={100} step={1}
+                    accent={distColorForm[key]}
+                    onValueChange={(v) => setDistForm({ ...distForm, [key]: String((v as number[])[0]) })}
                   />
-                  {label} (%)
-                </label>
-                <input type="number" min={0} max={100}
-                  value={distForm[key]}
-                  onChange={(e) => setDistForm({ ...distForm, [key]: e.target.value })}
-                  className={INPUT} />
+                </div>
+              );
+            })}
+
+            {/* Barra combinada + saldo */}
+            <div className="space-y-2 pt-1">
+              <div className="flex h-2.5 w-full overflow-hidden rounded-full bg-slate-100 dark:bg-zinc-800">
+                {DIST_LABELS.map(({ key }) => {
+                  const pct = Math.max(toInt(distForm[key]), 0);
+                  return pct > 0 ? (
+                    <div key={key} style={{ width: `${pct}%`, backgroundColor: distColorForm[key] }} className="h-full" />
+                  ) : null;
+                })}
               </div>
-            ))}
-            <div className={`flex items-center justify-between text-sm p-2 rounded-lg ${distSoma === 100 ? 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400' : 'bg-red-50 dark:bg-red-500/10 text-red-500'}`}>
-              <span className="font-medium">Soma:</span>
-              <span className="font-bold">{distSoma}%</span>
+              <div className={`flex items-center justify-between text-sm px-3 py-2 rounded-lg ${ok ? 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400' : 'bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400'}`}>
+                <span className="font-medium">
+                  {ok ? 'Tudo distribuído' : restantePct > 0 ? 'Falta distribuir' : 'Passou do total'}
+                </span>
+                <span className="font-bold tabular-nums">
+                  {ok
+                    ? '100%'
+                    : `${restantePct > 0 ? '' : '+'}${Math.abs(restantePct)}%${totalMes > 0 ? ` · ${fmt(Math.abs(restanteValor))}` : ''}`}
+                </span>
+              </div>
             </div>
+
             <div className="flex gap-3 pt-1">
               <button type="button" onClick={() => setShowDistModal(false)} className="flex-1 py-2.5 border border-slate-200 dark:border-zinc-800 rounded-xl text-sm text-slate-600 dark:text-zinc-300 hover:bg-slate-50 dark:hover:bg-zinc-800">Cancelar</button>
-              <button type="submit" className="flex-1 py-2.5 bg-indigo-600 dark:bg-purple-600 text-white rounded-xl text-sm font-semibold hover:bg-indigo-700 dark:hover:bg-purple-700 shadow-sm">Salvar</button>
+              <button type="submit" disabled={!ok} className="flex-1 py-2.5 bg-indigo-600 dark:bg-purple-600 text-white rounded-xl text-sm font-semibold hover:bg-indigo-700 dark:hover:bg-purple-700 shadow-sm disabled:opacity-40 disabled:cursor-not-allowed">Salvar</button>
             </div>
           </form>
         </Modal>
-      )}
+        );
+      })()}
 
       {/* ── Modal Saque de Reserva (novo / editar) ── */}
       {showSaqueModal && (() => {
