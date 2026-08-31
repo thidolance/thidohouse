@@ -237,6 +237,9 @@ export default function TabEntradas({ mes, ano }: Props) {
     };
     const soma = parsed.contas + parsed.ferias + parsed.investimento + parsed.planosFuturos;
     if (soma !== 100) return alert('Os percentuais devem somar 100%');
+    // Trava: nenhuma reserva pode ficar abaixo do que já foi sacado/transferido no mês.
+    const violada = RESERVA_LABELS.find((r) => sobraCategoria(r.key, parsed[r.key]) < -0.005);
+    if (violada) return alert(`"${violada.label}" ficaria abaixo do já sacado neste mês. Ajuste o % ou corrija o saque.`);
     await saveDistribuicao({ ...parsed, mes, ano }, distribuicao.id);
     setDistColors(distColorForm);
     localStorage.setItem(LS_COLORS_KEY, JSON.stringify(distColorForm));
@@ -290,6 +293,18 @@ export default function TabEntradas({ mes, ano }: Props) {
       .filter((s) => s.categoria === cat && !editGroupIds.includes(s.id!))
       .reduce((acc, s) => acc + s.valor, 0);
     return alocado - jaSacado;
+  }
+
+  // Total sacado/transferido no mês numa reserva (todos os saques da categoria).
+  function sacadoCategoria(cat: ReservaKey): number {
+    return saquesMes.filter((s) => s.categoria === cat).reduce((acc, s) => acc + s.valor, 0);
+  }
+
+  // Sobra da reserva no mês: alocado (entradas × %) − sacado. Negativo = sacou mais
+  // do que a categoria comporta (ex: baixaram o % depois do saque). Usado para alertar.
+  function sobraCategoria(cat: ReservaKey, pct?: number): number {
+    const p = pct ?? distribuicao[cat] ?? 0;
+    return totalMes * (p / 100) - sacadoCategoria(cat);
   }
 
   async function handleSaveSaque(e: React.SubmitEvent<HTMLFormElement>) {
@@ -647,6 +662,10 @@ export default function TabEntradas({ mes, ano }: Props) {
               const restante = principal.grupoId
                 ? saquesMes.find((x) => x.restante && x.grupoId === principal.grupoId)
                 : undefined;
+              // Sobre-sacado: alguma reserva do grupo ficou abaixo do alocado (ex: a
+              // distribuição foi baixada depois do saque). Abre o editor pra corrigir.
+              const catsGrupo = restante ? [principal.categoria, restante.categoria] : [principal.categoria];
+              const precisaRevisar = catsGrupo.some((c) => sobraCategoria(c) < -0.005);
               return (
                 <div key={principal.id} className="group">
                   <div className="flex items-center justify-between gap-2">
@@ -659,6 +678,16 @@ export default function TabEntradas({ mes, ano }: Props) {
                         <span className="flex-shrink-0 inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-indigo-50 dark:bg-purple-500/15 text-indigo-600 dark:text-purple-300">
                           ⇄ Contas
                         </span>
+                      )}
+                      {precisaRevisar && (
+                        <button
+                          type="button"
+                          onClick={() => handleEditSaque(principal)}
+                          className="flex-shrink-0 inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-red-50 dark:bg-red-500/15 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-500/25 transition-colors"
+                          title="Este saque ficou acima do disponível na reserva. Clique para corrigir."
+                        >
+                          ⚠ revisar
+                        </button>
                       )}
                     </div>
                     <div className="flex items-center gap-1.5 flex-shrink-0">
@@ -720,7 +749,10 @@ export default function TabEntradas({ mes, ano }: Props) {
       {showDistModal && (() => {
         const restantePct = 100 - distSoma;              // >0 falta, <0 passou
         const restanteValor = totalMes * (restantePct / 100);
-        const ok = distSoma === 100;
+        const somaOk = distSoma === 100;
+        // Alguma reserva abaixo do já sacado no mês (com os % em edição)?
+        const reservaViolada = RESERVA_LABELS.some((r) => sobraCategoria(r.key, toInt(distForm[r.key])) < -0.005);
+        const ok = somaOk && !reservaViolada;
         return (
         <Modal title="Editar Distribuição" onClose={() => setShowDistModal(false)}>
           <form onSubmit={handleSaveDistribuicao} className="space-y-4">
@@ -732,6 +764,10 @@ export default function TabEntradas({ mes, ano }: Props) {
             {DIST_LABELS.map(({ key, label }) => {
               const pct = toInt(distForm[key]);
               const valor = totalMes * (pct / 100);
+              // Reservas (não Contas) podem ter saque/transferência no mês.
+              const isReserva = key !== 'contas';
+              const sacado = isReserva ? sacadoCategoria(key as ReservaKey) : 0;
+              const abaixoDoSacado = isReserva && valor < sacado - 0.005;
               return (
                 <div key={key} className="space-y-2">
                   <div className="flex items-center gap-2">
@@ -762,6 +798,13 @@ export default function TabEntradas({ mes, ano }: Props) {
                     accent={distColorForm[key]}
                     onValueChange={(v) => setDistForm({ ...distForm, [key]: String((v as number[])[0]) })}
                   />
+                  {sacado > 0.005 && (
+                    <p className={`text-[11px] ${abaixoDoSacado ? 'text-red-500 dark:text-red-400 font-medium' : 'text-slate-400 dark:text-zinc-500'}`}>
+                      {abaixoDoSacado
+                        ? `Abaixo do já sacado (${fmt(sacado)}) — faltam ${fmt(sacado - valor)}`
+                        : `Já sacado neste mês: ${fmt(sacado)}`}
+                    </p>
+                  )}
                 </div>
               );
             })}
@@ -776,16 +819,22 @@ export default function TabEntradas({ mes, ano }: Props) {
                   ) : null;
                 })}
               </div>
-              <div className={`flex items-center justify-between text-sm px-3 py-2 rounded-lg ${ok ? 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400' : 'bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400'}`}>
+              <div className={`flex items-center justify-between text-sm px-3 py-2 rounded-lg ${somaOk ? 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400' : 'bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400'}`}>
                 <span className="font-medium">
-                  {ok ? 'Tudo distribuído' : restantePct > 0 ? 'Falta distribuir' : 'Passou do total'}
+                  {somaOk ? 'Tudo distribuído' : restantePct > 0 ? 'Falta distribuir' : 'Passou do total'}
                 </span>
                 <span className="font-bold tabular-nums">
-                  {ok
+                  {somaOk
                     ? '100%'
                     : `${restantePct > 0 ? '' : '+'}${Math.abs(restantePct)}%${totalMes > 0 ? ` · ${fmt(Math.abs(restanteValor))}` : ''}`}
                 </span>
               </div>
+              {reservaViolada && (
+                <div className="flex items-start gap-2 text-xs px-3 py-2 rounded-lg bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400">
+                  <span className="font-bold leading-none mt-0.5">⚠</span>
+                  <span>Uma reserva ficaria abaixo do que já foi sacado neste mês. Suba o % dela ou ajuste o saque antes de salvar.</span>
+                </div>
+              )}
             </div>
 
             <div className="flex gap-3 pt-1">
