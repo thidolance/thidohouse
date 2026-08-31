@@ -565,9 +565,22 @@ export default function TabCartoes({ mes, ano }: Props) {
       {/* Detalhe do cartão selecionado */}
       {cartaoSelecionado && cartaoAtivo && (
         <div
-          className="rounded-2xl border border-slate-100 dark:border-zinc-800 p-5 shadow-sm transition-colors"
+          className="relative overflow-hidden rounded-2xl p-5 shadow-sm transition-colors"
           style={{ backgroundColor: `${cartaoAtivo.cor}0f` }}
         >
+          {/* Mesma borda aurora dos cards de cartão acima */}
+          <div
+            aria-hidden
+            className="absolute inset-0 rounded-2xl pointer-events-none"
+            style={{
+              padding: 1.5,
+              background: auroraFromColor(cartaoAtivo.cor),
+              WebkitMask: 'linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)',
+              WebkitMaskComposite: 'xor',
+              maskComposite: 'exclude',
+            }}
+          />
+          <div className="relative">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
               <span className="w-3 h-3 rounded-full" style={{ backgroundColor: cartaoAtivo.cor }} />
@@ -615,6 +628,7 @@ export default function TabCartoes({ mes, ano }: Props) {
               ))}
             </div>
           )}
+          </div>
         </div>
       )}
 
