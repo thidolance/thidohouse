@@ -6,6 +6,7 @@ import {
   doc,
   getDocs,
   getDoc,
+  onSnapshot,
   query,
   where,
   setDoc as _setDoc,
@@ -423,6 +424,23 @@ export async function getCompras(mes: number, ano: number): Promise<CompraParcel
   const q = query(collection(db, 'compras'), where('mes', '==', mes), where('ano', '==', ano));
   const snap = await getDocs(q);
   return snap.docs.map((d) => ({ id: d.id, ...d.data() } as CompraParcelada));
+}
+
+// Listener em tempo real das compras do mês. Como o cache persistente (IndexedDB)
+// está ligado, o onSnapshot dispara na hora com a escrita local (otimista) e de
+// novo quando o servidor confirma — a lista atualiza sozinha após add/edit/excluir,
+// inclusive no mobile e offline, sem precisar recarregar a página. Retorna o unsubscribe.
+export function subscribeCompras(
+  mes: number,
+  ano: number,
+  onChange: (compras: CompraParcelada[]) => void,
+): () => void {
+  const q = query(collection(db, 'compras'), where('mes', '==', mes), where('ano', '==', ano));
+  return onSnapshot(
+    q,
+    (snap) => onChange(snap.docs.map((d) => ({ id: d.id, ...d.data() } as CompraParcelada))),
+    (err) => console.error('subscribeCompras:', err),
+  );
 }
 
 // Grava uma doc por parcela restante, cada uma no mês correto; fixas propagam 24 meses à frente

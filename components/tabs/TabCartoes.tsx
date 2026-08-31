@@ -14,7 +14,7 @@ import { Plus, Trash, Pencil } from '../ui/Icons';
 import { useRefetchOnFocus } from '@/lib/useRefetchOnFocus';
 import { formatCurrencyInput, parseCurrencyInput, formatCurrencyBRL } from '@/lib/currency';
 import {
-  getCompras, addCompra, updateCompra, updateCompraAndFuture, updateCompraReparcelada, getComprasFuturasDoGrupo,
+  subscribeCompras, addCompra, updateCompra, updateCompraAndFuture, updateCompraReparcelada, getComprasFuturasDoGrupo,
   deleteCompra, deleteCompraAndFuture, toggleCompraFixa,
   getCartoes, addCartao, updateCartao, deleteCartao,
   getCategorias, addCategoria, deleteCategoria,
@@ -145,16 +145,19 @@ export default function TabCartoes({ mes, ano }: Props) {
     if (!formCompra.cartaoId && c.length > 0) setFormCompra((f) => ({ ...f, cartaoId: c[0].id! }));
   }, []);// eslint-disable-line react-hooks/exhaustive-deps
 
-  const loadCompras = useCallback(async () => {
-    setLoading(true);
-    setCompras(await getCompras(mes, ano));
-    setLoading(false);
-  }, [mes, ano]);
-
   useEffect(() => { loadConfig(); }, [loadConfig]);
-  useEffect(() => { loadCompras(); }, [loadCompras]);
   useRefetchOnFocus(loadConfig);
-  useRefetchOnFocus(loadCompras);
+
+  // Compras do mês em tempo real: o listener mantém a lista sincronizada sozinho
+  // após add/edit/excluir (inclusive mobile/offline), sem refetch manual nem reload.
+  useEffect(() => {
+    setLoading(true);
+    const unsub = subscribeCompras(mes, ano, (list) => {
+      setCompras(list);
+      setLoading(false);
+    });
+    return unsub;
+  }, [mes, ano]);
 
   // ── helpers de cor ─────────────────────────────────────────────────────────
   function catCor(nome: string) {
@@ -193,7 +196,6 @@ export default function TabCartoes({ mes, ano }: Props) {
           setShowCompraModal(false);
           setEditCompraId(null);
           setFormCompra({ ...COMPRA_EMPTY, cartaoId: cartoes[0]?.id ?? '', tipo: categorias[0]?.nome ?? '' });
-          loadCompras();
           return;
         }
       }
@@ -210,7 +212,6 @@ export default function TabCartoes({ mes, ano }: Props) {
     setShowCompraModal(false);
     setEditCompraId(null);
     setFormCompra({ ...COMPRA_EMPTY, cartaoId: cartoes[0]?.id ?? '', tipo: categorias[0]?.nome ?? '' });
-    loadCompras();
   }
 
   async function confirmarEditCompra(scope: 'this' | 'future') {
@@ -220,7 +221,6 @@ export default function TabCartoes({ mes, ano }: Props) {
     else                    await updateCompra(id, data, original);
     setEditCompraId(null);
     setFormCompra({ ...COMPRA_EMPTY, cartaoId: cartoes[0]?.id ?? '', tipo: categorias[0]?.nome ?? '' });
-    loadCompras();
   }
 
   function abrirNovaCompra(cartaoId?: string) {
@@ -253,7 +253,7 @@ export default function TabCartoes({ mes, ano }: Props) {
     if (p.grupoId) {
       setDeleteCompraDialog(p);
     } else {
-      deleteCompra(p.id!).then(loadCompras);
+      deleteCompra(p.id!);
     }
   }
 
@@ -265,12 +265,10 @@ export default function TabCartoes({ mes, ano }: Props) {
     } else {
       await deleteCompra(p.id!);
     }
-    loadCompras();
   }
 
   async function handleToggleFixa(p: CompraParcelada) {
     await toggleCompraFixa(p.id!, p, !p.fixa);
-    loadCompras();
   }
 
   // ── cartões (config) ───────────────────────────────────────────────────────
@@ -534,10 +532,10 @@ export default function TabCartoes({ mes, ano }: Props) {
               </div>
               <div className="relative flex items-end justify-between mt-4">
                 <div>
-                  <p className="text-white/60 text-xs">Mês atual</p>
-                  <p className="text-base font-bold">{fmt(dado?.total ?? 0)}</p>
+                  <p className="text-white/80 text-xs font-medium">Mês atual</p>
+                  <p className="text-xl font-extrabold tabular-nums leading-tight [text-shadow:0_1px_3px_rgba(0,0,0,0.5)]">{fmt(dado?.total ?? 0)}</p>
                 </div>
-                <p className="text-white/60 text-xs">{dado?.count ?? 0} compra(s)</p>
+                <p className="text-white/80 text-xs font-medium">{dado?.count ?? 0} compra(s)</p>
               </div>
               {!!c.limite && c.limite > 0 && (() => {
                 const pctUso = Math.min(100, ((dado?.usado ?? 0) / c.limite!) * 100);
@@ -555,7 +553,7 @@ export default function TabCartoes({ mes, ano }: Props) {
                         />
                       </div>
                     </div>
-                    <p className="text-white/60 text-[11px] mt-1">{fmt(dado?.usado ?? 0)} de {fmt(c.limite)}</p>
+                    <p className="text-white/80 text-[11px] mt-1 font-medium [text-shadow:0_1px_2px_rgba(0,0,0,0.4)]">{fmt(dado?.usado ?? 0)} de {fmt(c.limite)}</p>
                   </div>
                 );
               })()}
@@ -602,7 +600,7 @@ export default function TabCartoes({ mes, ano }: Props) {
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
-                    <span className="font-semibold text-sm" style={{ color: cartaoAtivo.cor }}>{fmt(p.valorParcela)}</span>
+                    <span className="font-bold text-sm text-slate-800 dark:text-zinc-100 tabular-nums">{fmt(p.valorParcela)}</span>
                     <button onClick={() => handleToggleFixa(p)} title={p.fixa ? 'Remover recorrência' : 'Marcar como fixa'}
                       className={`p-1.5 rounded-lg transition-colors ${p.fixa ? 'text-amber-500 bg-amber-50 dark:bg-amber-500/10' : 'text-slate-300 dark:text-zinc-500 hover:text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-500/10'}`}>
                       <PinIcon filled={p.fixa} />
