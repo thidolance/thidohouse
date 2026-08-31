@@ -565,12 +565,8 @@ export default function TabCartoes({ mes, ano }: Props) {
       {/* Detalhe do cartão selecionado */}
       {cartaoSelecionado && cartaoAtivo && (
         <div
-          className="rounded-2xl border p-5 shadow-sm transition-colors"
-          style={{
-            borderColor: `${cartaoAtivo.cor}59`,
-            borderLeft: `4px solid ${cartaoAtivo.cor}`,
-            backgroundColor: `${cartaoAtivo.cor}0f`,
-          }}
+          className="rounded-2xl border border-slate-100 dark:border-zinc-800 p-5 shadow-sm transition-colors"
+          style={{ backgroundColor: `${cartaoAtivo.cor}0f` }}
         >
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
@@ -591,9 +587,7 @@ export default function TabCartoes({ mes, ano }: Props) {
           ) : (
             <div className="space-y-2">
               {comprasDoCartao.map((p) => (
-                <div key={p.id}
-                  className="flex items-center justify-between p-3 pl-3.5 rounded-xl bg-white/70 dark:bg-zinc-900/50 hover:bg-white dark:hover:bg-zinc-800 transition-colors"
-                  style={{ borderLeft: `3px solid ${cartaoAtivo.cor}` }}>
+                <div key={p.id} className="flex items-center justify-between p-3 rounded-xl hover:bg-slate-50 dark:hover:bg-zinc-800 transition-colors">
                   <div className="flex items-center gap-3">
                     <span className="text-xs px-2 py-0.5 rounded-full font-medium" style={{ backgroundColor: `${catCor(p.tipo)}22`, color: catCor(p.tipo) }}>
                       {p.tipo}
