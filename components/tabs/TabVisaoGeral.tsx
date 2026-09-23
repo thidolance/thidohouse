@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import dynamic from 'next/dynamic';
 import Card from '../ui/Card';
 import TabAssistente from './TabAssistente';
+import { CategoriaIcon } from '../ui/Icons';
 import { useRefetchOnFocus } from '@/lib/useRefetchOnFocus';
 import {
   getEntradasHistorico,
@@ -474,14 +475,14 @@ export default function TabVisaoGeral({ mes, ano, onNavigate }: Props) {
             {totalGuardado > 0 && (
               <div className="mt-4 grid grid-cols-2 sm:grid-cols-4 gap-3 pt-4 border-t border-slate-50 dark:border-zinc-800">
                 {[
-                  { label: 'Férias', icon: '🏖️', valor: atual?.ferias ?? 0, color: '#22d3ee', bg: 'bg-cyan-50 dark:bg-cyan-500/10' },
-                  { label: 'Investimento', icon: '📈', valor: atual?.investimento ?? 0, color: '#a78bfa', bg: 'bg-violet-50 dark:bg-violet-500/10' },
-                  { label: 'Planos Futuros', icon: '🎯', valor: atual?.planosFuturos ?? 0, color: '#34d399', bg: 'bg-emerald-50 dark:bg-emerald-500/10' },
-                  { label: 'Estudos', icon: '🎓', valor: atual?.estudos ?? 0, color: '#f59e0b', bg: 'bg-amber-50 dark:bg-amber-500/10' },
+                  { label: 'Férias', catKey: 'ferias', valor: atual?.ferias ?? 0, color: '#22d3ee', bg: 'bg-cyan-50 dark:bg-cyan-500/10' },
+                  { label: 'Investimento', catKey: 'investimento', valor: atual?.investimento ?? 0, color: '#a78bfa', bg: 'bg-violet-50 dark:bg-violet-500/10' },
+                  { label: 'Planos Futuros', catKey: 'planosFuturos', valor: atual?.planosFuturos ?? 0, color: '#34d399', bg: 'bg-emerald-50 dark:bg-emerald-500/10' },
+                  { label: 'Estudos', catKey: 'estudos', valor: atual?.estudos ?? 0, color: '#f59e0b', bg: 'bg-amber-50 dark:bg-amber-500/10' },
                 ].map((item) => (
                   <div key={item.label} className={`${item.bg} rounded-xl p-3`}>
                     <div className="flex items-center gap-1.5 mb-1">
-                      <span className="text-sm leading-none" aria-hidden>{item.icon}</span>
+                      <CategoriaIcon categoria={item.catKey} color={item.color} className="w-4 h-4 flex-shrink-0" />
                       <span className="text-xs text-slate-500 dark:text-zinc-400">{item.label}</span>
                     </div>
                     <p className="font-bold text-slate-700 dark:text-zinc-200 text-sm tabular-nums">{fmt(item.valor)}</p>
@@ -493,14 +494,14 @@ export default function TabVisaoGeral({ mes, ano, onNavigate }: Props) {
             {totalAcumulado > 0 && (
               <div className="mt-3 grid grid-cols-2 sm:grid-cols-4 gap-3">
                 {[
-                  { label: 'Férias', icon: '🏖️', valor: feriasAcumulado, color: '#22d3ee' },
-                  { label: 'Investimento', icon: '📈', valor: investimentoAcumulado, color: '#a78bfa' },
-                  { label: 'Planos Futuros', icon: '🎯', valor: planosFuturosAcumulado, color: '#34d399' },
-                  { label: 'Estudos', icon: '🎓', valor: estudosAcumulado, color: '#f59e0b' },
+                  { label: 'Férias', catKey: 'ferias', valor: feriasAcumulado, color: '#22d3ee' },
+                  { label: 'Investimento', catKey: 'investimento', valor: investimentoAcumulado, color: '#a78bfa' },
+                  { label: 'Planos Futuros', catKey: 'planosFuturos', valor: planosFuturosAcumulado, color: '#34d399' },
+                  { label: 'Estudos', catKey: 'estudos', valor: estudosAcumulado, color: '#f59e0b' },
                 ].map((item) => (
                   <div key={item.label} className="rounded-xl px-3 py-1.5 text-center">
                     <div className="flex items-center justify-center gap-1.5">
-                      <span className="text-[11px] leading-none" aria-hidden>{item.icon}</span>
+                      <CategoriaIcon categoria={item.catKey} color={item.color} className="w-3.5 h-3.5 flex-shrink-0" />
                       <span className="text-[10px] text-slate-400 dark:text-zinc-400">{item.label} · 12m</span>
                     </div>
                     <p className="font-semibold text-slate-500 dark:text-zinc-400 text-xs tabular-nums mt-0.5">{fmt(item.valor)}</p>

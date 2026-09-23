@@ -6,7 +6,7 @@ import Modal from '../ui/Modal';
 import Card from '../ui/Card';
 import DatePicker from '../ui/DatePicker';
 import { Slider } from '../ui/slider';
-import { Plus, Trash, Pencil, TrendingUp } from '../ui/Icons';
+import { Plus, Trash, Pencil, TrendingUp, CategoriaIcon } from '../ui/Icons';
 import { useRefetchOnFocus } from '@/lib/useRefetchOnFocus';
 import {
   getEntradas, addEntrada, updateEntrada, deleteEntrada,
@@ -48,15 +48,6 @@ const DEFAULT_DIST_COLORS: DistColors = {
   investimento: '#a78bfa',
   planosFuturos: '#34d399',
   estudos: '#f59e0b',
-};
-
-// Ícone por categoria — ajuda a familiarizar visualmente cada fatia/reserva.
-const DIST_ICONS: Record<DistKey, string> = {
-  contas: '🧾',
-  ferias: '🏖️',
-  investimento: '📈',
-  planosFuturos: '🎯',
-  estudos: '🎓',
 };
 
 const DIST_LABELS: { key: DistKey; label: string }[] = [
@@ -546,8 +537,8 @@ export default function TabEntradas({ mes, ano }: Props) {
               {DIST_LABELS.map(({ key, label }) => (
                 <div key={key} className="flex items-center justify-between gap-2">
                   <div className="flex items-center gap-1.5 min-w-0">
-                    <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: distColors[key] }} />
-                    <span className="text-[11px] text-slate-500 dark:text-zinc-400 truncate"><span aria-hidden>{DIST_ICONS[key]}</span> {label} {Math.round(pctEfetivo(key))}%</span>
+                    <CategoriaIcon categoria={key} color={distColors[key]} className="w-3.5 h-3.5 flex-shrink-0" />
+                    <span className="text-[11px] text-slate-500 dark:text-zinc-400 truncate">{label} {Math.round(pctEfetivo(key))}%</span>
                   </div>
                   <span className="text-[11px] font-semibold text-slate-700 dark:text-zinc-200 tabular-nums flex-shrink-0">{fmt(alocEfetiva[key])}</span>
                 </div>
@@ -665,7 +656,7 @@ export default function TabEntradas({ mes, ano }: Props) {
                     <div key={b.key} className="rounded-xl border border-slate-100 dark:border-zinc-800 p-3">
                       <div className="flex items-center justify-between gap-2 mb-2">
                         <span className="flex items-center gap-1.5 min-w-0">
-                          <span className="text-base leading-none flex-shrink-0" aria-hidden>{DIST_ICONS[b.key]}</span>
+                          <CategoriaIcon categoria={b.key} color={distColors[b.key]} className="w-4 h-4 flex-shrink-0" />
                           <span className="text-xs font-medium text-slate-600 dark:text-zinc-300 truncate">{b.label}</span>
                           <span className="text-[10px] text-slate-400 dark:text-zinc-500 flex-shrink-0">{pct.toFixed(0)}%</span>
                         </span>
@@ -716,9 +707,9 @@ export default function TabEntradas({ mes, ano }: Props) {
                 <div key={principal.id} className="group">
                   <div className="flex items-center justify-between gap-2">
                     <div className="flex items-center gap-1.5 min-w-0">
-                      <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: distColors[principal.categoria] }} />
+                      <CategoriaIcon categoria={principal.categoria} color={distColors[principal.categoria]} className="w-3.5 h-3.5 flex-shrink-0" />
                       <span className="text-xs text-slate-500 dark:text-zinc-400 truncate">
-                        <span aria-hidden>{DIST_ICONS[principal.categoria]}</span> {RESERVA_LABELS.find((r) => r.key === principal.categoria)?.label}{principal.descricao ? ` · ${principal.descricao}` : ''}
+                        {RESERVA_LABELS.find((r) => r.key === principal.categoria)?.label}{principal.descricao ? ` · ${principal.descricao}` : ''}
                       </span>
                       {principal.destino === 'contas' && (
                         <span className="flex-shrink-0 inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-indigo-50 dark:bg-purple-500/15 text-indigo-600 dark:text-purple-300">
@@ -752,7 +743,7 @@ export default function TabEntradas({ mes, ano }: Props) {
                     <div className="flex items-center justify-between gap-2 mt-1 pl-3 ml-0.5 border-l border-slate-200 dark:border-zinc-700">
                       <div className="flex items-center gap-1.5 min-w-0">
                         <span className="text-[10px] text-slate-300 dark:text-zinc-600">↳</span>
-                        <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: distColors[restante.categoria] }} />
+                        <CategoriaIcon categoria={restante.categoria} color={distColors[restante.categoria]} className="w-3 h-3 flex-shrink-0" />
                         <span className="text-[11px] text-slate-400 dark:text-zinc-500 truncate">
                           restante em {RESERVA_LABELS.find((r) => r.key === restante.categoria)?.label}
                         </span>
@@ -824,7 +815,8 @@ export default function TabEntradas({ mes, ano }: Props) {
                       className="w-6 h-6 rounded-lg border border-slate-200 dark:border-zinc-800 cursor-pointer p-0.5 bg-white dark:bg-zinc-900 flex-shrink-0"
                       aria-label={`Cor de ${label}`}
                     />
-                    <span className="text-sm font-medium text-slate-700 dark:text-zinc-200 flex-1 truncate"><span aria-hidden>{DIST_ICONS[key]}</span> {label}</span>
+                    <CategoriaIcon categoria={key} color={distColorForm[key]} className="w-4 h-4 flex-shrink-0" />
+                    <span className="text-sm font-medium text-slate-700 dark:text-zinc-200 flex-1 truncate">{label}</span>
                     {totalMes > 0 && (
                       <span className="text-xs font-semibold text-slate-500 dark:text-zinc-400 tabular-nums">{fmt(valor)}</span>
                     )}
@@ -948,7 +940,7 @@ export default function TabEntradas({ mes, ano }: Props) {
                       ? { backgroundColor: distColors[key], color: '#fff', borderColor: distColors[key] }
                       : { borderColor: '#e2e8f0', color: '#64748b' }}
                   >
-                    <span aria-hidden>{DIST_ICONS[key]}</span> {label}
+                    <span className="inline-flex items-center gap-1"><CategoriaIcon categoria={key} className="w-3.5 h-3.5" /> {label}</span>
                   </button>
                 ))}
               </div>
@@ -984,7 +976,7 @@ export default function TabEntradas({ mes, ano }: Props) {
                           ? { backgroundColor: distColors[key], color: '#fff', borderColor: distColors[key] }
                           : { borderColor: '#e2e8f0', color: '#64748b' }}
                       >
-                        <span aria-hidden>{DIST_ICONS[key]}</span> {label} · {fmt(saldo)}
+                        <span className="inline-flex items-center gap-1"><CategoriaIcon categoria={key} className="w-3.5 h-3.5" /> {label} · {fmt(saldo)}</span>
                       </button>
                     );
                   })}
