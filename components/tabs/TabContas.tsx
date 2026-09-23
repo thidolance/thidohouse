@@ -150,6 +150,20 @@ type EmpresaItem = { categoriaId: string; categoriaNome: string; categoriaCor: s
 type DeleteDialog = { conta: Conta };
 type EditScopeDialog = { conta: Conta; data: Omit<Conta, 'id'> };
 
+// Clareia cores escuras para o ícone não sumir no fundo escuro (dark mode).
+// Cores já suficientemente claras passam sem alteração.
+function corIconeDark(hex: string): string {
+  const h = hex.replace('#', '');
+  if (h.length < 6) return hex;
+  const r = parseInt(h.slice(0, 2), 16);
+  const g = parseInt(h.slice(2, 4), 16);
+  const b = parseInt(h.slice(4, 6), 16);
+  const lum = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+  if (lum >= 0.45) return hex;
+  const mix = (c: number) => Math.round(c + (255 - c) * 0.6);
+  return `#${[mix(r), mix(g), mix(b)].map((v) => v.toString(16).padStart(2, '0')).join('')}`;
+}
+
 // ── Componente ────────────────────────────────────────────────────────────────
 
 export default function TabContas({ mes, ano }: Props) {
@@ -764,7 +778,8 @@ export default function TabContas({ mes, ano }: Props) {
         </button>
         {c.icone && (
           <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style={{ backgroundColor: `${cor}18` }}>
-            <ContaIcon nome={c.icone} color={cor} className="w-4 h-4" />
+            <ContaIcon nome={c.icone} color={cor} className="w-4 h-4 dark:hidden" />
+            <ContaIcon nome={c.icone} color={corIconeDark(cor)} className="w-4 h-4 hidden dark:block" />
           </div>
         )}
         <div className="flex-1 min-w-0 cursor-pointer" onClick={() => abrirDetalhe(c)}>
