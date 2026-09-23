@@ -83,7 +83,7 @@ export default function TabEntradas({ mes, ano }: Props) {
     entradaMes: number; saidaMes: number;
   }>({ invest: 0, ferias: 0, planos: 0, estudos: 0, total: 0, contribMes: 0, deltaPct: 0, entradaMes: 0, saidaMes: 0 });
   const [distribuicao, setDistribuicao] = useState<Distribuicao>({
-    mes, ano, contas: 50, ferias: 5, investimento: 20, planosFuturos: 10, estudos: 15,
+    mes, ano, contas: 65, ferias: 3, investimento: 20, planosFuturos: 4, estudos: 8,
   });
   const [saquesMes, setSaquesMes]       = useState<SaqueReserva[]>([]);
   const [showModal, setShowModal]       = useState(false);
@@ -98,7 +98,7 @@ export default function TabEntradas({ mes, ano }: Props) {
   // Ids do saque em edição (principal + restante, se houver). Ignorados no cálculo
   // do disponível para não contarem contra o próprio limite.
   const [editGroupIds, setEditGroupIds] = useState<string[]>([]);
-  const [distForm, setDistForm]         = useState<Record<DistKey, string>>({ contas: '50', ferias: '5', investimento: '20', planosFuturos: '10', estudos: '15' });
+  const [distForm, setDistForm]         = useState<Record<DistKey, string>>({ contas: '65', ferias: '3', investimento: '20', planosFuturos: '4', estudos: '8' });
   const [distColors, setDistColors]     = useState<DistColors>(DEFAULT_DIST_COLORS);
   const [distColorForm, setDistColorForm] = useState<DistColors>(DEFAULT_DIST_COLORS);
 
@@ -214,9 +214,9 @@ export default function TabEntradas({ mes, ano }: Props) {
       setDistribuicao(distComEstudos);
       setDistForm({ contas: String(distComEstudos.contas), ferias: String(distComEstudos.ferias), investimento: String(distComEstudos.investimento), planosFuturos: String(distComEstudos.planosFuturos), estudos: String(distComEstudos.estudos) });
     } else {
-      const d = { mes, ano, contas: 50, ferias: 5, investimento: 20, planosFuturos: 10, estudos: 15 };
+      const d = { mes, ano, contas: 65, ferias: 3, investimento: 20, planosFuturos: 4, estudos: 8 };
       setDistribuicao(d);
-      setDistForm({ contas: '50', ferias: '5', investimento: '20', planosFuturos: '10', estudos: '15' });
+      setDistForm({ contas: '65', ferias: '3', investimento: '20', planosFuturos: '4', estudos: '8' });
     }
     setLoading(false);
   }, [mes, ano]);
