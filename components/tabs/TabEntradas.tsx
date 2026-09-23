@@ -79,11 +79,9 @@ export default function TabEntradas({ mes, ano }: Props) {
   // Balanço acumulado do que foi guardado (investimento/férias/planos), all-time.
   const [balanco, setBalanco] = useState<{
     invest: number; ferias: number; planos: number; estudos: number; total: number; contribMes: number; deltaPct: number;
-    // Total que SAIU de cada reserva (saques + transferências) na janela de 12 meses.
-    saidaInvest: number; saidaFerias: number; saidaPlanos: number; saidaEstudos: number;
     // Movimento do MÊS vigente (volátil: muda a cada saque/transferência).
     entradaMes: number; saidaMes: number;
-  }>({ invest: 0, ferias: 0, planos: 0, estudos: 0, total: 0, contribMes: 0, deltaPct: 0, saidaInvest: 0, saidaFerias: 0, saidaPlanos: 0, saidaEstudos: 0, entradaMes: 0, saidaMes: 0 });
+  }>({ invest: 0, ferias: 0, planos: 0, estudos: 0, total: 0, contribMes: 0, deltaPct: 0, entradaMes: 0, saidaMes: 0 });
   const [distribuicao, setDistribuicao] = useState<Distribuicao>({
     mes, ano, contas: 50, ferias: 5, investimento: 20, planosFuturos: 10, estudos: 15,
   });
@@ -151,7 +149,6 @@ export default function TabEntradas({ mes, ano }: Props) {
       jm--; if (jm === 0) { jm = 12; ja--; }
     }
     let accInvest = 0, accFerias = 0, accPlanos = 0, accEstudos = 0;
-    let saidaInvest = 0, saidaFerias = 0, saidaPlanos = 0, saidaEstudos = 0;
     janela.forEach((k) => {
       const d = distByKey.get(k);
       const g = ganhosByKey[k];
@@ -167,10 +164,6 @@ export default function TabEntradas({ mes, ano }: Props) {
         accFerias -= s.ferias;
         accPlanos -= s.planosFuturos;
         accEstudos -= s.estudos;
-        saidaInvest += s.investimento;
-        saidaFerias += s.ferias;
-        saidaPlanos += s.planosFuturos;
-        saidaEstudos += s.estudos;
       }
     });
     const totalAcc = accInvest + accFerias + accPlanos + accEstudos;
@@ -189,7 +182,7 @@ export default function TabEntradas({ mes, ano }: Props) {
     const contribMes = entradaMes - saidaMes;
     const priorTotal = totalAcc - contribMes;
     const deltaPct = priorTotal > 0 ? (contribMes / priorTotal) * 100 : 0;
-    setBalanco({ invest: accInvest, ferias: accFerias, planos: accPlanos, estudos: accEstudos, total: totalAcc, contribMes, deltaPct, saidaInvest, saidaFerias, saidaPlanos, saidaEstudos, entradaMes, saidaMes });
+    setBalanco({ invest: accInvest, ferias: accFerias, planos: accPlanos, estudos: accEstudos, total: totalAcc, contribMes, deltaPct, entradaMes, saidaMes });
 
     const byMonth: Record<string, number> = {};
     hist.forEach((e) => {
@@ -612,7 +605,7 @@ export default function TabEntradas({ mes, ano }: Props) {
         <div className="flex items-start justify-between mb-1">
           <div>
             <p className="text-sm font-semibold text-slate-500 dark:text-zinc-400">Investimentos &amp; Reservas</p>
-            <p className="text-[11px] text-slate-400 dark:text-zinc-500">Com base na distribuição · acumulado dos últimos 12 meses</p>
+            <p className="text-[11px] text-slate-400 dark:text-zinc-500">Total acumulado no topo · guardado e retirado por reserva no mês</p>
           </div>
           <div className="flex items-center gap-2 flex-shrink-0">
             <button onClick={abrirTransferencia}
@@ -647,21 +640,21 @@ export default function TabEntradas({ mes, ano }: Props) {
 
         <div className="border-b border-slate-100 dark:border-zinc-800 mb-4" />
 
-        {balanco.total > 0 ? (
+        {(totalMes > 0 || saquesMes.length > 0) ? (
           (() => {
-            const reservas = ([
-              { key: 'investimento' as const, label: 'Investimento', saldo: balanco.invest, saiu: balanco.saidaInvest },
-              { key: 'ferias' as const,        label: 'Férias',       saldo: balanco.ferias, saiu: balanco.saidaFerias },
-              { key: 'planosFuturos' as const, label: 'Planos',       saldo: balanco.planos, saiu: balanco.saidaPlanos },
-              { key: 'estudos' as const,       label: 'Estudos',      saldo: balanco.estudos, saiu: balanco.saidaEstudos },
-            ]).filter((b) => b.saldo > 0.005 || b.saiu > 0.005);
-            // Barra de cada reserva é proporcional ao maior saldo (comparação visual).
+            // Números do MÊS selecionado (mudam a cada mês / saque / transferência):
+            // guardado = fatia destinada no mês; saiu = saques + transferências do mês.
+            const reservas = RESERVA_LABELS.map(({ key, label }) => {
+              const guardado = totalMes * ((distribuicao[key] ?? 0) / 100);
+              const saiu = sacadoCategoria(key);
+              const saldo = Math.max(guardado - saiu, 0);
+              return { key, label, guardado, saiu, saldo };
+            }).filter((b) => b.guardado > 0.005 || b.saiu > 0.005);
+            // Barra de cada reserva proporcional ao maior saldo do mês (comparação visual).
             const maxSaldo = Math.max(...reservas.map((b) => b.saldo), 1);
             return (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {reservas.map((b) => {
-                  const guardado = b.saldo + b.saiu;                       // total destinado antes dos saques
-                  const pct = balanco.total > 0 ? (b.saldo / balanco.total) * 100 : 0;
                   const larguraBarra = Math.max((b.saldo / maxSaldo) * 100, 2);
                   return (
                     <div key={b.key} className="rounded-xl border border-slate-100 dark:border-zinc-800 p-3">
@@ -669,18 +662,18 @@ export default function TabEntradas({ mes, ano }: Props) {
                         <span className="flex items-center gap-1.5 min-w-0">
                           <CategoriaIcon categoria={b.key} color={distColors[b.key]} className="w-4 h-4 flex-shrink-0" />
                           <span className="text-xs font-medium text-slate-600 dark:text-zinc-300 truncate">{b.label}</span>
-                          <span className="text-[10px] text-slate-400 dark:text-zinc-500 flex-shrink-0">{pct.toFixed(0)}%</span>
+                          <span className="text-[10px] text-slate-400 dark:text-zinc-500 flex-shrink-0">{distribuicao[b.key] ?? 0}%</span>
                         </span>
                         <span className="text-sm font-bold text-slate-800 dark:text-white tabular-nums flex-shrink-0">{fmt(b.saldo)}</span>
                       </div>
-                      {/* Barra proporcional ao maior saldo entre as reservas */}
+                      {/* Barra proporcional ao maior saldo do mês entre as reservas */}
                       <div className="w-full bg-slate-100 dark:bg-zinc-800 rounded-full h-2 overflow-hidden">
                         <div className="h-2 rounded-full transition-all" style={{ width: `${larguraBarra}%`, backgroundColor: distColors[b.key] }} />
                       </div>
-                      {/* Entrou (guardado) x Saiu (saques/transferências) */}
+                      {/* Guardado x Saiu — do mês selecionado */}
                       <div className="flex items-center justify-between mt-2 text-[11px]">
                         <span className="inline-flex items-center gap-1 text-emerald-600 dark:text-emerald-400 font-medium tabular-nums">
-                          <span aria-hidden>↑</span> {fmt(guardado)} <span className="font-normal text-slate-400 dark:text-zinc-500">guardado</span>
+                          <span aria-hidden>↑</span> {fmt(b.guardado)} <span className="font-normal text-slate-400 dark:text-zinc-500">guardado</span>
                         </span>
                         {b.saiu > 0.005 ? (
                           <span className="inline-flex items-center gap-1 text-red-500 dark:text-red-400 font-medium tabular-nums">
