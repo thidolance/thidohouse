@@ -156,13 +156,14 @@ export default function TabEntradas({ mes, ano }: Props) {
       atual[s.categoria] += s.valor;
       saquesByKey[k] = atual;
     });
-    // Janela rolante de 12 meses terminando em (mes, ano).
-    const janela: string[] = [];
-    let jm = mes, ja = ano;
-    for (let i = 0; i < 12; i++) {
-      janela.unshift(`${ja}-${jm}`);
-      jm--; if (jm === 0) { jm = 12; ja--; }
-    }
+    // Acumula TUDO desde o início dos dados até o mês selecionado (inclusive) —
+    // sem janela de 12 meses. Assim o total guardado só cresce ao avançar os meses.
+    const selVal = ano * 12 + (mes - 1);
+    const janela = [...new Set([...Object.keys(ganhosByKey), ...distByKey.keys(), ...Object.keys(saquesByKey)])]
+      .filter((k) => {
+        const [y, m] = k.split('-').map(Number);
+        return y * 12 + (m - 1) <= selVal;
+      });
     let accInvest = 0, accFerias = 0, accPlanos = 0, accEstudos = 0;
     janela.forEach((k) => {
       const d = distByKey.get(k);
