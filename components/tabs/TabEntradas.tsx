@@ -107,7 +107,16 @@ export default function TabEntradas({ mes, ano }: Props) {
       const stored = localStorage.getItem(LS_COLORS_KEY);
       // Mescla com os defaults: cores salvas antes de novas categorias (ex: Estudos)
       // não têm a chave nova e renderizariam preto. O default preenche o que faltar.
-      if (stored) { const c = { ...DEFAULT_DIST_COLORS, ...(JSON.parse(stored) as Partial<DistColors>) }; setDistColors(c); setDistColorForm(c); }
+      if (stored) {
+        const parsed = JSON.parse(stored) as Partial<DistColors>;
+        // Migração: Estudos deixou de ser vermelho (#e11d48) e virou âmbar. Quem já
+        // tinha o vermelho antigo salvo no localStorage é corrigido para o novo default.
+        if (parsed.estudos === '#e11d48') parsed.estudos = DEFAULT_DIST_COLORS.estudos;
+        const c = { ...DEFAULT_DIST_COLORS, ...parsed };
+        setDistColors(c);
+        setDistColorForm(c);
+        localStorage.setItem(LS_COLORS_KEY, JSON.stringify(c)); // persiste a correção
+      }
     } catch { /* noop */ }
   }, []);
 
