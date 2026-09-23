@@ -81,7 +81,9 @@ export default function TabEntradas({ mes, ano }: Props) {
     invest: number; ferias: number; planos: number; estudos: number; total: number; contribMes: number; deltaPct: number;
     // Total que SAIU de cada reserva (saques + transferências) na janela de 12 meses.
     saidaInvest: number; saidaFerias: number; saidaPlanos: number; saidaEstudos: number;
-  }>({ invest: 0, ferias: 0, planos: 0, estudos: 0, total: 0, contribMes: 0, deltaPct: 0, saidaInvest: 0, saidaFerias: 0, saidaPlanos: 0, saidaEstudos: 0 });
+    // Movimento do MÊS vigente (volátil: muda a cada saque/transferência).
+    entradaMes: number; saidaMes: number;
+  }>({ invest: 0, ferias: 0, planos: 0, estudos: 0, total: 0, contribMes: 0, deltaPct: 0, saidaInvest: 0, saidaFerias: 0, saidaPlanos: 0, saidaEstudos: 0, entradaMes: 0, saidaMes: 0 });
   const [distribuicao, setDistribuicao] = useState<Distribuicao>({
     mes, ano, contas: 50, ferias: 5, investimento: 20, planosFuturos: 10, estudos: 15,
   });
@@ -178,12 +180,16 @@ export default function TabEntradas({ mes, ano }: Props) {
     const dAtual = distByKey.get(kAtual);
     const sAtual = saquesByKey[kAtual];
     const saquesMesTotal = sAtual ? sAtual.investimento + sAtual.ferias + sAtual.planosFuturos + sAtual.estudos : 0;
-    const contribMes = (dAtual
+    // Acréscimo bruto do mês (fatias de reserva das entradas do mês) e retirada do
+    // mês (saques + transferências). O saldo líquido do mês é a diferença dos dois.
+    const entradaMes = dAtual
       ? gAtual * ((dAtual.investimento + dAtual.ferias + dAtual.planosFuturos + (dAtual.estudos ?? 0)) / 100)
-      : 0) - saquesMesTotal;
+      : 0;
+    const saidaMes = saquesMesTotal;
+    const contribMes = entradaMes - saidaMes;
     const priorTotal = totalAcc - contribMes;
     const deltaPct = priorTotal > 0 ? (contribMes / priorTotal) * 100 : 0;
-    setBalanco({ invest: accInvest, ferias: accFerias, planos: accPlanos, estudos: accEstudos, total: totalAcc, contribMes, deltaPct, saidaInvest, saidaFerias, saidaPlanos, saidaEstudos });
+    setBalanco({ invest: accInvest, ferias: accFerias, planos: accPlanos, estudos: accEstudos, total: totalAcc, contribMes, deltaPct, saidaInvest, saidaFerias, saidaPlanos, saidaEstudos, entradaMes, saidaMes });
 
     const byMonth: Record<string, number> = {};
     hist.forEach((e) => {
@@ -623,15 +629,20 @@ export default function TabEntradas({ mes, ano }: Props) {
           </div>
         </div>
 
-        <div className="flex flex-wrap items-end gap-x-3 gap-y-1 mb-4">
-          <span className="text-3xl font-bold tracking-tight text-slate-800 dark:text-white tabular-nums">{fmt(balanco.total)}</span>
-          {balanco.contribMes !== 0 && (
-            <span className={`mb-1 text-sm font-semibold ${balanco.contribMes > 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-500 dark:text-red-400'}`}>
-              {balanco.contribMes > 0 ? '+' : '-'}{fmt(Math.abs(balanco.contribMes))}
-              {balanco.contribMes > 0 && balanco.deltaPct > 0 && <span className="ml-1 text-emerald-500/80">(+{balanco.deltaPct.toFixed(1)}%)</span>}
-              <span className="ml-1 font-normal text-slate-400 dark:text-zinc-500">este mês</span>
+        <div className="mb-4">
+          <p className="text-[11px] font-medium uppercase tracking-wide text-slate-400 dark:text-zinc-500">Total guardado (com o mês vigente)</p>
+          <p className="text-3xl font-bold tracking-tight text-slate-800 dark:text-white tabular-nums mt-0.5">{fmt(balanco.total)}</p>
+          {/* Movimento do mês — volátil: muda a cada saque/transferência. */}
+          <div className="flex flex-wrap items-center gap-x-5 gap-y-1 mt-2">
+            <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-emerald-600 dark:text-emerald-400 tabular-nums">
+              <span aria-hidden>↑</span> {fmt(balanco.entradaMes)}
+              <span className="font-normal text-slate-400 dark:text-zinc-500">entrando este mês</span>
             </span>
-          )}
+            <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-red-500 dark:text-red-400 tabular-nums">
+              <span aria-hidden>↓</span> {fmt(balanco.saidaMes)}
+              <span className="font-normal text-slate-400 dark:text-zinc-500">saindo este mês</span>
+            </span>
+          </div>
         </div>
 
         <div className="border-b border-slate-100 dark:border-zinc-800 mb-4" />
