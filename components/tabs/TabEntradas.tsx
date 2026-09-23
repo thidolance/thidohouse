@@ -39,7 +39,7 @@ function GearIcon() {
 
 const MESES_CURTOS = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
 
-type DistKey = 'contas' | 'ferias' | 'investimento' | 'planosFuturos';
+type DistKey = 'contas' | 'ferias' | 'investimento' | 'planosFuturos' | 'estudos';
 type DistColors = Record<DistKey, string>;
 
 const DEFAULT_DIST_COLORS: DistColors = {
@@ -47,6 +47,7 @@ const DEFAULT_DIST_COLORS: DistColors = {
   ferias: '#22d3ee',
   investimento: '#a78bfa',
   planosFuturos: '#34d399',
+  estudos: '#e11d48',
 };
 
 const DIST_LABELS: { key: DistKey; label: string }[] = [
@@ -54,6 +55,7 @@ const DIST_LABELS: { key: DistKey; label: string }[] = [
   { key: 'ferias',        label: 'Férias' },
   { key: 'investimento',  label: 'Investimento' },
   { key: 'planosFuturos', label: 'Planos Futuros' },
+  { key: 'estudos',       label: 'Estudos' },
 ];
 
 const LS_COLORS_KEY = 'thidohouse-dist-colors';
@@ -68,6 +70,7 @@ const RESERVA_LABELS: { key: ReservaKey; label: string }[] = [
   { key: 'investimento',  label: 'Investimento' },
   { key: 'ferias',        label: 'Férias' },
   { key: 'planosFuturos', label: 'Planos Futuros' },
+  { key: 'estudos',       label: 'Estudos' },
 ];
 
 export default function TabEntradas({ mes, ano }: Props) {
@@ -75,10 +78,10 @@ export default function TabEntradas({ mes, ano }: Props) {
   const [historico, setHistorico] = useState<{ mes: string; total: number; fill: string }[]>([]);
   // Balanço acumulado do que foi guardado (investimento/férias/planos), all-time.
   const [balanco, setBalanco] = useState<{
-    invest: number; ferias: number; planos: number; total: number; contribMes: number; deltaPct: number;
-  }>({ invest: 0, ferias: 0, planos: 0, total: 0, contribMes: 0, deltaPct: 0 });
+    invest: number; ferias: number; planos: number; estudos: number; total: number; contribMes: number; deltaPct: number;
+  }>({ invest: 0, ferias: 0, planos: 0, estudos: 0, total: 0, contribMes: 0, deltaPct: 0 });
   const [distribuicao, setDistribuicao] = useState<Distribuicao>({
-    mes, ano, contas: 50, ferias: 10, investimento: 20, planosFuturos: 20,
+    mes, ano, contas: 45, ferias: 10, investimento: 20, planosFuturos: 15, estudos: 10,
   });
   const [saquesMes, setSaquesMes]       = useState<SaqueReserva[]>([]);
   const [showModal, setShowModal]       = useState(false);
@@ -93,7 +96,7 @@ export default function TabEntradas({ mes, ano }: Props) {
   // Ids do saque em edição (principal + restante, se houver). Ignorados no cálculo
   // do disponível para não contarem contra o próprio limite.
   const [editGroupIds, setEditGroupIds] = useState<string[]>([]);
-  const [distForm, setDistForm]         = useState<Record<DistKey, string>>({ contas: '50', ferias: '10', investimento: '20', planosFuturos: '20' });
+  const [distForm, setDistForm]         = useState<Record<DistKey, string>>({ contas: '45', ferias: '10', investimento: '20', planosFuturos: '15', estudos: '10' });
   const [distColors, setDistColors]     = useState<DistColors>(DEFAULT_DIST_COLORS);
   const [distColorForm, setDistColorForm] = useState<DistColors>(DEFAULT_DIST_COLORS);
 
@@ -130,7 +133,7 @@ export default function TabEntradas({ mes, ano }: Props) {
     const saquesByKey: Record<string, Record<ReservaKey, number>> = {};
     saquesHist.forEach((s) => {
       const k = `${s.ano}-${s.mes}`;
-      const atual = saquesByKey[k] ?? { ferias: 0, investimento: 0, planosFuturos: 0 };
+      const atual = saquesByKey[k] ?? { ferias: 0, investimento: 0, planosFuturos: 0, estudos: 0 };
       atual[s.categoria] += s.valor;
       saquesByKey[k] = atual;
     });
@@ -141,7 +144,7 @@ export default function TabEntradas({ mes, ano }: Props) {
       janela.unshift(`${ja}-${jm}`);
       jm--; if (jm === 0) { jm = 12; ja--; }
     }
-    let accInvest = 0, accFerias = 0, accPlanos = 0;
+    let accInvest = 0, accFerias = 0, accPlanos = 0, accEstudos = 0;
     janela.forEach((k) => {
       const d = distByKey.get(k);
       const g = ganhosByKey[k];
@@ -150,26 +153,28 @@ export default function TabEntradas({ mes, ano }: Props) {
         accInvest += g * (d.investimento / 100);
         accFerias += g * (d.ferias / 100);
         accPlanos += g * (d.planosFuturos / 100);
+        accEstudos += g * ((d.estudos ?? 0) / 100);
       }
       if (s) {
         accInvest -= s.investimento;
         accFerias -= s.ferias;
         accPlanos -= s.planosFuturos;
+        accEstudos -= s.estudos;
       }
     });
-    const totalAcc = accInvest + accFerias + accPlanos;
+    const totalAcc = accInvest + accFerias + accPlanos + accEstudos;
 
     const kAtual = `${ano}-${mes}`;
     const gAtual = ganhosByKey[kAtual] ?? 0;
     const dAtual = distByKey.get(kAtual);
     const sAtual = saquesByKey[kAtual];
-    const saquesMesTotal = sAtual ? sAtual.investimento + sAtual.ferias + sAtual.planosFuturos : 0;
+    const saquesMesTotal = sAtual ? sAtual.investimento + sAtual.ferias + sAtual.planosFuturos + sAtual.estudos : 0;
     const contribMes = (dAtual
-      ? gAtual * ((dAtual.investimento + dAtual.ferias + dAtual.planosFuturos) / 100)
+      ? gAtual * ((dAtual.investimento + dAtual.ferias + dAtual.planosFuturos + (dAtual.estudos ?? 0)) / 100)
       : 0) - saquesMesTotal;
     const priorTotal = totalAcc - contribMes;
     const deltaPct = priorTotal > 0 ? (contribMes / priorTotal) * 100 : 0;
-    setBalanco({ invest: accInvest, ferias: accFerias, planos: accPlanos, total: totalAcc, contribMes, deltaPct });
+    setBalanco({ invest: accInvest, ferias: accFerias, planos: accPlanos, estudos: accEstudos, total: totalAcc, contribMes, deltaPct });
 
     const byMonth: Record<string, number> = {};
     hist.forEach((e) => {
@@ -187,12 +192,14 @@ export default function TabEntradas({ mes, ano }: Props) {
     setHistorico(sorted);
 
     if (dist) {
-      setDistribuicao(dist);
-      setDistForm({ contas: String(dist.contas), ferias: String(dist.ferias), investimento: String(dist.investimento), planosFuturos: String(dist.planosFuturos) });
+      // Distribuições antigas podem não ter o campo `estudos` (default 0).
+      const distComEstudos = { ...dist, estudos: dist.estudos ?? 0 };
+      setDistribuicao(distComEstudos);
+      setDistForm({ contas: String(distComEstudos.contas), ferias: String(distComEstudos.ferias), investimento: String(distComEstudos.investimento), planosFuturos: String(distComEstudos.planosFuturos), estudos: String(distComEstudos.estudos) });
     } else {
-      const d = { mes, ano, contas: 50, ferias: 10, investimento: 20, planosFuturos: 20 };
+      const d = { mes, ano, contas: 45, ferias: 10, investimento: 20, planosFuturos: 15, estudos: 10 };
       setDistribuicao(d);
-      setDistForm({ contas: '50', ferias: '10', investimento: '20', planosFuturos: '20' });
+      setDistForm({ contas: '45', ferias: '10', investimento: '20', planosFuturos: '15', estudos: '10' });
     }
     setLoading(false);
   }, [mes, ano]);
@@ -234,8 +241,9 @@ export default function TabEntradas({ mes, ano }: Props) {
       ferias: toInt(distForm.ferias),
       investimento: toInt(distForm.investimento),
       planosFuturos: toInt(distForm.planosFuturos),
+      estudos: toInt(distForm.estudos),
     };
-    const soma = parsed.contas + parsed.ferias + parsed.investimento + parsed.planosFuturos;
+    const soma = parsed.contas + parsed.ferias + parsed.investimento + parsed.planosFuturos + parsed.estudos;
     if (soma !== 100) return alert('Os percentuais devem somar 100%');
     // Trava: nenhuma reserva pode ficar abaixo do que já foi sacado/transferido no mês.
     const violada = RESERVA_LABELS.find((r) => sobraCategoria(r.key, parsed[r.key]) < -0.005);
@@ -358,11 +366,11 @@ export default function TabEntradas({ mes, ano }: Props) {
   // Transferências deste mês para Contas, somadas por reserva de origem. Elas
   // saem da fatia da reserva e entram na fatia de Contas, sem mudar o total do mês.
   const transferPorReserva = useMemo(() => {
-    const acc: Record<ReservaKey, number> = { ferias: 0, investimento: 0, planosFuturos: 0 };
+    const acc: Record<ReservaKey, number> = { ferias: 0, investimento: 0, planosFuturos: 0, estudos: 0 };
     saquesMes.forEach((s) => { if (s.destino === 'contas') acc[s.categoria] += s.valor; });
     return acc;
   }, [saquesMes]);
-  const totalTransferContas = transferPorReserva.ferias + transferPorReserva.investimento + transferPorReserva.planosFuturos;
+  const totalTransferContas = transferPorReserva.ferias + transferPorReserva.investimento + transferPorReserva.planosFuturos + transferPorReserva.estudos;
 
   // Valor efetivo (R$) de cada fatia já considerando as transferências para Contas.
   const alocEfetiva: Record<DistKey, number> = {
@@ -370,8 +378,9 @@ export default function TabEntradas({ mes, ano }: Props) {
     ferias:        Math.max(totalMes * (distribuicao.ferias / 100) - transferPorReserva.ferias, 0),
     investimento:  Math.max(totalMes * (distribuicao.investimento / 100) - transferPorReserva.investimento, 0),
     planosFuturos: Math.max(totalMes * (distribuicao.planosFuturos / 100) - transferPorReserva.planosFuturos, 0),
+    estudos:       Math.max(totalMes * ((distribuicao.estudos ?? 0) / 100) - transferPorReserva.estudos, 0),
   };
-  const alocTotal = alocEfetiva.contas + alocEfetiva.ferias + alocEfetiva.investimento + alocEfetiva.planosFuturos;
+  const alocTotal = alocEfetiva.contas + alocEfetiva.ferias + alocEfetiva.investimento + alocEfetiva.planosFuturos + alocEfetiva.estudos;
   const pctEfetivo = (k: DistKey) => (alocTotal > 0 ? (alocEfetiva[k] / alocTotal) * 100 : 0);
 
   const distPieData = DIST_LABELS.map(({ key, label }) => ({
@@ -381,7 +390,7 @@ export default function TabEntradas({ mes, ano }: Props) {
     fill: distColors[key],
   }));
 
-  const distSoma = toInt(distForm.contas) + toInt(distForm.ferias) + toInt(distForm.investimento) + toInt(distForm.planosFuturos);
+  const distSoma = toInt(distForm.contas) + toInt(distForm.ferias) + toInt(distForm.investimento) + toInt(distForm.planosFuturos) + toInt(distForm.estudos);
 
   // ── specs VChart ──────────────────────────────────────────────────────────
 
@@ -624,6 +633,7 @@ export default function TabEntradas({ mes, ano }: Props) {
               { key: 'investimento' as const, label: 'Investimento', value: balanco.invest },
               { key: 'ferias' as const,        label: 'Férias',       value: balanco.ferias },
               { key: 'planosFuturos' as const, label: 'Planos',       value: balanco.planos },
+              { key: 'estudos' as const,       label: 'Estudos',      value: balanco.estudos },
             ]).filter((b) => b.value > 0);
             return (
               <div className="space-y-3">
@@ -634,7 +644,7 @@ export default function TabEntradas({ mes, ano }: Props) {
                   ))}
                 </div>
                 {/* Legenda com valores — largura fixa, sem sobreposição */}
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-x-4 gap-y-2">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-x-4 gap-y-2">
                   {itens.map((b) => (
                     <div key={b.key} className="flex flex-col min-w-0">
                       <span className="flex items-center gap-1.5 text-[11px] text-slate-400 dark:text-zinc-400 font-medium">

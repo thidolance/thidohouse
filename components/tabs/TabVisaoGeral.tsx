@@ -47,6 +47,7 @@ interface MesDashboard {
   ferias: number;
   investimento: number;
   planosFuturos: number;
+  estudos: number;
   isAtual: boolean;
 }
 
@@ -115,28 +116,30 @@ export default function TabVisaoGeral({ mes, ano, onNavigate }: Props) {
       const gastos = gastoContas + gastoCartoes + gastoEmpresa;
       const dist = distribuicoes.find((d) => d.mes === m && d.ano === a);
       const mesSaques = saques.filter((s) => s.mes === m && s.ano === a);
-      const saqueDe = (cat: 'ferias' | 'investimento' | 'planosFuturos') =>
+      const saqueDe = (cat: 'ferias' | 'investimento' | 'planosFuturos' | 'estudos') =>
         mesSaques.filter((s) => s.categoria === cat && s.destino !== 'contas').reduce((sum, s) => sum + s.valor, 0);
-      const transfDe = (cat: 'ferias' | 'investimento' | 'planosFuturos') =>
+      const transfDe = (cat: 'ferias' | 'investimento' | 'planosFuturos' | 'estudos') =>
         mesSaques.filter((s) => s.categoria === cat && s.destino === 'contas').reduce((sum, s) => sum + s.valor, 0);
 
       const baseFerias = ganhos * (dist?.ferias ?? 0) / 100;
       const baseInvest = ganhos * (dist?.investimento ?? 0) / 100;
       const basePlanos = ganhos * (dist?.planosFuturos ?? 0) / 100;
+      const baseEstudos = ganhos * (dist?.estudos ?? 0) / 100;
 
       // Reservas exibidas (gráficos + "Guardado no mês"): todo saque OU transferência
       // reduz a reserva de origem — senão os investimentos mostrariam valor errado.
       const ferias = Math.max(baseFerias - saqueDe('ferias') - transfDe('ferias'), 0);
       const investimento = Math.max(baseInvest - saqueDe('investimento') - transfDe('investimento'), 0);
       const planosFuturos = Math.max(basePlanos - saqueDe('planosFuturos') - transfDe('planosFuturos'), 0);
+      const estudos = Math.max(baseEstudos - saqueDe('estudos') - transfDe('estudos'), 0);
 
       // Saldo do mês = o que sobra do Contas (orçamento de Contas − gastos). Só a
       // transferência entra aqui, pois vira orçamento de Contas; o saque puro sai de
       // casa e não é sobra. Por isso o saldo usa o guardado PLANEJADO (não o sacado).
-      const guardadoPlanejado = baseFerias + baseInvest + basePlanos;
-      const transfTotal = transfDe('ferias') + transfDe('investimento') + transfDe('planosFuturos');
+      const guardadoPlanejado = baseFerias + baseInvest + basePlanos + baseEstudos;
+      const transfTotal = transfDe('ferias') + transfDe('investimento') + transfDe('planosFuturos') + transfDe('estudos');
       const saldo = ganhos - gastos - guardadoPlanejado + transfTotal;
-      return { label, mesAno, ganhos, gastos, saldo, ferias, investimento, planosFuturos, isAtual: m === mes && a === ano };
+      return { label, mesAno, ganhos, gastos, saldo, ferias, investimento, planosFuturos, estudos, isAtual: m === mes && a === ano };
     });
 
     // Gastos por categoria — mês atual
@@ -183,12 +186,13 @@ export default function TabVisaoGeral({ mes, ano, onNavigate }: Props) {
   useRefetchOnFocus(load);
 
   const atual = dados.find((d) => d.isAtual);
-  const totalGuardado = (atual?.ferias ?? 0) + (atual?.investimento ?? 0) + (atual?.planosFuturos ?? 0);
+  const totalGuardado = (atual?.ferias ?? 0) + (atual?.investimento ?? 0) + (atual?.planosFuturos ?? 0) + (atual?.estudos ?? 0);
   const pctGuardado = atual?.ganhos ? (totalGuardado / atual.ganhos) * 100 : 0;
-  const totalAcumulado = dados.reduce((s, d) => s + d.ferias + d.investimento + d.planosFuturos, 0);
+  const totalAcumulado = dados.reduce((s, d) => s + d.ferias + d.investimento + d.planosFuturos + d.estudos, 0);
   const feriasAcumulado = dados.reduce((s, d) => s + d.ferias, 0);
   const investimentoAcumulado = dados.reduce((s, d) => s + d.investimento, 0);
   const planosFuturosAcumulado = dados.reduce((s, d) => s + d.planosFuturos, 0);
+  const estudosAcumulado = dados.reduce((s, d) => s + d.estudos, 0);
 
   // ── specs VChart ──────────────────────────────────────────────────────────
 
@@ -295,6 +299,7 @@ export default function TabVisaoGeral({ mes, ano, onNavigate }: Props) {
       { label: d.label, valor: d.ferias, tipo: 'Férias', isAtual: d.isAtual },
       { label: d.label, valor: d.investimento, tipo: 'Investimento', isAtual: d.isAtual },
       { label: d.label, valor: d.planosFuturos, tipo: 'Planos Futuros', isAtual: d.isAtual },
+      { label: d.label, valor: d.estudos, tipo: 'Estudos', isAtual: d.isAtual },
     ]).filter((d) => d.valor > 0);
     return {
       type: 'bar',
@@ -305,7 +310,7 @@ export default function TabVisaoGeral({ mes, ano, onNavigate }: Props) {
       yField: 'valor',
       seriesField: 'tipo',
       stack: true,
-      color: ['#22d3ee', '#a78bfa', '#34d399'],
+      color: ['#22d3ee', '#a78bfa', '#34d399', '#e11d48'],
       bar: { style: { cornerRadius: [4, 4, 0, 0] } },
       axes: [AXIS_BOTTOM, AXIS_LEFT(fmtK)],
       legends: [{
@@ -456,7 +461,7 @@ export default function TabVisaoGeral({ mes, ano, onNavigate }: Props) {
           </div>
         </div>
 
-        {dados.every((d) => d.ferias === 0 && d.investimento === 0 && d.planosFuturos === 0) ? (
+        {dados.every((d) => d.ferias === 0 && d.investimento === 0 && d.planosFuturos === 0 && d.estudos === 0) ? (
           <div className="h-[200px] flex flex-col items-center justify-center text-slate-400 dark:text-zinc-400 text-sm gap-2">
             <span className="text-3xl">💰</span>
             <p>Configure a distribuição na aba Entradas para ver esta análise.</p>
@@ -467,11 +472,12 @@ export default function TabVisaoGeral({ mes, ano, onNavigate }: Props) {
               <VChart key={`guard-${dataKey}`} spec={guardadoSpec as any} />
             </div>
             {totalGuardado > 0 && (
-              <div className="mt-4 grid grid-cols-3 gap-3 pt-4 border-t border-slate-50 dark:border-zinc-800">
+              <div className="mt-4 grid grid-cols-2 sm:grid-cols-4 gap-3 pt-4 border-t border-slate-50 dark:border-zinc-800">
                 {[
                   { label: 'Férias', valor: atual?.ferias ?? 0, color: '#22d3ee', bg: 'bg-cyan-50 dark:bg-cyan-500/10' },
                   { label: 'Investimento', valor: atual?.investimento ?? 0, color: '#a78bfa', bg: 'bg-violet-50 dark:bg-violet-500/10' },
                   { label: 'Planos Futuros', valor: atual?.planosFuturos ?? 0, color: '#34d399', bg: 'bg-emerald-50 dark:bg-emerald-500/10' },
+                  { label: 'Estudos', valor: atual?.estudos ?? 0, color: '#e11d48', bg: 'bg-rose-50 dark:bg-rose-500/10' },
                 ].map((item) => (
                   <div key={item.label} className={`${item.bg} rounded-xl p-3`}>
                     <div className="flex items-center gap-1.5 mb-1">
@@ -485,11 +491,12 @@ export default function TabVisaoGeral({ mes, ano, onNavigate }: Props) {
             )}
 
             {totalAcumulado > 0 && (
-              <div className="mt-3 grid grid-cols-3 gap-3">
+              <div className="mt-3 grid grid-cols-2 sm:grid-cols-4 gap-3">
                 {[
                   { label: 'Férias', valor: feriasAcumulado, color: '#22d3ee' },
                   { label: 'Investimento', valor: investimentoAcumulado, color: '#a78bfa' },
                   { label: 'Planos Futuros', valor: planosFuturosAcumulado, color: '#34d399' },
+                  { label: 'Estudos', valor: estudosAcumulado, color: '#e11d48' },
                 ].map((item) => (
                   <div key={item.label} className="rounded-xl px-3 py-1.5 text-center">
                     <div className="flex items-center justify-center gap-1.5">

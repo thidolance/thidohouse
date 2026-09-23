@@ -49,6 +49,7 @@ export async function montarResumoFinanceiro(mes: number, ano: number): Promise<
     linhas.push(`- Férias: ${brl(distribuicao.ferias)}`);
     linhas.push(`- Investimento: ${brl(distribuicao.investimento)}`);
     linhas.push(`- Planos futuros: ${brl(distribuicao.planosFuturos)}`);
+    linhas.push(`- Estudos: ${brl(distribuicao.estudos ?? 0)}`);
   }
 
   linhas.push('');

@@ -15,13 +15,14 @@ export interface Distribuicao {
   ferias: number;
   investimento: number;
   planosFuturos: number;
+  estudos: number;
 }
 
 // Saque manual de uma reserva (ex: usou parte do dinheiro de Planos Futuros).
 // Abate do balanço acumulado daquela categoria no mês em que foi feito.
 export interface SaqueReserva {
   id?: string;
-  categoria: 'ferias' | 'investimento' | 'planosFuturos';
+  categoria: 'ferias' | 'investimento' | 'planosFuturos' | 'estudos';
   valor: number;
   descricao?: string;
   mes: number;
