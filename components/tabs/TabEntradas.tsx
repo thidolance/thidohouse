@@ -47,7 +47,16 @@ const DEFAULT_DIST_COLORS: DistColors = {
   ferias: '#22d3ee',
   investimento: '#a78bfa',
   planosFuturos: '#34d399',
-  estudos: '#e11d48',
+  estudos: '#f59e0b',
+};
+
+// Ícone por categoria — ajuda a familiarizar visualmente cada fatia/reserva.
+const DIST_ICONS: Record<DistKey, string> = {
+  contas: '🧾',
+  ferias: '🏖️',
+  investimento: '📈',
+  planosFuturos: '🎯',
+  estudos: '🎓',
 };
 
 const DIST_LABELS: { key: DistKey; label: string }[] = [
@@ -79,7 +88,9 @@ export default function TabEntradas({ mes, ano }: Props) {
   // Balanço acumulado do que foi guardado (investimento/férias/planos), all-time.
   const [balanco, setBalanco] = useState<{
     invest: number; ferias: number; planos: number; estudos: number; total: number; contribMes: number; deltaPct: number;
-  }>({ invest: 0, ferias: 0, planos: 0, estudos: 0, total: 0, contribMes: 0, deltaPct: 0 });
+    // Total que SAIU de cada reserva (saques + transferências) na janela de 12 meses.
+    saidaInvest: number; saidaFerias: number; saidaPlanos: number; saidaEstudos: number;
+  }>({ invest: 0, ferias: 0, planos: 0, estudos: 0, total: 0, contribMes: 0, deltaPct: 0, saidaInvest: 0, saidaFerias: 0, saidaPlanos: 0, saidaEstudos: 0 });
   const [distribuicao, setDistribuicao] = useState<Distribuicao>({
     mes, ano, contas: 50, ferias: 5, investimento: 20, planosFuturos: 10, estudos: 15,
   });
@@ -103,7 +114,9 @@ export default function TabEntradas({ mes, ano }: Props) {
   useEffect(() => {
     try {
       const stored = localStorage.getItem(LS_COLORS_KEY);
-      if (stored) { const c = JSON.parse(stored) as DistColors; setDistColors(c); setDistColorForm(c); }
+      // Mescla com os defaults: cores salvas antes de novas categorias (ex: Estudos)
+      // não têm a chave nova e renderizariam preto. O default preenche o que faltar.
+      if (stored) { const c = { ...DEFAULT_DIST_COLORS, ...(JSON.parse(stored) as Partial<DistColors>) }; setDistColors(c); setDistColorForm(c); }
     } catch { /* noop */ }
   }, []);
 
@@ -145,6 +158,7 @@ export default function TabEntradas({ mes, ano }: Props) {
       jm--; if (jm === 0) { jm = 12; ja--; }
     }
     let accInvest = 0, accFerias = 0, accPlanos = 0, accEstudos = 0;
+    let saidaInvest = 0, saidaFerias = 0, saidaPlanos = 0, saidaEstudos = 0;
     janela.forEach((k) => {
       const d = distByKey.get(k);
       const g = ganhosByKey[k];
@@ -160,6 +174,10 @@ export default function TabEntradas({ mes, ano }: Props) {
         accFerias -= s.ferias;
         accPlanos -= s.planosFuturos;
         accEstudos -= s.estudos;
+        saidaInvest += s.investimento;
+        saidaFerias += s.ferias;
+        saidaPlanos += s.planosFuturos;
+        saidaEstudos += s.estudos;
       }
     });
     const totalAcc = accInvest + accFerias + accPlanos + accEstudos;
@@ -174,7 +192,7 @@ export default function TabEntradas({ mes, ano }: Props) {
       : 0) - saquesMesTotal;
     const priorTotal = totalAcc - contribMes;
     const deltaPct = priorTotal > 0 ? (contribMes / priorTotal) * 100 : 0;
-    setBalanco({ invest: accInvest, ferias: accFerias, planos: accPlanos, estudos: accEstudos, total: totalAcc, contribMes, deltaPct });
+    setBalanco({ invest: accInvest, ferias: accFerias, planos: accPlanos, estudos: accEstudos, total: totalAcc, contribMes, deltaPct, saidaInvest, saidaFerias, saidaPlanos, saidaEstudos });
 
     const byMonth: Record<string, number> = {};
     hist.forEach((e) => {
@@ -529,7 +547,7 @@ export default function TabEntradas({ mes, ano }: Props) {
                 <div key={key} className="flex items-center justify-between gap-2">
                   <div className="flex items-center gap-1.5 min-w-0">
                     <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: distColors[key] }} />
-                    <span className="text-[11px] text-slate-500 dark:text-zinc-400 truncate">{label} {Math.round(pctEfetivo(key))}%</span>
+                    <span className="text-[11px] text-slate-500 dark:text-zinc-400 truncate"><span aria-hidden>{DIST_ICONS[key]}</span> {label} {Math.round(pctEfetivo(key))}%</span>
                   </div>
                   <span className="text-[11px] font-semibold text-slate-700 dark:text-zinc-200 tabular-nums flex-shrink-0">{fmt(alocEfetiva[key])}</span>
                 </div>
@@ -629,32 +647,50 @@ export default function TabEntradas({ mes, ano }: Props) {
 
         {balanco.total > 0 ? (
           (() => {
-            const itens = ([
-              { key: 'investimento' as const, label: 'Investimento', value: balanco.invest },
-              { key: 'ferias' as const,        label: 'Férias',       value: balanco.ferias },
-              { key: 'planosFuturos' as const, label: 'Planos',       value: balanco.planos },
-              { key: 'estudos' as const,       label: 'Estudos',      value: balanco.estudos },
-            ]).filter((b) => b.value > 0);
+            const reservas = ([
+              { key: 'investimento' as const, label: 'Investimento', saldo: balanco.invest, saiu: balanco.saidaInvest },
+              { key: 'ferias' as const,        label: 'Férias',       saldo: balanco.ferias, saiu: balanco.saidaFerias },
+              { key: 'planosFuturos' as const, label: 'Planos',       saldo: balanco.planos, saiu: balanco.saidaPlanos },
+              { key: 'estudos' as const,       label: 'Estudos',      saldo: balanco.estudos, saiu: balanco.saidaEstudos },
+            ]).filter((b) => b.saldo > 0.005 || b.saiu > 0.005);
+            // Barra de cada reserva é proporcional ao maior saldo (comparação visual).
+            const maxSaldo = Math.max(...reservas.map((b) => b.saldo), 1);
             return (
-              <div className="space-y-3">
-                {/* Barra segmentada proporcional */}
-                <div className="flex items-stretch gap-1 w-full h-2.5">
-                  {itens.map((b) => (
-                    <div key={b.key} className="rounded-sm transition-all" style={{ width: `${(b.value / balanco.total) * 100}%`, backgroundColor: distColors[b.key] }} />
-                  ))}
-                </div>
-                {/* Legenda com valores — largura fixa, sem sobreposição */}
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-x-4 gap-y-2">
-                  {itens.map((b) => (
-                    <div key={b.key} className="flex flex-col min-w-0">
-                      <span className="flex items-center gap-1.5 text-[11px] text-slate-400 dark:text-zinc-400 font-medium">
-                        <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: distColors[b.key] }} />
-                        <span className="truncate">{b.label} · {((b.value / balanco.total) * 100).toFixed(0)}%</span>
-                      </span>
-                      <span className="text-sm font-semibold text-slate-700 dark:text-white tabular-nums">{fmt(b.value)}</span>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {reservas.map((b) => {
+                  const guardado = b.saldo + b.saiu;                       // total destinado antes dos saques
+                  const pct = balanco.total > 0 ? (b.saldo / balanco.total) * 100 : 0;
+                  const larguraBarra = Math.max((b.saldo / maxSaldo) * 100, 2);
+                  return (
+                    <div key={b.key} className="rounded-xl border border-slate-100 dark:border-zinc-800 p-3">
+                      <div className="flex items-center justify-between gap-2 mb-2">
+                        <span className="flex items-center gap-1.5 min-w-0">
+                          <span className="text-base leading-none flex-shrink-0" aria-hidden>{DIST_ICONS[b.key]}</span>
+                          <span className="text-xs font-medium text-slate-600 dark:text-zinc-300 truncate">{b.label}</span>
+                          <span className="text-[10px] text-slate-400 dark:text-zinc-500 flex-shrink-0">{pct.toFixed(0)}%</span>
+                        </span>
+                        <span className="text-sm font-bold text-slate-800 dark:text-white tabular-nums flex-shrink-0">{fmt(b.saldo)}</span>
+                      </div>
+                      {/* Barra proporcional ao maior saldo entre as reservas */}
+                      <div className="w-full bg-slate-100 dark:bg-zinc-800 rounded-full h-2 overflow-hidden">
+                        <div className="h-2 rounded-full transition-all" style={{ width: `${larguraBarra}%`, backgroundColor: distColors[b.key] }} />
+                      </div>
+                      {/* Entrou (guardado) x Saiu (saques/transferências) */}
+                      <div className="flex items-center justify-between mt-2 text-[11px]">
+                        <span className="inline-flex items-center gap-1 text-emerald-600 dark:text-emerald-400 font-medium tabular-nums">
+                          <span aria-hidden>↑</span> {fmt(guardado)} <span className="font-normal text-slate-400 dark:text-zinc-500">guardado</span>
+                        </span>
+                        {b.saiu > 0.005 ? (
+                          <span className="inline-flex items-center gap-1 text-red-500 dark:text-red-400 font-medium tabular-nums">
+                            <span aria-hidden>↓</span> {fmt(b.saiu)} <span className="font-normal text-slate-400 dark:text-zinc-500">saiu</span>
+                          </span>
+                        ) : (
+                          <span className="text-slate-300 dark:text-zinc-600">sem saques</span>
+                        )}
+                      </div>
                     </div>
-                  ))}
-                </div>
+                  );
+                })}
               </div>
             );
           })()
@@ -682,7 +718,7 @@ export default function TabEntradas({ mes, ano }: Props) {
                     <div className="flex items-center gap-1.5 min-w-0">
                       <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: distColors[principal.categoria] }} />
                       <span className="text-xs text-slate-500 dark:text-zinc-400 truncate">
-                        {RESERVA_LABELS.find((r) => r.key === principal.categoria)?.label}{principal.descricao ? ` · ${principal.descricao}` : ''}
+                        <span aria-hidden>{DIST_ICONS[principal.categoria]}</span> {RESERVA_LABELS.find((r) => r.key === principal.categoria)?.label}{principal.descricao ? ` · ${principal.descricao}` : ''}
                       </span>
                       {principal.destino === 'contas' && (
                         <span className="flex-shrink-0 inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-indigo-50 dark:bg-purple-500/15 text-indigo-600 dark:text-purple-300">
@@ -788,7 +824,7 @@ export default function TabEntradas({ mes, ano }: Props) {
                       className="w-6 h-6 rounded-lg border border-slate-200 dark:border-zinc-800 cursor-pointer p-0.5 bg-white dark:bg-zinc-900 flex-shrink-0"
                       aria-label={`Cor de ${label}`}
                     />
-                    <span className="text-sm font-medium text-slate-700 dark:text-zinc-200 flex-1 truncate">{label}</span>
+                    <span className="text-sm font-medium text-slate-700 dark:text-zinc-200 flex-1 truncate"><span aria-hidden>{DIST_ICONS[key]}</span> {label}</span>
                     {totalMes > 0 && (
                       <span className="text-xs font-semibold text-slate-500 dark:text-zinc-400 tabular-nums">{fmt(valor)}</span>
                     )}
@@ -912,7 +948,7 @@ export default function TabEntradas({ mes, ano }: Props) {
                       ? { backgroundColor: distColors[key], color: '#fff', borderColor: distColors[key] }
                       : { borderColor: '#e2e8f0', color: '#64748b' }}
                   >
-                    {label}
+                    <span aria-hidden>{DIST_ICONS[key]}</span> {label}
                   </button>
                 ))}
               </div>
@@ -948,7 +984,7 @@ export default function TabEntradas({ mes, ano }: Props) {
                           ? { backgroundColor: distColors[key], color: '#fff', borderColor: distColors[key] }
                           : { borderColor: '#e2e8f0', color: '#64748b' }}
                       >
-                        {label} · {fmt(saldo)}
+                        <span aria-hidden>{DIST_ICONS[key]}</span> {label} · {fmt(saldo)}
                       </button>
                     );
                   })}
