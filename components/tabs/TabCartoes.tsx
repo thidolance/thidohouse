@@ -10,7 +10,7 @@ const VChart = dynamic(
 import Modal from '../ui/Modal';
 import Card from '../ui/Card';
 import DatePicker from '../ui/DatePicker';
-import { Plus, Trash, Pencil } from '../ui/Icons';
+import { Plus, Trash, Pencil, ContaIcon } from '../ui/Icons';
 import { useRefetchOnFocus } from '@/lib/useRefetchOnFocus';
 import { formatCurrencyInput, parseCurrencyInput, formatCurrencyBRL } from '@/lib/currency';
 import {
@@ -526,7 +526,9 @@ export default function TabCartoes({ mes, ano }: Props) {
                 }}
               />
               <div className="relative flex items-start justify-between">
-                <span className="text-sm font-bold tracking-wide">{c.nome}</span>
+                <span className="flex items-center gap-1.5 text-sm font-bold tracking-wide">
+                  <ContaIcon nome="cartao" className="w-4 h-4 flex-shrink-0" /> {c.nome}
+                </span>
                 {c.bandeira === 'Visa' && <VisaLogo />}
                 {c.bandeira === 'Mastercard' && <MastercardLogo />}
               </div>

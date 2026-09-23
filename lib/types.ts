@@ -69,6 +69,8 @@ export interface Conta {
   grupoId?: string;
   // Recebedor Pix vinculado (para gerar o "copia e cola" com valor no dia de pagar)
   recebedorId?: string;
+  // Ícone da conta (ex: 'agua', 'luz', 'internet'...) — ver CONTA_ICONS em ui/Icons.
+  icone?: string;
 }
 
 // Pessoa/empresa que recebe o pagamento via Pix. Os campos nome e cidade são
