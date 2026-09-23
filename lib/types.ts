@@ -40,6 +40,14 @@ export interface SaqueReserva {
   destino?: 'contas';
 }
 
+// Meta (objetivo de valor) de uma reserva — ex: chegar a R$ 100 mil em Investimento.
+// A barra da reserva mostra o progresso do saldo acumulado em relação a este valor.
+export interface MetaReserva {
+  id?: string;
+  categoria: 'ferias' | 'investimento' | 'planosFuturos' | 'estudos';
+  valor: number;
+}
+
 export interface CategoriaContaConfig {
   id?: string;
   nome: string;

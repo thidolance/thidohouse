@@ -6,16 +6,17 @@ import Modal from '../ui/Modal';
 import Card from '../ui/Card';
 import DatePicker from '../ui/DatePicker';
 import { Slider } from '../ui/slider';
-import { Plus, Trash, Pencil, TrendingUp, CategoriaIcon } from '../ui/Icons';
+import { Plus, Trash, Pencil, TrendingUp, CategoriaIcon, Target } from '../ui/Icons';
 import { useRefetchOnFocus } from '@/lib/useRefetchOnFocus';
 import {
   getEntradas, addEntrada, updateEntrada, deleteEntrada,
   getEntradasHistorico, getDistribuicao, saveDistribuicao,
   getDistribuicoesHistorico,
   getSaquesReserva, getSaquesReservaHistorico, addSaqueReserva, deleteSaqueReserva,
+  getMetasReserva, saveMetaReserva,
 } from '@/lib/firestore';
 import { formatCurrencyInput as formatBRL, parseCurrencyInput as parseBRL, formatCurrencyBRL } from '@/lib/currency';
-import type { Entrada, Distribuicao, SaqueReserva } from '@/lib/types';
+import type { Entrada, Distribuicao, SaqueReserva, MetaReserva } from '@/lib/types';
 
 const VChart = dynamic(
   () => import('@visactor/react-vchart').then((m) => m.VChart),
@@ -86,6 +87,9 @@ export default function TabEntradas({ mes, ano }: Props) {
     mes, ano, contas: 65, ferias: 3, investimento: 20, planosFuturos: 4, estudos: 8,
   });
   const [saquesMes, setSaquesMes]       = useState<SaqueReserva[]>([]);
+  const [metas, setMetas]               = useState<MetaReserva[]>([]);
+  const [metaModalKey, setMetaModalKey] = useState<ReservaKey | null>(null);
+  const [metaForm, setMetaForm]         = useState('');
   const [showModal, setShowModal]       = useState(false);
   const [showDistModal, setShowDistModal] = useState(false);
   const [showSaqueModal, setShowSaqueModal] = useState(false);
@@ -122,16 +126,18 @@ export default function TabEntradas({ mes, ano }: Props) {
 
   const load = useCallback(async () => {
     setLoading(true);
-    const [list, hist, dist, distHist, saquesDoMes, saquesHist] = await Promise.all([
+    const [list, hist, dist, distHist, saquesDoMes, saquesHist, metasList] = await Promise.all([
       getEntradas(mes, ano),
       getEntradasHistorico(),
       getDistribuicao(mes, ano),
       getDistribuicoesHistorico(),
       getSaquesReserva(mes, ano),
       getSaquesReservaHistorico(),
+      getMetasReserva(),
     ]);
     setEntradas(list);
     setSaquesMes(saquesDoMes);
+    setMetas(metasList);
 
     // ── Balanço do que foi guardado (acumulado nos últimos 12 meses até o mês
     // selecionado) — mesma janela do "Investimentos por categoria" da Visão Geral. ──
@@ -375,6 +381,31 @@ export default function TabEntradas({ mes, ano }: Props) {
 
   async function handleDeleteSaque(s: SaqueReserva) {
     await Promise.all(membrosGrupo(s).map((x) => deleteSaqueReserva(x.id!)));
+    load();
+  }
+
+  // ── Metas por reserva ───────────────────────────────────────────────────────
+  const metaPorKey = (key: ReservaKey) => metas.find((m) => m.categoria === key);
+
+  function abrirMeta(key: ReservaKey) {
+    const m = metaPorKey(key);
+    setMetaForm(m ? formatCurrencyBRL(m.valor) : '');
+    setMetaModalKey(key);
+  }
+
+  async function handleSaveMeta(e: React.SubmitEvent<HTMLFormElement>) {
+    e.preventDefault();
+    if (!metaModalKey) return;
+    await saveMetaReserva(metaModalKey, parseBRL(metaForm), metaPorKey(metaModalKey)?.id);
+    setMetaModalKey(null);
+    load();
+  }
+
+  async function handleRemoveMeta() {
+    if (!metaModalKey) return;
+    const existente = metaPorKey(metaModalKey);
+    if (existente) await saveMetaReserva(metaModalKey, 0, existente.id);
+    setMetaModalKey(null);
     load();
   }
 
@@ -669,21 +700,43 @@ export default function TabEntradas({ mes, ano }: Props) {
             return (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {reservas.map((b) => {
-                  const pct = balanco.total > 0 ? (b.saldo / balanco.total) * 100 : 0;
-                  const larguraBarra = Math.max((b.saldo / maxSaldo) * 100, 2);
+                  const meta = metaPorKey(b.key)?.valor ?? 0;
+                  const temMeta = meta > 0;
+                  const progresso = temMeta ? Math.min((b.saldo / meta) * 100, 100) : 0;
+                  // Com meta: barra = progresso até a meta. Sem meta: comparação entre reservas.
+                  const larguraBarra = temMeta
+                    ? Math.max(progresso, 2)
+                    : Math.max((b.saldo / maxSaldo) * 100, 2);
                   return (
-                    <div key={b.key} className="rounded-xl border border-slate-100 dark:border-zinc-800 p-3">
+                    <button
+                      key={b.key}
+                      type="button"
+                      onClick={() => abrirMeta(b.key)}
+                      className="text-left rounded-xl border border-slate-100 dark:border-zinc-800 p-3 hover:border-slate-200 dark:hover:border-zinc-700 hover:bg-slate-50/60 dark:hover:bg-zinc-800/40 transition-colors"
+                    >
                       <div className="flex items-center justify-between gap-2 mb-2">
                         <span className="flex items-center gap-1.5 min-w-0">
                           <CategoriaIcon categoria={b.key} color={distColors[b.key]} className="w-4 h-4 flex-shrink-0" />
                           <span className="text-xs font-medium text-slate-600 dark:text-zinc-300 truncate">{b.label}</span>
-                          <span className="text-[10px] text-slate-400 dark:text-zinc-500 flex-shrink-0">{pct.toFixed(0)}%</span>
                         </span>
                         <span className="text-sm font-bold text-slate-800 dark:text-white tabular-nums flex-shrink-0">{fmt(b.saldo)}</span>
                       </div>
-                      {/* Barra proporcional ao maior saldo acumulado entre as reservas */}
+                      {/* Barra: progresso da meta (se houver) ou comparação entre reservas */}
                       <div className="w-full bg-slate-100 dark:bg-zinc-800 rounded-full h-2 overflow-hidden">
                         <div className="h-2 rounded-full transition-all" style={{ width: `${larguraBarra}%`, backgroundColor: distColors[b.key] }} />
+                      </div>
+                      {/* Meta: progresso ou convite para definir */}
+                      <div className="flex items-center justify-between mt-1.5 text-[11px]">
+                        {temMeta ? (
+                          <>
+                            <span className="text-slate-500 dark:text-zinc-400 tabular-nums">Meta {fmt(meta)}</span>
+                            <span className="font-semibold tabular-nums" style={{ color: distColors[b.key] }}>{progresso.toFixed(0)}%</span>
+                          </>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 text-slate-400 dark:text-zinc-500">
+                            <Target className="w-3 h-3" /> Definir meta
+                          </span>
+                        )}
                       </div>
                       {/* Guardado x Saiu — do mês selecionado (volátil) */}
                       <div className="flex items-center justify-between mt-2 text-[11px]">
@@ -698,7 +751,7 @@ export default function TabEntradas({ mes, ano }: Props) {
                           <span className="text-slate-300 dark:text-zinc-600">sem saques</span>
                         )}
                       </div>
-                    </div>
+                    </button>
                   );
                 })}
               </div>
@@ -1012,6 +1065,51 @@ export default function TabEntradas({ mes, ano }: Props) {
               <button type="submit" className={`flex-1 py-2.5 text-white rounded-xl text-sm font-semibold shadow-sm ${isTransfer ? 'bg-indigo-600 dark:bg-purple-600 hover:bg-indigo-700 dark:hover:bg-purple-700' : 'bg-red-500 hover:bg-red-600'}`}>
                 {editandoSaque ? 'Salvar' : (isTransfer ? 'Transferir' : 'Registrar Saque')}
               </button>
+            </div>
+          </form>
+        </Modal>
+        );
+      })()}
+
+      {/* ── Modal Meta de Reserva ── */}
+      {metaModalKey && (() => {
+        const key = metaModalKey;
+        const label = RESERVA_LABELS.find((r) => r.key === key)?.label ?? '';
+        const saldoAtual = key === 'investimento' ? balanco.invest
+          : key === 'ferias' ? balanco.ferias
+          : key === 'planosFuturos' ? balanco.planos
+          : balanco.estudos;
+        const metaValor = parseBRL(metaForm);
+        const progresso = metaValor > 0 ? Math.min((saldoAtual / metaValor) * 100, 100) : 0;
+        const jaExiste = !!metaPorKey(key);
+        return (
+        <Modal title={`Meta de ${label}`} onClose={() => setMetaModalKey(null)}>
+          <form onSubmit={handleSaveMeta} className="space-y-4">
+            <p className="text-xs text-slate-400 dark:text-zinc-400 bg-slate-50 dark:bg-zinc-950 rounded-lg p-2">
+              Defina quanto você quer atingir nesta reserva. A barra passa a mostrar o progresso
+              do saldo acumulado até a meta.
+            </p>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 dark:text-zinc-200 mb-1">Meta (R$)</label>
+              <input required value={metaForm} onChange={(e) => setMetaForm(formatBRL(e.target.value))} className={INPUT} placeholder="Ex: 100.000,00" inputMode="decimal" autoFocus />
+            </div>
+            {metaValor > 0 && (
+              <div className="space-y-1.5">
+                <div className="w-full bg-slate-100 dark:bg-zinc-800 rounded-full h-2.5 overflow-hidden">
+                  <div className="h-2.5 rounded-full transition-all" style={{ width: `${Math.max(progresso, 2)}%`, backgroundColor: distColors[key] }} />
+                </div>
+                <div className="flex items-center justify-between text-[11px] text-slate-500 dark:text-zinc-400 tabular-nums">
+                  <span>{fmt(saldoAtual)} de {fmt(metaValor)}</span>
+                  <span className="font-semibold" style={{ color: distColors[key] }}>{progresso.toFixed(0)}% da meta</span>
+                </div>
+              </div>
+            )}
+            <div className="flex gap-3 pt-1">
+              {jaExiste && (
+                <button type="button" onClick={handleRemoveMeta} className="py-2.5 px-3 border border-slate-200 dark:border-zinc-800 rounded-xl text-sm text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10">Remover</button>
+              )}
+              <button type="button" onClick={() => setMetaModalKey(null)} className="flex-1 py-2.5 border border-slate-200 dark:border-zinc-800 rounded-xl text-sm text-slate-600 dark:text-zinc-300 hover:bg-slate-50 dark:hover:bg-zinc-800">Cancelar</button>
+              <button type="submit" className="flex-1 py-2.5 bg-indigo-600 dark:bg-purple-600 text-white rounded-xl text-sm font-semibold hover:bg-indigo-700 dark:hover:bg-purple-700 shadow-sm">Salvar</button>
             </div>
           </form>
         </Modal>

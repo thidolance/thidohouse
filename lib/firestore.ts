@@ -51,7 +51,7 @@ const deleteDoc: typeof _deleteDoc = ((...args: Parameters<typeof _deleteDoc>) =
   return _deleteDoc(...args);
 }) as typeof _deleteDoc;
 import type {
-  Entrada, Distribuicao, SaqueReserva, Conta, CategoriaContaConfig,
+  Entrada, Distribuicao, SaqueReserva, MetaReserva, Conta, CategoriaContaConfig,
   Cartao, CategoriaCompra, CompraParcelada, FaturaCartao,
   CategoriaEmpresa, CustoEmpresa, FaturaEmpresa, Meta, NotaMes, Recebedor,
 } from './types';
@@ -134,6 +134,23 @@ export async function updateSaqueReserva(id: string, s: Omit<SaqueReserva, 'id'>
 
 export async function deleteSaqueReserva(id: string): Promise<void> {
   await deleteDoc(doc(db, 'saques_reserva', id));
+}
+
+// ─── Metas de Reserva ─────────────────────────────────────────────────────────
+
+export async function getMetasReserva(): Promise<MetaReserva[]> {
+  return cachedCollection<MetaReserva>('metas_reserva');
+}
+
+// Upsert por reserva: grava a meta (cria ou atualiza pelo id existente). valor <= 0
+// remove a meta.
+export async function saveMetaReserva(categoria: MetaReserva['categoria'], valor: number, id?: string): Promise<void> {
+  if (valor <= 0) {
+    if (id) await deleteDoc(doc(db, 'metas_reserva', id));
+    return;
+  }
+  if (id) await setDoc(doc(db, 'metas_reserva', id), { categoria, valor });
+  else    await addDoc(collection(db, 'metas_reserva'), { categoria, valor });
 }
 
 // ─── Contas ─────────────────────────────────────────────────────────────────
