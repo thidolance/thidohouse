@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import dynamic from 'next/dynamic';
 import Modal from '../ui/Modal';
 import Card from '../ui/Card';
-import { Plus, Trash, Check, Pencil, ChevronRight } from '../ui/Icons';
+import { Plus, Trash, Check, Pencil, ChevronRight, CONTA_ICONS, ContaIcon } from '../ui/Icons';
 import { useRefetchOnFocus } from '@/lib/useRefetchOnFocus';
 import { formatCurrencyInput, parseCurrencyInput, formatCurrencyBRL } from '@/lib/currency';
 import {
@@ -141,7 +141,7 @@ interface Props { mes: number; ano: number; }
 
 type FormState = {
   descricao: string; categoria: string; valor: string; vencimento: string;
-  parcelaAtual: string; totalParcelas: string; fixa: boolean; recebedorId: string;
+  parcelaAtual: string; totalParcelas: string; fixa: boolean; recebedorId: string; icone: string;
 };
 
 type CartaoItem  = { tipo: 'cartao';  cartaoId: string; cartaoNome: string; cartaoCor: string; valor: number; valorCalculado: number; status: 'pago' | 'pendente'; recebedorId?: string };
@@ -203,10 +203,10 @@ export default function TabContas({ mes, ano }: Props) {
   // form
   const makeEmpty = useCallback((c: CategoriaContaConfig[]) => ({
     descricao: '', categoria: c[0]?.nome ?? '', valor: '', vencimento: '',
-    parcelaAtual: '', totalParcelas: '', fixa: false, recebedorId: '',
+    parcelaAtual: '', totalParcelas: '', fixa: false, recebedorId: '', icone: '',
   }), []);
   const [form, setForm] = useState<FormState>({
-    descricao: '', categoria: '', valor: '', vencimento: '', parcelaAtual: '', totalParcelas: '', fixa: false, recebedorId: '',
+    descricao: '', categoria: '', valor: '', vencimento: '', parcelaAtual: '', totalParcelas: '', fixa: false, recebedorId: '', icone: '',
   });
 
   // ── carregamento ──────────────────────────────────────────────────────────
@@ -507,6 +507,7 @@ export default function TabContas({ mes, ano }: Props) {
       totalParcelas: c.totalParcelas ? String(c.totalParcelas) : '',
       fixa:          c.fixa ?? false,
       recebedorId:   c.recebedorId ?? '',
+      icone:         c.icone ?? '',
     });
     setShowModal(true);
   }
@@ -526,6 +527,7 @@ export default function TabContas({ mes, ano }: Props) {
       ...(form.parcelaAtual  ? { parcelaAtual:  parseInt(form.parcelaAtual)  } : {}),
       ...(form.totalParcelas ? { totalParcelas: parseInt(form.totalParcelas) } : {}),
       ...(form.recebedorId   ? { recebedorId:   form.recebedorId } : {}),
+      ...(form.icone         ? { icone:         form.icone } : {}),
       fixa: form.fixa && !form.parcelaAtual,
     };
   }
@@ -760,6 +762,11 @@ export default function TabContas({ mes, ano }: Props) {
         >
           {pago && <Check />}
         </button>
+        {c.icone && (
+          <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style={{ backgroundColor: `${cor}18` }}>
+            <ContaIcon nome={c.icone} color={cor} className="w-4 h-4" />
+          </div>
+        )}
         <div className="flex-1 min-w-0 cursor-pointer" onClick={() => abrirDetalhe(c)}>
           <div className="flex items-center gap-1.5 flex-wrap">
             <p className={`font-semibold text-sm leading-tight ${pago ? 'line-through text-slate-400 dark:text-zinc-400' : 'text-slate-800 dark:text-zinc-100'}`}>{c.descricao}</p>
@@ -1084,6 +1091,30 @@ export default function TabContas({ mes, ano }: Props) {
             <div>
               <label className="block text-sm font-medium text-slate-700 dark:text-zinc-200 mb-1">Descrição</label>
               <input required value={form.descricao} onChange={(e) => setForm({ ...form, descricao: e.target.value })} className={INPUT} placeholder="Ex: Aluguel" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 dark:text-zinc-200 mb-1">Ícone <span className="text-slate-400 dark:text-zinc-400 font-normal">(opcional)</span></label>
+              <div className="flex flex-wrap gap-2">
+                {CONTA_ICONS.map(({ key, label }) => {
+                  const sel = form.icone === key;
+                  return (
+                    <button
+                      key={key}
+                      type="button"
+                      title={label}
+                      aria-label={label}
+                      onClick={() => setForm({ ...form, icone: sel ? '' : key })}
+                      className={`w-9 h-9 rounded-lg border flex items-center justify-center transition-colors ${
+                        sel
+                          ? 'border-indigo-500 dark:border-purple-500 bg-indigo-50 dark:bg-purple-500/15 text-indigo-600 dark:text-purple-300'
+                          : 'border-slate-200 dark:border-zinc-800 text-slate-400 dark:text-zinc-500 hover:text-slate-600 dark:hover:text-zinc-300 hover:border-slate-300 dark:hover:border-zinc-700'
+                      }`}
+                    >
+                      <ContaIcon nome={key} className="w-4 h-4" />
+                    </button>
+                  );
+                })}
+              </div>
             </div>
             <div>
               <label className="block text-sm font-medium text-slate-700 dark:text-zinc-200 mb-1">Categoria</label>
