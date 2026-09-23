@@ -787,7 +787,7 @@ export default function TabContas({ mes, ano }: Props) {
             <p className={`font-semibold text-sm leading-tight ${pago ? 'line-through text-slate-400 dark:text-zinc-400' : 'text-slate-800 dark:text-zinc-100'}`}>{c.descricao}</p>
           </div>
           <div className="flex items-center gap-2 mt-0.5 flex-wrap">
-            <span className="text-[11px] px-1.5 py-0.5 rounded-md font-semibold" style={{ backgroundColor: `${cor}18`, color: cor }}>{c.categoria}</span>
+            <span className="text-[11px] px-1.5 py-0.5 rounded-md font-semibold text-[var(--tagc)] dark:text-[var(--tagc-dark)]" style={{ backgroundColor: `${cor}18`, '--tagc': cor, '--tagc-dark': corIconeDark(cor) } as React.CSSProperties}>{c.categoria}</span>
             <span className="text-[11px] text-slate-400 dark:text-zinc-400">dia {c.vencimento}</span>
           </div>
           {c.totalParcelas && c.parcelaAtual && (
@@ -1331,8 +1331,8 @@ export default function TabContas({ mes, ano }: Props) {
               <p className="font-bold text-slate-800 dark:text-zinc-100 text-base leading-tight">{acompanhar.descricao}</p>
               <div className="flex items-center gap-2 mt-1.5 flex-wrap">
                 <span
-                  className="text-[11px] px-2 py-0.5 rounded-md font-semibold"
-                  style={{ backgroundColor: `${catCor(acompanhar.categoria)}18`, color: catCor(acompanhar.categoria) }}
+                  className="text-[11px] px-2 py-0.5 rounded-md font-semibold text-[var(--tagc)] dark:text-[var(--tagc-dark)]"
+                  style={{ backgroundColor: `${catCor(acompanhar.categoria)}18`, '--tagc': catCor(acompanhar.categoria), '--tagc-dark': corIconeDark(catCor(acompanhar.categoria)) } as React.CSSProperties}
                 >
                   {acompanhar.categoria}
                 </span>
