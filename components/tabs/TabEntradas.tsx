@@ -692,10 +692,11 @@ export default function TabEntradas({ mes, ano }: Props) {
             };
             const reservas = RESERVA_LABELS.map(({ key, label }) => {
               const saldo = Math.max(saldoAcc[key], 0);                       // acumulado (cresce mês a mês)
-              const guardado = totalMes * ((distribuicao[key] ?? 0) / 100);   // destinado NESTE mês
-              const saiu = sacadoCategoria(key);                              // saques + transferências DESTE mês
-              return { key, label, saldo, guardado, saiu };
-            }).filter((b) => b.saldo > 0.005 || b.guardado > 0.005 || b.saiu > 0.005);
+              const previsto = totalMes * ((distribuicao[key] ?? 0) / 100);   // destinado NESTE mês (pela divisão)
+              const saindo = sacadoCategoria(key);                            // saques + transferências DESTE mês
+              const guardadoReal = previsto - saindo;                         // o que de fato sobrou pra guardar
+              return { key, label, saldo, previsto, saindo, guardadoReal };
+            }).filter((b) => b.saldo > 0.005 || b.previsto > 0.005 || b.saindo > 0.005);
             // Barra de cada reserva proporcional ao maior saldo acumulado (comparação visual).
             const maxSaldo = Math.max(...reservas.map((b) => b.saldo), 1);
             return (
@@ -704,6 +705,21 @@ export default function TabEntradas({ mes, ano }: Props) {
                   const meta = metaPorKey(b.key)?.valor ?? 0;
                   const temMeta = meta > 0;
                   const progresso = temMeta ? Math.min((b.saldo / meta) * 100, 100) : 0;
+                  // Guardado real x previsto: verde = guardou tudo; amarelo = guardou menos; vermelho = ficou negativo.
+                  const realStatus =
+                    b.guardadoReal < -0.005 ? 'red'
+                    : Math.abs(b.guardadoReal - b.previsto) > 0.005 ? 'amber'
+                    : 'green';
+                  const realText = realStatus === 'red'
+                    ? 'text-red-600 dark:text-red-400'
+                    : realStatus === 'amber'
+                    ? 'text-amber-500 dark:text-amber-400'
+                    : 'text-emerald-600 dark:text-emerald-400';
+                  const realDot = realStatus === 'red'
+                    ? 'bg-red-500'
+                    : realStatus === 'amber'
+                    ? 'bg-amber-400'
+                    : 'bg-emerald-500';
                   // Com meta: barra = progresso até a meta. Sem meta: comparação entre reservas.
                   const larguraBarra = temMeta
                     ? Math.max(progresso, 2)
@@ -739,18 +755,33 @@ export default function TabEntradas({ mes, ano }: Props) {
                           </span>
                         )}
                       </div>
-                      {/* Guardado x Saiu — do mês selecionado (volátil) */}
-                      <div className="flex items-center justify-between mt-2 text-[11px]">
-                        <span className="inline-flex items-center gap-1 text-emerald-600 dark:text-emerald-400 font-medium tabular-nums">
-                          <span aria-hidden>↑</span> {fmt(b.guardado)} <span className="font-normal text-slate-400 dark:text-zinc-500">guardado</span>
-                        </span>
-                        {b.saiu > 0.005 ? (
-                          <span className="inline-flex items-center gap-1 text-red-500 dark:text-red-400 font-medium tabular-nums">
-                            <span aria-hidden>↓</span> {fmt(b.saiu)} <span className="font-normal text-slate-400 dark:text-zinc-500">saiu</span>
+                      {/* Previsto · Saindo · Guardado real — do mês selecionado (volátil) */}
+                      <div className="grid grid-cols-3 gap-1.5 mt-2 text-[11px]">
+                        <span className="flex flex-col gap-0.5 min-w-0">
+                          <span className="text-slate-400 dark:text-zinc-500">Previsto</span>
+                          <span className="inline-flex items-center gap-1 font-medium text-slate-600 dark:text-zinc-300 tabular-nums">
+                            <span className="w-1.5 h-1.5 rounded-full bg-slate-300 dark:bg-zinc-600 flex-shrink-0" aria-hidden />
+                            {fmt(b.previsto)}
                           </span>
-                        ) : (
-                          <span className="text-slate-300 dark:text-zinc-600">sem saques</span>
-                        )}
+                        </span>
+                        <span className="flex flex-col gap-0.5 min-w-0">
+                          <span className="text-slate-400 dark:text-zinc-500">Saindo</span>
+                          <span className="inline-flex items-center gap-1 font-medium text-red-500 dark:text-red-400 tabular-nums">
+                            <span aria-hidden>↓</span>
+                            {fmt(b.saindo)}
+                          </span>
+                        </span>
+                        <span className="flex flex-col gap-0.5 min-w-0">
+                          <span className="text-slate-400 dark:text-zinc-500">Guardado real</span>
+                          {Math.abs(b.guardadoReal) > 0.005 ? (
+                            <span className={`inline-flex items-center gap-1 font-semibold tabular-nums ${realText}`}>
+                              <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${realDot}`} aria-hidden />
+                              {fmt(b.guardadoReal)}
+                            </span>
+                          ) : (
+                            <span className="text-slate-300 dark:text-zinc-600">—</span>
+                          )}
+                        </span>
                       </div>
                     </button>
                   );
