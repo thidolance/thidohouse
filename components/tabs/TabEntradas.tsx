@@ -773,10 +773,14 @@ export default function TabEntradas({ mes, ano }: Props) {
                         </span>
                         <span className="flex flex-col gap-0.5 min-w-0">
                           <span className="text-slate-400 dark:text-zinc-500">Guardado real</span>
-                          <span className={`inline-flex items-center gap-1 font-semibold tabular-nums ${realText}`}>
-                            <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${realDot}`} aria-hidden />
-                            {fmt(b.guardadoReal)}
-                          </span>
+                          {Math.abs(b.guardadoReal) > 0.005 ? (
+                            <span className={`inline-flex items-center gap-1 font-semibold tabular-nums ${realText}`}>
+                              <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${realDot}`} aria-hidden />
+                              {fmt(b.guardadoReal)}
+                            </span>
+                          ) : (
+                            <span className="text-slate-300 dark:text-zinc-600">—</span>
+                          )}
                         </span>
                       </div>
                     </button>
