@@ -34,10 +34,13 @@ export interface SaqueReserva {
   grupoId?: string;
   restante?: boolean;
   // Quando presente, não é um saque comum (dinheiro que sai de casa) e sim uma
-  // transferência interna: o valor sai da reserva e é somado à fatia de Contas do
-  // mês na distribuição. Debita a reserva igual a um saque; a diferença é só o
-  // destino do dinheiro.
-  destino?: 'contas';
+  // transferência interna. Debita a reserva de `categoria` igual a um saque; a
+  // diferença é só o destino do dinheiro:
+  //   'contas'                         → vai para a fatia de Contas do mês.
+  //   outra reserva (ferias, etc.)     → "mover": o valor sai desta reserva e é
+  //                                      creditado na reserva de destino (não é
+  //                                      saída de casa, só troca de caixinha).
+  destino?: 'contas' | 'ferias' | 'investimento' | 'planosFuturos' | 'estudos';
 }
 
 // Meta (objetivo de valor) de uma reserva — ex: chegar a R$ 100 mil em Investimento.

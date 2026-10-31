@@ -98,7 +98,9 @@ export default function TabEntradas({ mes, ano }: Props) {
   const [form, setForm]                 = useState({ descricao: '', valor: '', data: '' });
   // `restante` = reserva de onde tirar o excedente quando o valor estoura a reserva principal.
   // `tipo` = 'saque' (dinheiro sai de casa) ou 'transferencia' (vai para Contas do mês).
-  const [saqueForm, setSaqueForm]       = useState<{ tipo: 'saque' | 'transferencia'; categoria: ReservaKey; valor: string; descricao: string; restante: ReservaKey | null }>({ tipo: 'saque', categoria: 'planosFuturos', valor: '', descricao: '', restante: null });
+  // `tipo`: 'saque' (sai de casa) · 'transferencia' (vai p/ Contas) · 'mover' (vai p/ outra reserva).
+  // `destinoReserva` só é usado quando tipo = 'mover'.
+  const [saqueForm, setSaqueForm]       = useState<{ tipo: 'saque' | 'transferencia' | 'mover'; categoria: ReservaKey; valor: string; descricao: string; restante: ReservaKey | null; destinoReserva: ReservaKey }>({ tipo: 'saque', categoria: 'planosFuturos', valor: '', descricao: '', restante: null, destinoReserva: 'investimento' });
   // Ids do saque em edição (principal + restante, se houver). Ignorados no cálculo
   // do disponível para não contarem contra o próprio limite.
   const [editGroupIds, setEditGroupIds] = useState<string[]>([]);
@@ -153,7 +155,10 @@ export default function TabEntradas({ mes, ano }: Props) {
     saquesHist.forEach((s) => {
       const k = `${s.ano}-${s.mes}`;
       const atual = saquesByKey[k] ?? { ferias: 0, investimento: 0, planosFuturos: 0, estudos: 0 };
-      atual[s.categoria] += s.valor;
+      atual[s.categoria] += s.valor;                 // debita a reserva de origem
+      // "Mover" para outra reserva credita o destino (saque negativo) — o total
+      // guardado não muda, só troca de caixinha. Transferência p/ Contas não credita.
+      if (s.destino && s.destino !== 'contas') atual[s.destino] -= s.valor;
       saquesByKey[k] = atual;
     });
     // Acumula TUDO desde o início dos dados até o mês selecionado (inclusive) —
@@ -282,13 +287,23 @@ export default function TabEntradas({ mes, ano }: Props) {
   const editandoSaque = editGroupIds.length > 0;
 
   function abrirSaque() {
-    setSaqueForm({ tipo: 'saque', categoria: 'planosFuturos', valor: '', descricao: '', restante: null });
+    setSaqueForm({ tipo: 'saque', categoria: 'planosFuturos', valor: '', descricao: '', restante: null, destinoReserva: 'investimento' });
     setEditGroupIds([]);
     setShowSaqueModal(true);
   }
 
   function abrirTransferencia() {
-    setSaqueForm({ tipo: 'transferencia', categoria: 'planosFuturos', valor: '', descricao: '', restante: null });
+    setSaqueForm({ tipo: 'transferencia', categoria: 'planosFuturos', valor: '', descricao: '', restante: null, destinoReserva: 'investimento' });
+    setEditGroupIds([]);
+    setShowSaqueModal(true);
+  }
+
+  // Move o que sobrou de uma reserva para outra (ex: Planos Futuros → Investimento).
+  // Pré-seleciona a reserva de origem e um destino diferente dela.
+  function abrirMover(origem?: ReservaKey) {
+    const from = origem ?? 'planosFuturos';
+    const to = RESERVA_LABELS.find((r) => r.key !== from)!.key;
+    setSaqueForm({ tipo: 'mover', categoria: from, valor: '', descricao: '', restante: null, destinoReserva: to });
     setEditGroupIds([]);
     setShowSaqueModal(true);
   }
@@ -305,12 +320,14 @@ export default function TabEntradas({ mes, ano }: Props) {
     const principal = grupo.find((x) => !x.restante) ?? grupo[0];
     const restante = grupo.find((x) => x.restante);
     const total = grupo.reduce((acc, x) => acc + x.valor, 0);
+    const moveDest = principal.destino && principal.destino !== 'contas' ? principal.destino : null;
     setSaqueForm({
-      tipo: principal.destino === 'contas' ? 'transferencia' : 'saque',
+      tipo: principal.destino === 'contas' ? 'transferencia' : moveDest ? 'mover' : 'saque',
       categoria: principal.categoria,
       valor: formatCurrencyBRL(total),
       descricao: principal.descricao ?? '',
       restante: restante?.categoria ?? null,
+      destinoReserva: moveDest ?? RESERVA_LABELS.find((r) => r.key !== principal.categoria)!.key,
     });
     setEditGroupIds(grupo.map((x) => x.id!));
     setShowSaqueModal(true);
@@ -321,15 +338,38 @@ export default function TabEntradas({ mes, ano }: Props) {
   // do grupo em edição são ignorados (não contam contra o próprio limite).
   function dispCategoria(cat: ReservaKey): number {
     const alocado = totalMes * ((distribuicao[cat] ?? 0) / 100);
-    const jaSacado = saquesMes
+    const saidas = saquesMes
       .filter((s) => s.categoria === cat && !editGroupIds.includes(s.id!))
       .reduce((acc, s) => acc + s.valor, 0);
-    return alocado - jaSacado;
+    // "Mover" de outra reserva PARA esta aumenta o que há disponível aqui no mês.
+    const entradas = saquesMes
+      .filter((s) => s.destino === cat && !editGroupIds.includes(s.id!))
+      .reduce((acc, s) => acc + s.valor, 0);
+    return alocado - saidas + entradas;
   }
 
-  // Total sacado/transferido no mês numa reserva (todos os saques da categoria).
+  // Total que deixou a reserva no mês (todos os saques/transferências/movimentos da categoria).
   function sacadoCategoria(cat: ReservaKey): number {
     return saquesMes.filter((s) => s.categoria === cat).reduce((acc, s) => acc + s.valor, 0);
+  }
+
+  // Dinheiro que SAIU de casa (saque comum + transferência p/ Contas), excluindo
+  // "mover" entre reservas — que não é saída, só troca de caixinha.
+  function saindoCategoria(cat: ReservaKey): number {
+    return saquesMes
+      .filter((s) => s.categoria === cat && (!s.destino || s.destino === 'contas'))
+      .reduce((acc, s) => acc + s.valor, 0);
+  }
+
+  // Movimentos internos "mover": o que saiu desta reserva para outra (out) e o que
+  // chegou de outra reserva (in). Entram/saem do "guardado real" sem virar saída.
+  function movidoDaCategoria(cat: ReservaKey): number {
+    return saquesMes
+      .filter((s) => s.categoria === cat && s.destino && s.destino !== 'contas')
+      .reduce((acc, s) => acc + s.valor, 0);
+  }
+  function movidoParaCategoria(cat: ReservaKey): number {
+    return saquesMes.filter((s) => s.destino === cat).reduce((acc, s) => acc + s.valor, 0);
   }
 
   // Sobra da reserva no mês: alocado (entradas × %) − sacado. Negativo = sacou mais
@@ -344,11 +384,24 @@ export default function TabEntradas({ mes, ano }: Props) {
     const total = parseBRL(saqueForm.valor);
     if (total <= 0) return;
     const { categoria, descricao } = saqueForm;
-    // Transferência para Contas debita a reserva igual a um saque; só marca o destino.
-    const destinoExtra = saqueForm.tipo === 'transferencia' ? { destino: 'contas' as const } : {};
+    // Destino do dinheiro: Contas (transferência) ou outra reserva (mover). Saque não tem.
+    const destinoExtra =
+      saqueForm.tipo === 'transferencia' ? { destino: 'contas' as const }
+      : saqueForm.tipo === 'mover' ? { destino: saqueForm.destinoReserva }
+      : {};
     const disp = dispCategoria(categoria);
     const maxPrincipal = Math.max(disp, 0);
-    const precisaRestante = total > disp + 0.005;
+    // "Mover" não faz transbordo para outra reserva — fica limitado ao disponível.
+    const precisaRestante = saqueForm.tipo !== 'mover' && total > disp + 0.005;
+    // Mover: grava um único registro (origem → destino) e sai.
+    if (saqueForm.tipo === 'mover') {
+      if (saqueForm.destinoReserva === categoria || total > disp + 0.005) return;
+      await Promise.all(editGroupIds.map((id) => deleteSaqueReserva(id)));
+      await addSaqueReserva({ categoria, valor: total, ...(descricao ? { descricao } : {}), mes, ano, ...destinoExtra });
+      setShowSaqueModal(false);
+      load();
+      return;
+    }
     const labelPrincipal = RESERVA_LABELS.find((r) => r.key === categoria)?.label ?? '';
 
     // Reserva de onde tirar o excedente (a escolhida, ou a primeira outra por padrão).
@@ -649,6 +702,10 @@ export default function TabEntradas({ mes, ano }: Props) {
             <p className="text-[11px] text-slate-400 dark:text-zinc-500">Saldo acumulado por reserva · guardado e retirado no mês</p>
           </div>
           <div className="flex items-center gap-2 flex-shrink-0">
+            <button onClick={() => abrirMover()}
+              className="inline-flex items-center gap-1 px-2.5 py-1.5 border border-slate-200 dark:border-zinc-800 rounded-lg text-xs font-medium text-slate-500 dark:text-zinc-400 hover:bg-slate-50 dark:hover:bg-zinc-800 hover:text-slate-700 dark:hover:text-zinc-200 transition-colors">
+              <span className="font-bold leading-none">↔</span> Mover
+            </button>
             <button onClick={abrirTransferencia}
               className="inline-flex items-center gap-1 px-2.5 py-1.5 border border-slate-200 dark:border-zinc-800 rounded-lg text-xs font-medium text-slate-500 dark:text-zinc-400 hover:bg-slate-50 dark:hover:bg-zinc-800 hover:text-slate-700 dark:hover:text-zinc-200 transition-colors">
               <span className="font-bold leading-none">⇄</span> Transferir
@@ -693,10 +750,11 @@ export default function TabEntradas({ mes, ano }: Props) {
             const reservas = RESERVA_LABELS.map(({ key, label }) => {
               const saldo = Math.max(saldoAcc[key], 0);                       // acumulado (cresce mês a mês)
               const previsto = totalMes * ((distribuicao[key] ?? 0) / 100);   // destinado NESTE mês (pela divisão)
-              const saindo = sacadoCategoria(key);                            // saques + transferências DESTE mês
-              const guardadoReal = previsto - saindo;                         // o que de fato sobrou pra guardar
-              return { key, label, saldo, previsto, saindo, guardadoReal };
-            }).filter((b) => b.saldo > 0.005 || b.previsto > 0.005 || b.saindo > 0.005);
+              const saindo = saindoCategoria(key);                            // só o que saiu de casa (saque/p/ Contas)
+              const transferido = movidoParaCategoria(key) - movidoDaCategoria(key); // +recebeu / -enviou (mover)
+              const guardadoReal = previsto - saindo + transferido;           // o que de fato sobrou pra guardar
+              return { key, label, saldo, previsto, saindo, transferido, guardadoReal };
+            }).filter((b) => b.saldo > 0.005 || b.previsto > 0.005 || b.saindo > 0.005 || Math.abs(b.transferido) > 0.005);
             // Barra de cada reserva proporcional ao maior saldo acumulado (comparação visual).
             const maxSaldo = Math.max(...reservas.map((b) => b.saldo), 1);
             return (
@@ -705,10 +763,11 @@ export default function TabEntradas({ mes, ano }: Props) {
                   const meta = metaPorKey(b.key)?.valor ?? 0;
                   const temMeta = meta > 0;
                   const progresso = temMeta ? Math.min((b.saldo / meta) * 100, 100) : 0;
-                  // Guardado real x previsto: verde = guardou tudo; amarelo = guardou menos; vermelho = ficou negativo.
+                  // Guardado real x previsto: verde = guardou o previsto (ou mais, ex: recebeu
+                  // transferência); amarelo = guardou menos que o previsto; vermelho = ficou negativo.
                   const realStatus =
                     b.guardadoReal < -0.005 ? 'red'
-                    : Math.abs(b.guardadoReal - b.previsto) > 0.005 ? 'amber'
+                    : b.guardadoReal + 0.005 < b.previsto ? 'amber'
                     : 'green';
                   const realText = realStatus === 'red'
                     ? 'text-red-600 dark:text-red-400'
@@ -807,6 +866,8 @@ export default function TabEntradas({ mes, ano }: Props) {
               // distribuição foi baixada depois do saque). Abre o editor pra corrigir.
               const catsGrupo = restante ? [principal.categoria, restante.categoria] : [principal.categoria];
               const precisaRevisar = catsGrupo.some((c) => sobraCategoria(c) < -0.005);
+              // "Mover" entre reservas: não é saída de casa — pinta diferente (sem vermelho).
+              const movDestino = principal.destino && principal.destino !== 'contas' ? principal.destino : null;
               return (
                 <div key={principal.id} className="group">
                   <div className="flex items-center justify-between gap-2">
@@ -818,6 +879,15 @@ export default function TabEntradas({ mes, ano }: Props) {
                       {principal.destino === 'contas' && (
                         <span className="flex-shrink-0 inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-indigo-50 dark:bg-purple-500/15 text-indigo-600 dark:text-purple-300">
                           ⇄ Contas
+                        </span>
+                      )}
+                      {movDestino && (
+                        <span
+                          className="flex-shrink-0 inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-medium"
+                          style={{ backgroundColor: `${distColors[movDestino]}22`, color: distColors[movDestino] }}
+                        >
+                          <CategoriaIcon categoria={movDestino} color={distColors[movDestino]} className="w-3 h-3" />
+                          → {RESERVA_LABELS.find((r) => r.key === movDestino)?.label}
                         </span>
                       )}
                       {precisaRevisar && (
@@ -832,7 +902,7 @@ export default function TabEntradas({ mes, ano }: Props) {
                       )}
                     </div>
                     <div className="flex items-center gap-1.5 flex-shrink-0">
-                      <span className="text-xs font-semibold text-red-500 dark:text-red-400 tabular-nums">-{fmt(principal.valor)}</span>
+                      <span className={`text-xs font-semibold tabular-nums ${movDestino ? 'text-indigo-500 dark:text-purple-300' : 'text-red-500 dark:text-red-400'}`}>{movDestino ? '↔' : '-'}{fmt(principal.valor)}</span>
                       <button onClick={() => handleEditSaque(principal)}
                         className="p-1 rounded-lg text-slate-300 dark:text-zinc-500 hover:text-indigo-500 dark:hover:text-purple-400 hover:bg-indigo-50 dark:hover:bg-purple-500/10 transition-colors opacity-100 sm:opacity-0 sm:group-hover:opacity-100">
                         <Pencil />
@@ -1000,17 +1070,25 @@ export default function TabEntradas({ mes, ano }: Props) {
           ? saqueForm.restante
           : RESERVA_LABELS.find((r) => r.key !== saqueForm.categoria)!.key;
         const isTransfer = saqueForm.tipo === 'transferencia';
+        const isMove = saqueForm.tipo === 'mover';
+        // Destino do "mover": sempre diferente da origem.
+        const moveDestinoCat = saqueForm.destinoReserva !== saqueForm.categoria
+          ? saqueForm.destinoReserva
+          : RESERVA_LABELS.find((r) => r.key !== saqueForm.categoria)!.key;
+        // No "mover" não há transbordo — o botão trava se estourar o disponível.
+        const moveInvalido = isMove && (valorNum > dispSel + 0.005 || valorNum <= 0);
         const titulo = editandoSaque
-          ? (isTransfer ? 'Editar Transferência' : 'Editar Saque')
-          : (isTransfer ? 'Nova Transferência' : 'Registrar Saque');
+          ? (isMove ? 'Editar Movimentação' : isTransfer ? 'Editar Transferência' : 'Editar Saque')
+          : (isMove ? 'Mover entre Reservas' : isTransfer ? 'Nova Transferência' : 'Registrar Saque');
         return (
         <Modal title={titulo} onClose={() => setShowSaqueModal(false)}>
           <form onSubmit={handleSaveSaque} className="space-y-4">
-            {/* Toggle Saque | Transferência */}
+            {/* Toggle Saque | Mover | Transferir p/ Contas */}
             <div className="flex gap-1 p-1 rounded-xl bg-slate-100 dark:bg-zinc-800">
               {([
                 { key: 'saque' as const, label: 'Saque' },
-                { key: 'transferencia' as const, label: 'Transferir p/ Contas' },
+                { key: 'mover' as const, label: 'Mover' },
+                { key: 'transferencia' as const, label: 'P/ Contas' },
               ]).map(({ key, label }) => (
                 <button
                   key={key}
@@ -1027,18 +1105,26 @@ export default function TabEntradas({ mes, ano }: Props) {
               ))}
             </div>
             <p className="text-xs text-slate-400 dark:text-zinc-400 bg-slate-50 dark:bg-zinc-950 rounded-lg p-2">
-              {isTransfer
+              {isMove
+                ? 'Move o que sobrou de uma reserva para outra (ex: Planos Futuros → Investimento). Não é saída de casa: o total guardado continua o mesmo, só troca de caixinha.'
+                : isTransfer
                 ? 'Move dinheiro de uma reserva para as Contas do mês (ex: usar Planos Futuros para pagar contas). Sai da reserva e entra na fatia de Contas da distribuição.'
                 : 'Use quando retirar dinheiro de uma reserva (ex: usou parte dos Planos Futuros). O valor é abatido do que foi guardado nesta reserva neste mês.'}
             </p>
             <div>
-              <label className="block text-sm font-medium text-slate-700 dark:text-zinc-200 mb-1.5">{isTransfer ? 'De (reserva)' : 'Reserva'}</label>
+              <label className="block text-sm font-medium text-slate-700 dark:text-zinc-200 mb-1.5">{isTransfer || isMove ? 'De (reserva)' : 'Reserva'}</label>
               <div className="flex flex-wrap gap-2">
                 {RESERVA_LABELS.map(({ key, label }) => (
                   <button
                     key={key}
                     type="button"
-                    onClick={() => setSaqueForm({ ...saqueForm, categoria: key, restante: saqueForm.restante === key ? null : saqueForm.restante })}
+                    onClick={() => setSaqueForm({
+                      ...saqueForm,
+                      categoria: key,
+                      restante: saqueForm.restante === key ? null : saqueForm.restante,
+                      // Se a nova origem for igual ao destino do "mover", escolhe outro destino.
+                      destinoReserva: saqueForm.destinoReserva === key ? RESERVA_LABELS.find((r) => r.key !== key)!.key : saqueForm.destinoReserva,
+                    })}
                     className="px-3 py-1.5 rounded-full text-xs font-medium transition-all border"
                     style={saqueForm.categoria === key
                       ? { backgroundColor: distColors[key], color: '#fff', borderColor: distColors[key] }
@@ -1049,18 +1135,41 @@ export default function TabEntradas({ mes, ano }: Props) {
                 ))}
               </div>
             </div>
+            {/* Destino do "mover": outra reserva (nunca a de origem) */}
+            {isMove && (
+              <div>
+                <label className="block text-sm font-medium text-slate-700 dark:text-zinc-200 mb-1.5">Para (reserva)</label>
+                <div className="flex flex-wrap gap-2">
+                  {RESERVA_LABELS.filter((r) => r.key !== saqueForm.categoria).map(({ key, label }) => (
+                    <button
+                      key={key}
+                      type="button"
+                      onClick={() => setSaqueForm({ ...saqueForm, destinoReserva: key })}
+                      className="px-3 py-1.5 rounded-full text-xs font-medium transition-all border"
+                      style={moveDestinoCat === key
+                        ? { backgroundColor: distColors[key], color: '#fff', borderColor: distColors[key] }
+                        : { borderColor: '#e2e8f0', color: '#64748b' }}
+                    >
+                      <span className="inline-flex items-center gap-1"><CategoriaIcon categoria={key} className="w-3.5 h-3.5" /> {label}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
             <div>
               <label className="block text-sm font-medium text-slate-700 dark:text-zinc-200 mb-1">Valor (R$)</label>
               <input required value={saqueForm.valor} onChange={(e) => setSaqueForm({ ...saqueForm, valor: formatBRL(e.target.value) })} className={INPUT} placeholder="0,00" inputMode="decimal" />
               <p className={`mt-1.5 text-xs ${estoura ? 'text-red-500 dark:text-red-400 font-medium' : 'text-slate-400 dark:text-zinc-500'}`}>
                 {estoura
-                  ? `Disponível nesta reserva: ${fmt(maxPrincipal)} — faltam ${fmt(falta)}`
+                  ? (isMove
+                      ? `Disponível para mover: ${fmt(maxPrincipal)} — reduza o valor`
+                      : `Disponível nesta reserva: ${fmt(maxPrincipal)} — faltam ${fmt(falta)}`)
                   : `Disponível nesta reserva: ${fmt(maxPrincipal)}`}
               </p>
             </div>
 
-            {/* Transbordo: de qual reserva tirar o que faltar */}
-            {estoura && (
+            {/* Transbordo: de qual reserva tirar o que faltar (não se aplica ao "mover") */}
+            {estoura && !isMove && (
               <div className="rounded-xl border border-amber-200 dark:border-amber-500/30 bg-amber-50 dark:bg-amber-500/10 p-3 space-y-2">
                 <p className="text-xs text-amber-700 dark:text-amber-400">
                   {maxPrincipal > 0
@@ -1094,8 +1203,8 @@ export default function TabEntradas({ mes, ano }: Props) {
             </div>
             <div className="flex gap-3 pt-1">
               <button type="button" onClick={() => setShowSaqueModal(false)} className="flex-1 py-2.5 border border-slate-200 dark:border-zinc-800 rounded-xl text-sm text-slate-600 dark:text-zinc-300 hover:bg-slate-50 dark:hover:bg-zinc-800">Cancelar</button>
-              <button type="submit" className={`flex-1 py-2.5 text-white rounded-xl text-sm font-semibold shadow-sm ${isTransfer ? 'bg-indigo-600 dark:bg-purple-600 hover:bg-indigo-700 dark:hover:bg-purple-700' : 'bg-red-500 hover:bg-red-600'}`}>
-                {editandoSaque ? 'Salvar' : (isTransfer ? 'Transferir' : 'Registrar Saque')}
+              <button type="submit" disabled={moveInvalido} className={`flex-1 py-2.5 text-white rounded-xl text-sm font-semibold shadow-sm disabled:opacity-40 disabled:cursor-not-allowed ${isTransfer || isMove ? 'bg-indigo-600 dark:bg-purple-600 hover:bg-indigo-700 dark:hover:bg-purple-700' : 'bg-red-500 hover:bg-red-600'}`}>
+                {editandoSaque ? 'Salvar' : (isMove ? 'Mover' : isTransfer ? 'Transferir' : 'Registrar Saque')}
               </button>
             </div>
           </form>
