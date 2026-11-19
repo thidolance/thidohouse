@@ -870,8 +870,8 @@ export default function TabCartoes({ mes, ano }: Props) {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-slate-700 dark:text-zinc-200 mb-1">Data da Compra</label>
-              <DatePicker required value={formCompra.data} onChange={(v) => setFormCompra({ ...formCompra, data: v })} className={INPUT} />
+              <label className="block text-sm font-medium text-slate-700 dark:text-zinc-200 mb-1">Data da Compra <span className="text-slate-400 dark:text-zinc-500 font-normal">(opcional)</span></label>
+              <DatePicker value={formCompra.data} onChange={(v) => setFormCompra({ ...formCompra, data: v })} className={INPUT} />
             </div>
 
             <div className="grid grid-cols-2 gap-3">
