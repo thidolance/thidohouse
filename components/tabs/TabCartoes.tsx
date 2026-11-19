@@ -107,7 +107,7 @@ function CategoriaRanking({ itens, max = 5 }: { itens: RankItem[]; max?: number 
               className="flex items-center justify-center w-9 h-9 rounded-xl flex-shrink-0"
               style={{ backgroundColor: `${it.cor}22`, color: it.cor }}
             >
-              <CompraCatIcon nome={it.nome} icone={it.icone} className="w-5 h-5" />
+              <CompraCatIcon nome={it.nome} icone={it.icone} className="w-5 h-5 dark:text-white" />
             </span>
             <div className="flex-1 min-w-0">
               <div className="flex items-baseline justify-between gap-2">
@@ -213,6 +213,10 @@ export default function TabCartoes({ mes, ano }: Props) {
   function catIcone(nome: string) {
     return categorias.find((c) => c.nome === nome)?.icone;
   }
+  // Categoria pré-selecionada ao abrir "Nova compra": usa "Outros" quando existir.
+  function nomeCategoriaPadrao() {
+    return categorias.find((c) => c.nome.toLowerCase() === 'outros')?.nome ?? categorias[0]?.nome ?? '';
+  }
 
   // ── compras ────────────────────────────────────────────────────────────────
   async function handleSaveCompra(e: React.SubmitEvent<HTMLFormElement>) {
@@ -245,7 +249,7 @@ export default function TabCartoes({ mes, ano }: Props) {
           await updateCompraReparcelada(editCompraId, data, original);
           setShowCompraModal(false);
           setEditCompraId(null);
-          setFormCompra({ ...COMPRA_EMPTY, cartaoId: cartoes[0]?.id ?? '', tipo: categorias[0]?.nome ?? '' });
+          setFormCompra({ ...COMPRA_EMPTY, cartaoId: cartoes[0]?.id ?? '', tipo: nomeCategoriaPadrao() });
           return;
         }
       }
@@ -261,7 +265,7 @@ export default function TabCartoes({ mes, ano }: Props) {
     }
     setShowCompraModal(false);
     setEditCompraId(null);
-    setFormCompra({ ...COMPRA_EMPTY, cartaoId: cartoes[0]?.id ?? '', tipo: categorias[0]?.nome ?? '' });
+    setFormCompra({ ...COMPRA_EMPTY, cartaoId: cartoes[0]?.id ?? '', tipo: nomeCategoriaPadrao() });
   }
 
   async function confirmarEditCompra(scope: 'this' | 'future') {
@@ -270,7 +274,7 @@ export default function TabCartoes({ mes, ano }: Props) {
     if (scope === 'future') await updateCompraAndFuture(id, data, original);
     else                    await updateCompra(id, data, original);
     setEditCompraId(null);
-    setFormCompra({ ...COMPRA_EMPTY, cartaoId: cartoes[0]?.id ?? '', tipo: categorias[0]?.nome ?? '' });
+    setFormCompra({ ...COMPRA_EMPTY, cartaoId: cartoes[0]?.id ?? '', tipo: nomeCategoriaPadrao() });
   }
 
   function abrirNovaCompra(cartaoId?: string) {
@@ -278,7 +282,7 @@ export default function TabCartoes({ mes, ano }: Props) {
     setFormCompra({
       ...COMPRA_EMPTY,
       cartaoId: cartaoId ?? cartoes[0]?.id ?? '',
-      tipo: categorias[0]?.nome ?? '',
+      tipo: nomeCategoriaPadrao(),
       data: new Date().toISOString().slice(0, 10),
     });
     setShowCompraModal(true);
@@ -430,6 +434,8 @@ export default function TabCartoes({ mes, ano }: Props) {
     : [];
 
   const rankingCartao = rankingCategorias(comprasDoCartao);
+  // Ranking exibido no card do topo: do cartão selecionado, ou geral do mês.
+  const rankingVisivel = cartaoSelecionado ? rankingCartao : rankingGeral;
 
   const comprasOrdenadas = [...compras]
     .filter((c) => !filtroCategoria || c.tipo === filtroCategoria)
@@ -525,20 +531,24 @@ export default function TabCartoes({ mes, ano }: Props) {
           )}
         </Card>
         <Card>
-          <div className="flex items-center justify-between mb-3">
-            <p className="font-semibold text-slate-700 dark:text-zinc-200 text-sm">Onde você gasta mais</p>
-            {rankingGeral.length > 0 && (
-              <span className="text-[11px] text-slate-400 dark:text-zinc-400">{rankingGeral.length} categoria(s)</span>
+          <div className="flex items-center justify-between mb-3 gap-2">
+            <p className="font-semibold text-slate-700 dark:text-zinc-200 text-sm truncate">
+              {cartaoSelecionado && cartaoAtivo
+                ? <>Onde você gasta mais <span style={{ color: cartaoAtivo.cor }}>· {cartaoAtivo.nome}</span></>
+                : 'Onde você gasta mais'}
+            </p>
+            {rankingVisivel.length > 0 && (
+              <span className="text-[11px] text-slate-400 dark:text-zinc-400 flex-shrink-0">{rankingVisivel.length} categoria(s)</span>
             )}
           </div>
-          {rankingGeral.length > 0 ? (
+          {rankingVisivel.length > 0 ? (
             <div className="max-h-[260px] overflow-y-auto pr-1">
-              <CategoriaRanking itens={rankingGeral} max={rankingGeral.length} />
+              <CategoriaRanking itens={rankingVisivel} max={rankingVisivel.length} />
             </div>
           ) : (
             <div className="h-[220px] flex flex-col items-center justify-center text-slate-400 dark:text-zinc-400 gap-2">
               <span className="text-3xl">📊</span>
-              <p className="text-sm">Sem dados de categoria</p>
+              <p className="text-sm">{cartaoSelecionado ? 'Sem compras neste cartão' : 'Sem dados de categoria'}</p>
             </div>
           )}
         </Card>
@@ -651,16 +661,6 @@ export default function TabCartoes({ mes, ano }: Props) {
             </button>
           </div>
 
-          {/* Em que categorias este cartão mais gasta */}
-          {rankingCartao.length > 0 && (
-            <div className="mb-4 rounded-xl bg-white/60 dark:bg-zinc-900/40 border border-white/50 dark:border-zinc-800 p-4">
-              <p className="text-xs font-semibold text-slate-500 dark:text-zinc-400 uppercase tracking-wide mb-3">
-                Gastos por categoria
-              </p>
-              <CategoriaRanking itens={rankingCartao} max={5} />
-            </div>
-          )}
-
           {loading ? (
             <p className="text-slate-400 dark:text-zinc-400 text-sm text-center py-6">Carregando...</p>
           ) : comprasDoCartao.length === 0 ? (
@@ -675,7 +675,7 @@ export default function TabCartoes({ mes, ano }: Props) {
                       style={{ backgroundColor: `${catCor(p.tipo)}22`, color: catCor(p.tipo) }}
                       title={p.tipo}
                     >
-                      <CompraCatIcon nome={p.tipo} icone={catIcone(p.tipo)} className="w-5 h-5" />
+                      <CompraCatIcon nome={p.tipo} icone={catIcone(p.tipo)} className="w-5 h-5 dark:text-white" />
                     </span>
                     <div className="min-w-0">
                       <p className="font-medium text-slate-700 dark:text-zinc-200 text-sm truncate">{p.descricao}</p>
@@ -754,7 +754,7 @@ export default function TabCartoes({ mes, ano }: Props) {
                         style={{ backgroundColor: `${catCor(p.tipo)}22`, color: catCor(p.tipo) }}
                         title={p.tipo}
                       >
-                        <CompraCatIcon nome={p.tipo} icone={catIcone(p.tipo)} className="w-5 h-5" />
+                        <CompraCatIcon nome={p.tipo} icone={catIcone(p.tipo)} className="w-5 h-5 dark:text-white" />
                         {/* ponto com a cor do cartão, para identificar o cartão de relance */}
                         <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full ring-2 ring-white dark:ring-zinc-900" style={{ backgroundColor: c?.cor ?? '#94a3b8' }} />
                       </span>
@@ -996,7 +996,7 @@ export default function TabCartoes({ mes, ano }: Props) {
               {categorias.map((cat) => (
                 <div key={cat.id} className="flex items-center gap-3 p-3 rounded-xl border border-slate-100 dark:border-zinc-800 hover:bg-slate-50 dark:hover:bg-zinc-800">
                   <span className="flex items-center justify-center w-9 h-9 rounded-xl flex-shrink-0" style={{ backgroundColor: `${cat.cor}22`, color: cat.cor }}>
-                    <CompraCatIcon nome={cat.nome} icone={cat.icone} className="w-5 h-5" />
+                    <CompraCatIcon nome={cat.nome} icone={cat.icone} className="w-5 h-5 dark:text-white" />
                   </span>
                   <p className="flex-1 text-sm font-medium text-slate-700 dark:text-zinc-200">{cat.nome}</p>
                   <button onClick={() => abrirEditCategoria(cat)} className="p-1.5 rounded-lg hover:bg-indigo-50 dark:hover:bg-purple-500/10 text-slate-300 dark:text-zinc-500 hover:text-indigo-400 dark:hover:text-purple-400 transition-colors"><Pencil /></button>
