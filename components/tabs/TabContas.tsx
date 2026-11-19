@@ -338,22 +338,18 @@ export default function TabContas({ mes, ano }: Props) {
     });
   }, [itensCartao, filtroStatus, busca, ordenacao]);
 
-  // Agrupamento por categoria (opção "Por categoria"): grupos do maior total para
-  // o menor; dentro de cada grupo, pendentes primeiro e por maior valor.
-  const gruposContas = useMemo(() => {
-    if (ordenacao !== 'categoria') return [];
-    const base = applyContaFilters(contas);
-    const nomes = Array.from(new Set(base.map((c) => c.categoria)));
-    return nomes
+  // Subdivide uma seção (ex: Contas Fixas) por categoria: grupos do maior total
+  // para o menor; dentro de cada grupo, pendentes primeiro e por maior valor.
+  const agruparPorCategoria = (list: Conta[]) =>
+    Array.from(new Set(list.map((c) => c.categoria)))
       .map((nome) => {
-        const itens = base
+        const itens = [...list]
           .filter((c) => c.categoria === nome)
           .sort((a, b) => (a.status !== b.status ? (a.status === 'pendente' ? -1 : 1) : b.valor - a.valor));
         return { nome, cor: catCor(nome), total: itens.reduce((s, c) => s + c.valor, 0), itens };
       })
       .filter((g) => g.itens.length > 0)
       .sort((a, b) => b.total - a.total);
-  }, [ordenacao, contas, cats, filtroStatus, filtroCategoria, busca]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const mostrarContas  = filtroTipo === 'todos' || filtroTipo === 'contas';
   const mostrarCartoes = filtroTipo === 'todos' || filtroTipo === 'cartoes';
@@ -823,6 +819,22 @@ export default function TabContas({ mes, ano }: Props) {
     );
   }
 
+  // Subcabeçalho de categoria dentro de uma seção (badge com ícone + nome + total).
+  function CategoriaSubHeader({ nome, cor, count, total: t }: { nome: string; cor: string; count: number; total: number }) {
+    return (
+      <div className="flex items-center justify-between gap-2 pl-6 pr-4 py-1.5 bg-slate-50/60 dark:bg-zinc-900/40 border-b border-slate-100/60 dark:border-zinc-800/60">
+        <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-600 dark:text-zinc-300 min-w-0">
+          <span className="flex items-center justify-center w-5 h-5 rounded-md flex-shrink-0" style={{ backgroundColor: `${cor}22`, color: cor }}>
+            <CompraCatIcon nome={nome} className="w-3.5 h-3.5 dark:text-white" />
+          </span>
+          <span className="truncate">{nome}</span>
+          <span className="text-[10px] font-normal text-slate-400 dark:text-zinc-500 flex-shrink-0">{count}</span>
+        </span>
+        <span className="text-xs font-bold tabular-nums flex-shrink-0" style={{ color: cor }}>{fmt(t)}</span>
+      </div>
+    );
+  }
+
   // ── render ────────────────────────────────────────────────────────────────
 
   return (
@@ -1038,38 +1050,35 @@ export default function TabContas({ mes, ano }: Props) {
         ) : (
           <div className="divide-y divide-slate-50/80 dark:divide-zinc-800/80">
 
-            {/* ── Contas agrupadas por categoria (igual à lista de compras dos cartões) ── */}
-            {mostrarContas && ordenacao === 'categoria' && gruposContas.map((g) => (
-              <div key={g.nome}>
-                <div className="flex items-center justify-between gap-2 px-4 py-2.5 bg-gradient-to-r from-slate-50 dark:from-zinc-900 to-transparent border-b border-slate-100/80 dark:border-zinc-800/80">
-                  <span className="inline-flex items-center gap-2 text-sm font-semibold text-slate-700 dark:text-zinc-200 min-w-0">
-                    <span className="flex items-center justify-center w-7 h-7 rounded-lg flex-shrink-0" style={{ backgroundColor: `${g.cor}22`, color: g.cor }}>
-                      <CompraCatIcon nome={g.nome} className="w-4 h-4 dark:text-white" />
-                    </span>
-                    <span className="truncate">{g.nome}</span>
-                    <span className="text-[11px] font-normal text-slate-400 dark:text-zinc-500 flex-shrink-0">{g.itens.length}</span>
-                  </span>
-                  <span className="text-sm font-bold tabular-nums flex-shrink-0" style={{ color: g.cor }}>{fmt(g.total)}</span>
-                </div>
-                {g.itens.map((c) => <ContaRow key={c.id} c={c} barColor={g.cor} />)}
-              </div>
-            ))}
-
-            {/* ── Contas Fixas ── */}
-            {mostrarContas && ordenacao !== 'categoria' && contasFixas.length > 0 && (
+            {/* ── Contas Fixas (subdivididas por categoria quando "Por categoria") ── */}
+            {mostrarContas && contasFixas.length > 0 && (
               <div>
                 <SectionHeader label="Contas Fixas" count={contasFixas.length} total={contasFixas.reduce((s, c) => s + c.valor, 0)} />
-                {contasFixas.map((c) => <ContaRow key={c.id} c={c} barColor={COR_FIXA} />)}
+                {ordenacao === 'categoria'
+                  ? agruparPorCategoria(contasFixas).map((g) => (
+                      <div key={g.nome}>
+                        <CategoriaSubHeader nome={g.nome} cor={g.cor} count={g.itens.length} total={g.total} />
+                        {g.itens.map((c) => <ContaRow key={c.id} c={c} barColor={g.cor} />)}
+                      </div>
+                    ))
+                  : contasFixas.map((c) => <ContaRow key={c.id} c={c} barColor={COR_FIXA} />)}
               </div>
             )}
 
-            {/* ── Contas regulares ── */}
-            {mostrarContas && ordenacao !== 'categoria' && contasRegulares.length > 0 && (
+            {/* ── Contas regulares (subdivididas por categoria quando "Por categoria") ── */}
+            {mostrarContas && contasRegulares.length > 0 && (
               <div>
                 {(filtroTipo === 'todos' || contasFixas.length > 0) && (
                   <SectionHeader label="Contas Rotativas" count={contasRegulares.length} total={contasRegulares.reduce((s, c) => s + c.valor, 0)} />
                 )}
-                {contasRegulares.map((c) => <ContaRow key={c.id} c={c} barColor={COR_ROTATIVA} />)}
+                {ordenacao === 'categoria'
+                  ? agruparPorCategoria(contasRegulares).map((g) => (
+                      <div key={g.nome}>
+                        <CategoriaSubHeader nome={g.nome} cor={g.cor} count={g.itens.length} total={g.total} />
+                        {g.itens.map((c) => <ContaRow key={c.id} c={c} barColor={g.cor} />)}
+                      </div>
+                    ))
+                  : contasRegulares.map((c) => <ContaRow key={c.id} c={c} barColor={COR_ROTATIVA} />)}
               </div>
             )}
 
