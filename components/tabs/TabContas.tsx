@@ -1033,16 +1033,6 @@ export default function TabContas({ mes, ano }: Props) {
                 }`}
               >{l}</button>
             ))}
-            {(filtroTipo === 'todos' || filtroTipo === 'contas') && cats.length > 0 && (
-              <>
-                <div className="w-px bg-slate-200 dark:bg-zinc-800 self-stretch" />
-                <select value={filtroCategoria} onChange={(e) => setFiltroCategoria(e.target.value)}
-                  className={`px-3 py-1 rounded-full text-xs font-semibold border transition-all bg-white dark:bg-zinc-900 cursor-pointer focus:outline-none ${filtroCategoria ? 'border-indigo-400 dark:border-purple-400 text-indigo-600 dark:text-purple-400' : 'border-slate-200 dark:border-zinc-800 text-slate-500 dark:text-zinc-400'}`}>
-                  <option value="">Categoria</option>
-                  {cats.map((c) => <option key={c.id} value={c.nome}>{c.nome}</option>)}
-                </select>
-              </>
-            )}
             {filtrosAtivos && (
               <button onClick={limparFiltros} className="ml-auto px-3 py-1 rounded-full text-xs font-semibold text-slate-400 dark:text-zinc-400 border border-slate-200 dark:border-zinc-800 hover:bg-slate-50 dark:hover:bg-zinc-800 transition-colors">
                 ✕ Limpar
