@@ -14,6 +14,7 @@ export const DEFAULT_CATEGORIAS: Omit<CategoriaCompra, 'id'>[] = [
   { nome: 'Abastecimento', cor: '#eab308', icone: 'abastecimento' },
   { nome: 'Filhos',      cor: '#f59e0b', icone: 'filhos' },
   { nome: 'Besteiras',   cor: '#ec4899', icone: 'besteiras' },
+  { nome: 'Entretenimento', cor: '#0ea5e9', icone: 'entretenimento' },
   { nome: 'Farmácia',    cor: '#06b6d4', icone: 'farmacia' },
   { nome: 'Educação',    cor: '#8b5cf6', icone: 'educacao' },
   { nome: 'Academia',    cor: '#f97316', icone: 'academia' },

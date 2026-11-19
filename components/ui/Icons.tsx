@@ -250,6 +250,24 @@ export const COMPRA_CAT_ICONS: { key: string; label: string; node: ReactNode }[]
     // Rosquinha (donut)
     <path fillRule="evenodd" clipRule="evenodd" d="M12 2.25c-5.385 0-9.75 4.365-9.75 9.75S6.615 21.75 12 21.75s9.75-4.365 9.75-9.75S17.385 2.25 12 2.25Zm0 6.75a3 3 0 1 0 0 6 3 3 0 0 0 0-6Z" />
   ) },
+  { key: 'entretenimento', label: 'Entretenimento', node: (
+    // Roda-gigante (parquinho)
+    <>
+      <path fillRule="evenodd" clipRule="evenodd" d="M12 2a9 9 0 1 0 0 18 9 9 0 0 0 0-18Zm0 2.2a6.8 6.8 0 1 1 0 13.6 6.8 6.8 0 0 1 0-13.6Z" />
+      <rect x="11.5" y="4.2" width="1" height="13.6" rx="0.5" />
+      <rect x="11.5" y="4.2" width="1" height="13.6" rx="0.5" transform="rotate(60 12 11)" />
+      <rect x="11.5" y="4.2" width="1" height="13.6" rx="0.5" transform="rotate(120 12 11)" />
+      <circle cx="12" cy="11" r="1.5" />
+      <circle cx="12" cy="3.6" r="1" />
+      <circle cx="12" cy="18.4" r="1" />
+      <circle cx="18.4" cy="7.3" r="1" />
+      <circle cx="5.6" cy="14.7" r="1" />
+      <circle cx="5.6" cy="7.3" r="1" />
+      <circle cx="18.4" cy="14.7" r="1" />
+      <path d="M11.2 11 L7.9 21 H9.7 L12 13.9 L14.3 21 H16.1 L12.8 11 Z" />
+      <rect x="7.2" y="20.6" width="9.6" height="1.6" rx="0.8" />
+    </>
+  ) },
   { key: 'farmacia', label: 'Farmácia', node: (
     // Cápsula/comprimido na diagonal
     <path fillRule="evenodd" clipRule="evenodd" d="M4.22 10.28a6 6 0 0 1 8.49-8.49l5.5 5.5a6 6 0 1 1-8.49 8.49l-5.5-5.5Zm2.12-1.06 5.5 5.5 3.18-3.18-5.5-5.5-3.18 3.18Z" />
@@ -289,7 +307,8 @@ export function compraCatIconKey(nome?: string, icone?: string): string {
     carro: 'carro', veiculo: 'carro', uber: 'carro', transporte: 'carro',
     abastecimento: 'abastecimento', combustivel: 'abastecimento', gasolina: 'abastecimento', posto: 'abastecimento', gas: 'abastecimento',
     filhos: 'filhos', filho: 'filhos', crianca: 'filhos', criancas: 'filhos', bebe: 'filhos',
-    besteiras: 'besteiras', besteira: 'besteiras', doce: 'besteiras', doces: 'besteiras', lazer: 'besteiras',
+    besteiras: 'besteiras', besteira: 'besteiras', doce: 'besteiras', doces: 'besteiras',
+    entretenimento: 'entretenimento', lazer: 'entretenimento', diversao: 'entretenimento', parque: 'entretenimento', cinema: 'entretenimento', passeio: 'entretenimento', role: 'entretenimento',
     farmacia: 'farmacia', saude: 'farmacia', remedio: 'farmacia', remedios: 'farmacia',
     educacao: 'educacao', escola: 'educacao', curso: 'educacao', faculdade: 'educacao',
     academia: 'academia', gym: 'academia', treino: 'academia',
