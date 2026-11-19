@@ -83,6 +83,19 @@ function PinIcon({ filled }: { filled?: boolean }) {
 
 const INPUT = 'w-full border border-slate-200 dark:border-zinc-800 rounded-xl px-3 py-2 text-sm text-slate-900 dark:text-zinc-50 bg-white dark:bg-zinc-900 focus:outline-none focus:ring-2 focus:ring-indigo-300 dark:focus:ring-purple-500';
 
+// Badge de parcelamento: "3/12" com mini barra de progresso das parcelas pagas.
+function ParcelaBadge({ atual, total }: { atual: number; total: number }) {
+  const pct = Math.min(100, Math.max(0, (atual / total) * 100));
+  return (
+    <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold px-2 py-0.5 rounded-md bg-indigo-50 dark:bg-purple-500/15 text-indigo-600 dark:text-purple-300">
+      <span className="tabular-nums">{atual}/{total}</span>
+      <span className="w-6 h-1.5 rounded-full bg-indigo-200/70 dark:bg-purple-500/25 overflow-hidden">
+        <span className="block h-full rounded-full bg-indigo-500 dark:bg-purple-400" style={{ width: `${pct}%` }} />
+      </span>
+    </span>
+  );
+}
+
 // Uma linha do ranking de categorias (ícone + barra proporcional + valor + %).
 type RankItem = { nome: string; cor: string; icone?: string; total: number };
 
@@ -200,10 +213,7 @@ export default function TabCartoes({ mes, ano }: Props) {
     return unsub;
   }, [mes, ano]);
 
-  // ── helpers de cor/ícone ───────────────────────────────────────────────────
-  function catCor(nome: string) {
-    return categorias.find((c) => c.nome === nome)?.cor ?? '#94a3b8';
-  }
+  // ── helpers de ícone ───────────────────────────────────────────────────────
   function catIcone(nome: string) {
     return categorias.find((c) => c.nome === nome)?.icone;
   }
@@ -470,12 +480,19 @@ export default function TabCartoes({ mes, ano }: Props) {
         </div>
       </div>
 
-      {/* ── Card total ── */}
-      <div className="bg-gradient-to-br from-indigo-600 dark:from-purple-600 to-violet-700 rounded-2xl px-4 py-3 text-white shadow-lg shadow-indigo-200 dark:shadow-purple-500/20">
-        <p className="text-indigo-100 dark:text-purple-100 text-xs font-medium uppercase tracking-wide">Total do Mês</p>
+      {/* ── Card total (clicável: limpa o cartão selecionado e volta ao total) ── */}
+      <button
+        type="button"
+        onClick={() => setCartaoSelecionado(null)}
+        className={`block w-full text-left bg-gradient-to-br from-indigo-600 dark:from-purple-600 to-violet-700 rounded-2xl px-4 py-3 text-white shadow-lg shadow-indigo-200 dark:shadow-purple-500/20 transition-all ${cartaoSelecionado ? 'ring-2 ring-white/60 hover:brightness-110 cursor-pointer' : 'cursor-default'}`}
+      >
+        <div className="flex items-center justify-between">
+          <p className="text-indigo-100 dark:text-purple-100 text-xs font-medium uppercase tracking-wide">Total do Mês</p>
+          {cartaoSelecionado && <span className="text-[11px] bg-white/20 rounded-full px-2 py-0.5 font-medium">ver total ↩</span>}
+        </div>
         <p className="text-2xl font-bold mt-0.5 tabular-nums">{fmt(totalGeral)}</p>
         <p className="text-indigo-100 dark:text-purple-100 text-[11px] mt-1">{compras.length} compra(s) em {cartoes.length} cartão(s)</p>
-      </div>
+      </button>
 
       {/* ── Gráficos ── */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
@@ -516,10 +533,16 @@ export default function TabCartoes({ mes, ano }: Props) {
         </Card>
         <Card>
           <div className="flex items-center justify-between mb-3 gap-2">
-            <p className="font-semibold text-slate-700 dark:text-zinc-200 text-sm truncate">
-              {cartaoSelecionado && cartaoAtivo
-                ? <>Onde você gasta mais <span style={{ color: cartaoAtivo.cor }}>· {cartaoAtivo.nome}</span></>
-                : 'Onde você gasta mais'}
+            <p className="font-semibold text-slate-700 dark:text-zinc-200 text-sm truncate flex items-center gap-1.5 min-w-0">
+              {cartaoSelecionado && cartaoAtivo ? (
+                <>
+                  <span className="truncate">Onde você gasta mais</span>
+                  <span className="inline-flex items-center gap-1 flex-shrink-0 px-2 py-0.5 rounded-full text-white" style={{ backgroundColor: cartaoAtivo.cor }}>
+                    <ContaIcon nome="cartao" className="w-3 h-3" />
+                    {cartaoAtivo.nome}
+                  </span>
+                </>
+              ) : 'Onde você gasta mais'}
             </p>
             {rankingVisivel.length > 0 && (
               <span className="text-[11px] text-slate-400 dark:text-zinc-400 flex-shrink-0">{rankingVisivel.length} categoria(s)</span>
@@ -664,13 +687,12 @@ export default function TabCartoes({ mes, ano }: Props) {
                     <div className="min-w-0">
                       <p className="font-medium text-slate-700 dark:text-zinc-200 text-sm truncate">{p.descricao}</p>
                       {p.data && <p className="text-[11px] text-slate-400 dark:text-zinc-400 leading-tight">{new Date(p.data + 'T12:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' })}</p>}
-                      <div className="flex items-center gap-1.5 mt-0.5">
-                        <span className="text-[11px] font-semibold" style={{ color: catCor(p.tipo) }}>{p.tipo}</span>
-                        <span className="text-slate-300 dark:text-zinc-500 text-[11px]">·</span>
-                        <span className="text-[11px] px-1.5 py-0.5 rounded-full bg-slate-100 dark:bg-zinc-800 text-slate-500 dark:text-zinc-400 font-medium">{p.parcelaAtual}/{p.totalParcelas}</span>
-                        <span className="text-slate-300 dark:text-zinc-500 text-[11px]">·</span>
-                        <span className="text-[11px] text-slate-400 dark:text-zinc-400">total {fmt(p.valorTotal)}</span>
-                      </div>
+                      {p.totalParcelas > 1 && (
+                        <div className="flex items-center gap-1.5 mt-1">
+                          <ParcelaBadge atual={p.parcelaAtual} total={p.totalParcelas} />
+                          <span className="text-[11px] text-slate-400 dark:text-zinc-400">de {fmt(p.valorTotal)}</span>
+                        </div>
+                      )}
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
@@ -743,12 +765,17 @@ export default function TabCartoes({ mes, ano }: Props) {
                       <div className="min-w-0">
                         <p className="font-medium text-slate-700 dark:text-zinc-200 text-sm truncate">{p.descricao}</p>
                         {p.data && <p className="text-[11px] text-slate-400 dark:text-zinc-400 leading-tight">{new Date(p.data + 'T12:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' })}</p>}
-                        <div className="flex items-center gap-1.5 mt-0.5">
-                          <span className="text-[11px] font-semibold" style={{ color: catCor(p.tipo) }}>{p.tipo}</span>
-                          <span className="text-slate-300 dark:text-zinc-500 text-[11px]">·</span>
-                          <span className="text-[11px] font-semibold" style={{ color: c?.cor ?? '#94a3b8' }}>{c?.nome}</span>
-                          <span className="text-slate-300 dark:text-zinc-500 text-[11px]">·</span>
-                          <span className="text-[11px] px-1.5 py-0.5 rounded-full bg-slate-100 dark:bg-zinc-800 text-slate-500 dark:text-zinc-400 font-medium">{p.parcelaAtual}/{p.totalParcelas}</span>
+                        <div className="flex items-center gap-1.5 mt-1">
+                          <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-slate-600 dark:text-zinc-300">
+                            <span className="w-2 h-2 rounded-full" style={{ backgroundColor: c?.cor ?? '#94a3b8' }} />
+                            {c?.nome}
+                          </span>
+                          {p.totalParcelas > 1 && (
+                            <>
+                              <span className="text-slate-300 dark:text-zinc-500 text-[11px]">·</span>
+                              <ParcelaBadge atual={p.parcelaAtual} total={p.totalParcelas} />
+                            </>
+                          )}
                         </div>
                       </div>
                     </div>

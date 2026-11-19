@@ -231,6 +231,13 @@ export const COMPRA_CAT_ICONS: { key: string; label: string; node: ReactNode }[]
     </>
   ) },
   { key: 'carro', label: 'Carro', node: contaIconNode('carro') },
+  { key: 'abastecimento', label: 'Abastecimento', node: (
+    // Bomba de combustível (cabine com visor + mangueira/bico)
+    <>
+      <path fillRule="evenodd" clipRule="evenodd" d="M6.75 2.25A2.25 2.25 0 0 0 4.5 4.5v15.75h-.75a.75.75 0 0 0 0 1.5h9a.75.75 0 0 0 0-1.5h-.75V4.5a2.25 2.25 0 0 0-2.25-2.25h-3Zm.75 3a.75.75 0 0 0-.75.75v2.25c0 .414.336.75.75.75h3a.75.75 0 0 0 .75-.75V6a.75.75 0 0 0-.75-.75h-3Z" />
+      <path d="M14.25 8.25a.75.75 0 0 1 .75.75v.6a1.8 1.8 0 0 0 1.2 1.7c.33.12.55.43.55.78v5.37a1.25 1.25 0 1 0 2.5 0v-4.19l-.97-.97a.75.75 0 1 1 1.06-1.06l1.19 1.19c.14.14.22.33.22.53v4.5a2.75 2.75 0 1 1-5.5 0v-5.1a3.3 3.3 0 0 1-1.5-2.75V9a.75.75 0 0 1 .75-.75Z" />
+    </>
+  ) },
   { key: 'filhos', label: 'Filhos', node: (
     <>
       {/* Cabeça */}
@@ -279,7 +286,8 @@ export function compraCatIconKey(nome?: string, icone?: string): string {
   const syn: Record<string, string> = {
     mercado: 'mercado', supermercado: 'mercado', feira: 'mercado',
     comida: 'comida', restaurante: 'comida', lanche: 'comida', ifood: 'comida', delivery: 'comida',
-    carro: 'carro', veiculo: 'carro', combustivel: 'carro', gasolina: 'carro', uber: 'carro', transporte: 'carro',
+    carro: 'carro', veiculo: 'carro', uber: 'carro', transporte: 'carro',
+    abastecimento: 'abastecimento', combustivel: 'abastecimento', gasolina: 'abastecimento', posto: 'abastecimento', gas: 'abastecimento',
     filhos: 'filhos', filho: 'filhos', crianca: 'filhos', criancas: 'filhos', bebe: 'filhos',
     besteiras: 'besteiras', besteira: 'besteiras', doce: 'besteiras', doces: 'besteiras', lazer: 'besteiras',
     farmacia: 'farmacia', saude: 'farmacia', remedio: 'farmacia', remedios: 'farmacia',
