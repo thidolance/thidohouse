@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import dynamic from 'next/dynamic';
 import Modal from '../ui/Modal';
 import Card from '../ui/Card';
-import { Plus, Trash, Check, Pencil, ChevronRight, CONTA_ICONS, ContaIcon } from '../ui/Icons';
+import { Plus, Trash, Check, Pencil, ChevronRight, CONTA_ICONS, ContaIcon, CompraCatIcon } from '../ui/Icons';
 import { useRefetchOnFocus } from '@/lib/useRefetchOnFocus';
 import { formatCurrencyInput, parseCurrencyInput, formatCurrencyBRL } from '@/lib/currency';
 import {
@@ -213,7 +213,7 @@ export default function TabContas({ mes, ano }: Props) {
   const [filtroStatus, setFiltroStatus]       = useState<'todos' | 'pago' | 'pendente'>('todos');
   const [filtroTipo, setFiltroTipo]           = useState<'todos' | 'contas' | 'cartoes' | 'empresa'>('todos');
   const [filtroCategoria, setFiltroCategoria] = useState('');
-  const [ordenacao, setOrdenacao]             = useState<OrdenacaoKey>('vencimento-asc');
+  const [ordenacao, setOrdenacao]             = useState<OrdenacaoKey>('categoria');
 
   // form
   const makeEmpty = useCallback((c: CategoriaContaConfig[]) => ({
@@ -748,7 +748,7 @@ export default function TabContas({ mes, ano }: Props) {
     setFiltroStatus('todos');
     setFiltroTipo('todos');
     setFiltroCategoria('');
-    setOrdenacao('vencimento-asc');
+    setOrdenacao('categoria');
   }
 
   // ── render helpers ────────────────────────────────────────────────────────
@@ -1038,15 +1038,18 @@ export default function TabContas({ mes, ano }: Props) {
         ) : (
           <div className="divide-y divide-slate-50/80 dark:divide-zinc-800/80">
 
-            {/* ── Contas agrupadas por categoria (maior total primeiro) ── */}
+            {/* ── Contas agrupadas por categoria (igual à lista de compras dos cartões) ── */}
             {mostrarContas && ordenacao === 'categoria' && gruposContas.map((g) => (
               <div key={g.nome}>
-                <div className="px-4 py-2 bg-gradient-to-r from-slate-50 dark:from-zinc-900 to-transparent flex items-center justify-between border-b border-slate-100/80 dark:border-zinc-800/80">
-                  <p className="text-[11px] font-bold uppercase tracking-widest flex items-center gap-1.5 text-slate-500 dark:text-zinc-300">
-                    <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: g.cor }} />
-                    {g.nome}
-                  </p>
-                  <p className="text-[11px] text-slate-400 dark:text-zinc-400">{g.itens.length} · {fmt(g.total)}</p>
+                <div className="flex items-center justify-between gap-2 px-4 py-2.5 bg-gradient-to-r from-slate-50 dark:from-zinc-900 to-transparent border-b border-slate-100/80 dark:border-zinc-800/80">
+                  <span className="inline-flex items-center gap-2 text-sm font-semibold text-slate-700 dark:text-zinc-200 min-w-0">
+                    <span className="flex items-center justify-center w-7 h-7 rounded-lg flex-shrink-0" style={{ backgroundColor: `${g.cor}22`, color: g.cor }}>
+                      <CompraCatIcon nome={g.nome} className="w-4 h-4 dark:text-white" />
+                    </span>
+                    <span className="truncate">{g.nome}</span>
+                    <span className="text-[11px] font-normal text-slate-400 dark:text-zinc-500 flex-shrink-0">{g.itens.length}</span>
+                  </span>
+                  <span className="text-sm font-bold tabular-nums flex-shrink-0" style={{ color: g.cor }}>{fmt(g.total)}</span>
                 </div>
                 {g.itens.map((c) => <ContaRow key={c.id} c={c} barColor={g.cor} />)}
               </div>
