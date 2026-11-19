@@ -1,12 +1,6 @@
 'use client';
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import dynamic from 'next/dynamic';
-
-const VChart = dynamic(
-  () => import('@visactor/react-vchart').then((m) => m.VChart),
-  { ssr: false, loading: () => <div className="animate-pulse bg-slate-100 dark:bg-zinc-800 rounded-xl h-full w-full" /> },
-);
 import Modal from '../ui/Modal';
 import Card from '../ui/Card';
 import DatePicker from '../ui/DatePicker';
@@ -407,6 +401,10 @@ export default function TabCartoes({ mes, ano }: Props) {
     };
   });
 
+  // Cartões com gasto no mês, ordenados do maior para o menor (para as barras).
+  const cartoesComGasto = totalPorCartao.filter((c) => c.total > 0).sort((a, b) => b.total - a.total);
+  const maxGastoCartao  = Math.max(...cartoesComGasto.map((c) => c.total), 1);
+
   // Ranking de categorias (ordenado do maior gasto para o menor) a partir de uma
   // lista de compras — reusado no geral e por cartão.
   const rankingCategorias = useCallback((lista: CompraParcelada[]): RankItem[] =>
@@ -448,42 +446,6 @@ export default function TabCartoes({ mes, ano }: Props) {
 
   const isParcelada = parseInt(formCompra.totalParcelas || '0') > 1;
 
-  // ── specs VChart ──────────────────────────────────────────────────────────
-
-  const cartaoBarSpec = useMemo(() => ({
-    type: 'bar',
-    autoFit: true,
-    background: 'transparent',
-    data: [{ id: 'bar', values: totalPorCartao.filter((c) => c.total > 0) }],
-    xField: 'nome',
-    yField: 'total',
-    bar: {
-      style: {
-        cornerRadius: [8, 8, 0, 0],
-        fill: (d: Record<string, unknown>) => String(d['fill']),
-      },
-    },
-    axes: [
-      { orient: 'bottom', domainLine: { visible: false }, tick: { visible: false }, label: { style: { fontSize: 12, fill: '#64748b' } } },
-      {
-        orient: 'left',
-        grid: { style: { stroke: 'rgba(113,113,122,0.2)', lineDash: [3, 3] } },
-        domainLine: { visible: false },
-        tick: { visible: false },
-        label: {
-          style: { fontSize: 11, fill: '#94a3b8' },
-          formatMethod: (v: number) => v === 0 ? 'R$0' : `R$${(v / 1000).toFixed(0)}k`,
-        },
-      },
-    ],
-    tooltip: {
-      mark: {
-        title: { visible: false },
-        content: [{ key: (d: Record<string, unknown>) => String(d['nome']), value: (d: Record<string, unknown>) => fmt(Number(d['total'])) }],
-      },
-    },
-  }), [totalPorCartao]);
-
   return (
     <div className="space-y-5">
       {/* ── Header ── */}
@@ -519,9 +481,31 @@ export default function TabCartoes({ mes, ano }: Props) {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <Card>
           <p className="font-semibold text-slate-700 dark:text-zinc-200 text-sm mb-3">Gasto por Cartão</p>
-          {totalGeral > 0 ? (
-            <div style={{ height: 220 }}>
-              <VChart key={`cartao-bar-${totalGeral.toFixed(0)}`} spec={cartaoBarSpec as any} />
+          {cartoesComGasto.length > 0 ? (
+            <div className="space-y-3">
+              {cartoesComGasto.map((c) => {
+                const pctTotal = totalGeral > 0 ? (c.total / totalGeral) * 100 : 0;
+                const pctBar   = (c.total / maxGastoCartao) * 100;
+                return (
+                  <div key={c.id} className="flex items-center gap-3">
+                    <span className="flex items-center justify-center w-9 h-9 rounded-xl flex-shrink-0 text-white" style={{ backgroundColor: c.cor }}>
+                      <ContaIcon nome="cartao" className="w-5 h-5" />
+                    </span>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-baseline justify-between gap-2">
+                        <span className="text-sm font-medium text-slate-700 dark:text-zinc-200 truncate">{c.nome}</span>
+                        <span className="text-sm font-bold text-slate-800 dark:text-zinc-100 tabular-nums flex-shrink-0">{fmt(c.total)}</span>
+                      </div>
+                      <div className="flex items-center gap-2 mt-1">
+                        <div className="flex-1 h-2 rounded-full bg-slate-100 dark:bg-zinc-800 overflow-hidden">
+                          <div className="h-full rounded-full transition-all duration-500" style={{ width: `${pctBar}%`, backgroundColor: c.cor }} />
+                        </div>
+                        <span className="text-[11px] text-slate-400 dark:text-zinc-400 tabular-nums w-9 text-right flex-shrink-0">{pctTotal.toFixed(0)}%</span>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           ) : (
             <div className="h-[220px] flex flex-col items-center justify-center text-slate-400 dark:text-zinc-400 gap-2">
