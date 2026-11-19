@@ -382,39 +382,12 @@ export default function TabContas({ mes, ano }: Props) {
     return [...contsData, ...cardsData, ...empData];
   }, [cats, contas, itensCartao, empresaSum]);
 
-  const donutSpec = useMemo(() => ({
-    type: 'pie',
-    autoFit: true,
-    background: 'transparent',
-    data: [{ id: 'pie', values: pieValues }],
-    valueField: 'value',
-    categoryField: 'name',
-    outerRadius: 0.75,
-    innerRadius: 0.52,
-    padAngle: 1,
-    color: pieValues.map((d) => d.fill),
-    pie: { style: { cornerRadius: 4 } },
-    label: { visible: false },
-    legends: [{
-      visible: true,
-      orient: 'bottom',
-      padding: { top: 10 },
-      maxRow: 3,
-      item: {
-        label: { style: { fontSize: 11, fill: '#64748b' } },
-        value: { visible: false },
-      },
-    }],
-    tooltip: {
-      mark: {
-        title: { visible: false },
-        content: [{
-          key: (d: Record<string, unknown>) => String(d['name']),
-          value: (d: Record<string, unknown>) => fmt(Number(d['value'])),
-        }],
-      },
-    },
-  }), [pieValues]);
+  // Ranking "Por Categoria" (substitui o donut): maior gasto primeiro.
+  const rankingCategoria = useMemo(
+    () => [...pieValues].sort((a, b) => b.value - a.value),
+    [pieValues],
+  );
+  const totalCategoria = useMemo(() => pieValues.reduce((s, v) => s + v.value, 0), [pieValues]);
 
   const tipoValues = useMemo(() => {
     const fixaTotal     = contas.filter((c) => c.fixa).reduce((s, c) => s + c.valor, 0);
@@ -906,10 +879,40 @@ export default function TabContas({ mes, ano }: Props) {
       {/* ── Gráficos VChart ── */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <Card>
-          <p className="font-semibold text-slate-700 dark:text-zinc-200 text-sm mb-3">Por Categoria</p>
-          {pieValues.length > 0 ? (
-            <div style={{ height: 240 }}>
-              <VChart key={`donut-${pieValues.reduce((s, v) => s + v.value, 0).toFixed(0)}-${pieValues.length}`} spec={donutSpec as any} />
+          <div className="flex items-center justify-between mb-3 gap-2">
+            <p className="font-semibold text-slate-700 dark:text-zinc-200 text-sm">Por Categoria</p>
+            {rankingCategoria.length > 0 && (
+              <span className="text-[11px] text-slate-400 dark:text-zinc-400 flex-shrink-0">{rankingCategoria.length} item(s)</span>
+            )}
+          </div>
+          {rankingCategoria.length > 0 ? (
+            <div className="max-h-[280px] overflow-y-auto pr-1 space-y-3">
+              {rankingCategoria.map((it, idx) => {
+                const pctTotal = totalCategoria > 0 ? (it.value / totalCategoria) * 100 : 0;
+                const pctBar   = (it.value / rankingCategoria[0].value) * 100;
+                return (
+                  <div key={it.name} className="flex items-center gap-3">
+                    <span className="w-3.5 h-3.5 rounded-md flex-shrink-0" style={{ backgroundColor: it.fill }} />
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-baseline justify-between gap-2">
+                        <span className="text-sm font-medium text-slate-700 dark:text-zinc-200 truncate flex items-center gap-1.5">
+                          {it.name}
+                          {idx === 0 && rankingCategoria.length > 1 && (
+                            <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-400 font-semibold whitespace-nowrap">maior gasto</span>
+                          )}
+                        </span>
+                        <span className="text-sm font-bold text-slate-800 dark:text-zinc-100 tabular-nums flex-shrink-0">{fmt(it.value)}</span>
+                      </div>
+                      <div className="flex items-center gap-2 mt-1">
+                        <div className="flex-1 h-2 rounded-full bg-slate-100 dark:bg-zinc-800 overflow-hidden">
+                          <div className="h-full rounded-full transition-all duration-500" style={{ width: `${pctBar}%`, backgroundColor: it.fill }} />
+                        </div>
+                        <span className="text-[11px] text-slate-400 dark:text-zinc-400 tabular-nums w-9 text-right flex-shrink-0">{pctTotal.toFixed(0)}%</span>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           ) : (
             <div className="h-[240px] flex flex-col items-center justify-center text-slate-400 dark:text-zinc-400 gap-2">
