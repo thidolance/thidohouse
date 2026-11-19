@@ -124,8 +124,9 @@ const COR_FIXA     = '#f59e0b';
 const COR_ROTATIVA = '#6366f1';
 const COR_CARTOES  = '#ec4899';
 
-type OrdenacaoKey = 'vencimento-asc' | 'vencimento-desc' | 'valor-asc' | 'valor-desc' | 'nome-az' | 'nome-za' | 'status';
+type OrdenacaoKey = 'vencimento-asc' | 'vencimento-desc' | 'valor-asc' | 'valor-desc' | 'nome-az' | 'nome-za' | 'status' | 'categoria';
 const ORDENACAO_OPTS: { value: OrdenacaoKey; label: string }[] = [
+  { value: 'categoria',       label: 'Por categoria' },
   { value: 'vencimento-asc',  label: 'Vencimento ↑' },
   { value: 'vencimento-desc', label: 'Vencimento ↓' },
   { value: 'valor-asc',       label: 'Valor ↑'       },
@@ -336,6 +337,23 @@ export default function TabContas({ mes, ano }: Props) {
       }
     });
   }, [itensCartao, filtroStatus, busca, ordenacao]);
+
+  // Agrupamento por categoria (opção "Por categoria"): grupos do maior total para
+  // o menor; dentro de cada grupo, pendentes primeiro e por maior valor.
+  const gruposContas = useMemo(() => {
+    if (ordenacao !== 'categoria') return [];
+    const base = applyContaFilters(contas);
+    const nomes = Array.from(new Set(base.map((c) => c.categoria)));
+    return nomes
+      .map((nome) => {
+        const itens = base
+          .filter((c) => c.categoria === nome)
+          .sort((a, b) => (a.status !== b.status ? (a.status === 'pendente' ? -1 : 1) : b.valor - a.valor));
+        return { nome, cor: catCor(nome), total: itens.reduce((s, c) => s + c.valor, 0), itens };
+      })
+      .filter((g) => g.itens.length > 0)
+      .sort((a, b) => b.total - a.total);
+  }, [ordenacao, contas, cats, filtroStatus, filtroCategoria, busca]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const mostrarContas  = filtroTipo === 'todos' || filtroTipo === 'contas';
   const mostrarCartoes = filtroTipo === 'todos' || filtroTipo === 'cartoes';
@@ -1020,8 +1038,22 @@ export default function TabContas({ mes, ano }: Props) {
         ) : (
           <div className="divide-y divide-slate-50/80 dark:divide-zinc-800/80">
 
+            {/* ── Contas agrupadas por categoria (maior total primeiro) ── */}
+            {mostrarContas && ordenacao === 'categoria' && gruposContas.map((g) => (
+              <div key={g.nome}>
+                <div className="px-4 py-2 bg-gradient-to-r from-slate-50 dark:from-zinc-900 to-transparent flex items-center justify-between border-b border-slate-100/80 dark:border-zinc-800/80">
+                  <p className="text-[11px] font-bold uppercase tracking-widest flex items-center gap-1.5 text-slate-500 dark:text-zinc-300">
+                    <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: g.cor }} />
+                    {g.nome}
+                  </p>
+                  <p className="text-[11px] text-slate-400 dark:text-zinc-400">{g.itens.length} · {fmt(g.total)}</p>
+                </div>
+                {g.itens.map((c) => <ContaRow key={c.id} c={c} barColor={g.cor} />)}
+              </div>
+            ))}
+
             {/* ── Contas Fixas ── */}
-            {mostrarContas && contasFixas.length > 0 && (
+            {mostrarContas && ordenacao !== 'categoria' && contasFixas.length > 0 && (
               <div>
                 <SectionHeader label="Contas Fixas" count={contasFixas.length} total={contasFixas.reduce((s, c) => s + c.valor, 0)} />
                 {contasFixas.map((c) => <ContaRow key={c.id} c={c} barColor={COR_FIXA} />)}
@@ -1029,7 +1061,7 @@ export default function TabContas({ mes, ano }: Props) {
             )}
 
             {/* ── Contas regulares ── */}
-            {mostrarContas && contasRegulares.length > 0 && (
+            {mostrarContas && ordenacao !== 'categoria' && contasRegulares.length > 0 && (
               <div>
                 {(filtroTipo === 'todos' || contasFixas.length > 0) && (
                   <SectionHeader label="Contas Rotativas" count={contasRegulares.length} total={contasRegulares.reduce((s, c) => s + c.valor, 0)} />
