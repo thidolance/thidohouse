@@ -98,7 +98,7 @@ function ScopeDialog({ title, desc, labelFuture, onFuture, onThisOnly, onCancel 
         <h3 className="font-bold text-slate-800 dark:text-zinc-100 text-base">{title}</h3>
         <p className="text-sm text-slate-500 dark:text-zinc-400 leading-relaxed">{desc}</p>
         <div className="space-y-2 pt-1">
-          <button onClick={onFuture} className="w-full py-2.5 rounded-xl text-sm font-semibold bg-indigo-600 dark:bg-purple-600 text-white hover:bg-indigo-700 dark:hover:bg-purple-700 transition-colors">
+          <button onClick={onFuture} className="w-full py-2.5 rounded-xl text-sm font-semibold bg-blue-600 dark:bg-blue-600 text-white hover:bg-blue-700 dark:hover:bg-blue-700 transition-colors">
             {labelFuture}
           </button>
           <button onClick={onThisOnly} className="w-full py-2.5 rounded-xl text-sm font-medium bg-slate-700 dark:bg-zinc-700 text-white hover:bg-slate-800 dark:hover:bg-zinc-700 transition-colors">
@@ -115,7 +115,7 @@ function ScopeDialog({ title, desc, labelFuture, onFuture, onThisOnly, onCancel 
 
 // ── Constantes ────────────────────────────────────────────────────────────────
 
-const INPUT = 'w-full border border-slate-200 dark:border-zinc-800 rounded-xl px-3 py-2 text-sm text-slate-900 dark:text-zinc-50 bg-white dark:bg-zinc-900 focus:outline-none focus:ring-2 focus:ring-indigo-300 dark:focus:ring-purple-500';
+const INPUT = 'w-full border border-slate-200 dark:border-zinc-800 rounded-xl px-3 py-2 text-sm text-slate-900 dark:text-zinc-50 bg-white dark:bg-zinc-900 focus:outline-none focus:ring-2 focus:ring-blue-300 dark:focus:ring-blue-500';
 const fmt   = (v: number) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 
 // Cores por tipo de conta (mesmas do gráfico "Gastos por Tipo de Conta"),
@@ -802,7 +802,7 @@ export default function TabContas({ mes, ano }: Props) {
                 />
               </div>
               <span className="text-[10px] text-slate-400 dark:text-zinc-400 tabular-nums">{c.parcelaAtual}/{c.totalParcelas}</span>
-              <span className="text-slate-300 dark:text-zinc-500 group-hover/prog:text-indigo-400 transition-colors"><ChevronRight /></span>
+              <span className="text-slate-300 dark:text-zinc-500 group-hover/prog:text-blue-400 transition-colors"><ChevronRight /></span>
             </button>
           )}
         </div>
@@ -815,7 +815,7 @@ export default function TabContas({ mes, ano }: Props) {
                 <PinIcon filled={c.fixa} />
               </button>
             )}
-            <button onClick={() => abrirEditar(c)} className="p-1.5 rounded-lg text-slate-400 dark:text-zinc-400 hover:text-indigo-500 dark:hover:text-purple-400 hover:bg-indigo-50 dark:hover:bg-purple-500/10 transition-colors"><Pencil /></button>
+            <button onClick={() => abrirEditar(c)} className="p-1.5 rounded-lg text-slate-400 dark:text-zinc-400 hover:text-blue-500 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-500/10 transition-colors"><Pencil /></button>
             <button onClick={() => iniciarDelete(c)} className="p-1.5 rounded-lg text-slate-400 dark:text-zinc-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors"><Trash /></button>
           </div>
         </div>
@@ -849,7 +849,7 @@ export default function TabContas({ mes, ano }: Props) {
             <GearIcon /><span className="hidden sm:inline">Configurações</span>
           </button>
           <button onClick={abrirNova}
-            className="inline-flex items-center gap-1.5 px-3 py-2 bg-indigo-600 dark:bg-purple-600 text-white rounded-xl text-sm font-medium hover:bg-indigo-700 dark:hover:bg-purple-700 transition-colors shadow-sm">
+            className="inline-flex items-center gap-1.5 px-3 py-2 bg-blue-600 dark:bg-blue-600 text-white rounded-xl text-sm font-medium hover:bg-blue-700 dark:hover:bg-blue-700 transition-colors shadow-sm">
             <Plus /><span className="hidden sm:inline">Nova Conta</span>
           </button>
         </div>
@@ -868,7 +868,7 @@ export default function TabContas({ mes, ano }: Props) {
 
       {/* ── Cards resumo ── */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-        <div className="bg-gradient-to-br from-indigo-600 dark:from-purple-600 to-violet-700 rounded-2xl px-4 py-3 text-white shadow-lg shadow-indigo-200 dark:shadow-purple-500/20">
+        <div className="bg-gradient-to-br from-blue-600 dark:from-blue-600 to-blue-700 rounded-2xl px-4 py-3 text-white shadow-lg shadow-blue-200 dark:shadow-blue-500/20">
           <p className="text-white/90 text-xs font-medium uppercase tracking-wide">Total</p>
           <p className="text-2xl font-bold mt-0.5 tabular-nums">{fmt(total)}</p>
           <div className="mt-2 h-1.5 bg-white/25 rounded-full overflow-hidden relative">
@@ -942,12 +942,12 @@ export default function TabContas({ mes, ano }: Props) {
             <div className="relative flex-1">
               <div className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none"><SearchIcon /></div>
               <input value={busca} onChange={(e) => setBusca(e.target.value)} placeholder="Buscar por descrição..."
-                className="w-full pl-9 pr-3 py-2 text-sm border border-slate-200 dark:border-zinc-800 rounded-xl bg-white dark:bg-zinc-900 text-slate-900 dark:text-zinc-50 focus:outline-none focus:ring-2 focus:ring-indigo-300 dark:focus:ring-purple-500 placeholder:text-slate-400 dark:placeholder:text-zinc-400" />
+                className="w-full pl-9 pr-3 py-2 text-sm border border-slate-200 dark:border-zinc-800 rounded-xl bg-white dark:bg-zinc-900 text-slate-900 dark:text-zinc-50 focus:outline-none focus:ring-2 focus:ring-blue-300 dark:focus:ring-blue-500 placeholder:text-slate-400 dark:placeholder:text-zinc-400" />
             </div>
             <div className="relative">
               <div className="absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400 dark:text-zinc-400"><SortIcon /></div>
               <select value={ordenacao} onChange={(e) => setOrdenacao(e.target.value as OrdenacaoKey)}
-                className="pl-8 pr-7 py-2 text-sm border border-slate-200 dark:border-zinc-800 rounded-xl bg-white dark:bg-zinc-900 text-slate-700 dark:text-zinc-200 focus:outline-none focus:ring-2 focus:ring-indigo-300 dark:focus:ring-purple-500 appearance-none cursor-pointer">
+                className="pl-8 pr-7 py-2 text-sm border border-slate-200 dark:border-zinc-800 rounded-xl bg-white dark:bg-zinc-900 text-slate-700 dark:text-zinc-200 focus:outline-none focus:ring-2 focus:ring-blue-300 dark:focus:ring-blue-500 appearance-none cursor-pointer">
                 {ORDENACAO_OPTS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
               </select>
             </div>
@@ -970,7 +970,7 @@ export default function TabContas({ mes, ano }: Props) {
             {([['todos','Tudo'],['contas','Contas'],['cartoes','Cartões'],['empresa','Empresa']] as const).map(([v, l]) => (
               <button key={v} onClick={() => { setFiltroTipo(v); setFiltroCategoria(''); }}
                 className={`px-3 py-1 rounded-full text-xs font-semibold transition-all border ${
-                  filtroTipo === v ? 'bg-indigo-600 dark:bg-purple-600 text-white border-indigo-600 dark:border-purple-600' : 'bg-white dark:bg-zinc-900 text-slate-500 dark:text-zinc-400 border-slate-200 dark:border-zinc-800 hover:border-slate-300 dark:hover:border-zinc-600'
+                  filtroTipo === v ? 'bg-blue-600 dark:bg-blue-600 text-white border-blue-600 dark:border-blue-600' : 'bg-white dark:bg-zinc-900 text-slate-500 dark:text-zinc-400 border-slate-200 dark:border-zinc-800 hover:border-slate-300 dark:hover:border-zinc-600'
                 }`}
               >{l}</button>
             ))}
@@ -978,7 +978,7 @@ export default function TabContas({ mes, ano }: Props) {
               <>
                 <div className="w-px bg-slate-200 dark:bg-zinc-800 self-stretch" />
                 <select value={filtroCategoria} onChange={(e) => setFiltroCategoria(e.target.value)}
-                  className={`px-3 py-1 rounded-full text-xs font-semibold border transition-all bg-white dark:bg-zinc-900 cursor-pointer focus:outline-none ${filtroCategoria ? 'border-indigo-400 dark:border-purple-400 text-indigo-600 dark:text-purple-400' : 'border-slate-200 dark:border-zinc-800 text-slate-500 dark:text-zinc-400'}`}>
+                  className={`px-3 py-1 rounded-full text-xs font-semibold border transition-all bg-white dark:bg-zinc-900 cursor-pointer focus:outline-none ${filtroCategoria ? 'border-blue-400 dark:border-blue-400 text-blue-600 dark:text-blue-400' : 'border-slate-200 dark:border-zinc-800 text-slate-500 dark:text-zinc-400'}`}>
                   <option value="">Categoria</option>
                   {cats.map((c) => <option key={c.id} value={c.nome}>{c.nome}</option>)}
                 </select>
@@ -993,15 +993,15 @@ export default function TabContas({ mes, ano }: Props) {
         </div>
 
         {filtrosAtivos && totalVisiveis >= 0 && (
-          <div className="px-4 py-1.5 bg-indigo-50/60 dark:bg-purple-500/10 border-b border-indigo-100/50 dark:border-purple-500/30">
-            <p className="text-xs text-indigo-500 dark:text-purple-400 font-medium">{totalVisiveis} resultado(s){filtroCategoria && <span> — categoria <strong>{filtroCategoria}</strong></span>}</p>
+          <div className="px-4 py-1.5 bg-blue-50/60 dark:bg-blue-500/10 border-b border-blue-100/50 dark:border-blue-500/30">
+            <p className="text-xs text-blue-500 dark:text-blue-400 font-medium">{totalVisiveis} resultado(s){filtroCategoria && <span> — categoria <strong>{filtroCategoria}</strong></span>}</p>
           </div>
         )}
 
         {/* Lista */}
         {loading ? (
           <div className="py-16 flex flex-col items-center gap-2 text-slate-400 dark:text-zinc-400">
-            <div className="w-6 h-6 border-2 border-slate-200 dark:border-zinc-800 border-t-indigo-500 rounded-full animate-spin" />
+            <div className="w-6 h-6 border-2 border-slate-200 dark:border-zinc-800 border-t-blue-500 rounded-full animate-spin" />
             <p className="text-sm">Carregando...</p>
           </div>
         ) : totalVisiveis === 0 && !loading ? (
@@ -1011,7 +1011,7 @@ export default function TabContas({ mes, ano }: Props) {
               {filtrosAtivos ? 'Nenhum resultado para este filtro' : 'Nenhuma conta cadastrada neste mês'}
             </p>
             {filtrosAtivos && (
-              <button onClick={limparFiltros} className="mt-2 text-xs text-indigo-500 dark:text-purple-400 hover:underline">Limpar filtros</button>
+              <button onClick={limparFiltros} className="mt-2 text-xs text-blue-500 dark:text-blue-400 hover:underline">Limpar filtros</button>
             )}
           </div>
         ) : (
@@ -1060,7 +1060,7 @@ export default function TabContas({ mes, ano }: Props) {
                     <div className="flex items-center gap-2 flex-shrink-0">
                       <span className={`font-bold text-sm tabular-nums ${c.status === 'pago' ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-800 dark:text-zinc-100'}`}>{fmt(c.valor)}</span>
                       <div className="w-[5.5rem] flex items-center justify-end gap-0.5 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
-                        <button onClick={() => abrirEditFatura(c)} title="Editar valor da fatura" className="p-1.5 rounded-lg text-slate-400 dark:text-zinc-400 hover:text-indigo-500 dark:hover:text-purple-400 hover:bg-indigo-50 dark:hover:bg-purple-500/10 transition-colors"><Pencil /></button>
+                        <button onClick={() => abrirEditFatura(c)} title="Editar valor da fatura" className="p-1.5 rounded-lg text-slate-400 dark:text-zinc-400 hover:text-blue-500 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-500/10 transition-colors"><Pencil /></button>
                       </div>
                     </div>
                   </div>
@@ -1121,7 +1121,7 @@ export default function TabContas({ mes, ano }: Props) {
                       onClick={() => setForm({ ...form, icone: sel ? '' : key })}
                       className={`w-9 h-9 rounded-lg border flex items-center justify-center transition-colors ${
                         sel
-                          ? 'border-indigo-500 dark:border-purple-500 bg-indigo-50 dark:bg-purple-500/15 text-indigo-600 dark:text-purple-300'
+                          ? 'border-blue-500 dark:border-blue-500 bg-blue-50 dark:bg-blue-500/15 text-blue-600 dark:text-blue-300'
                           : 'border-slate-200 dark:border-zinc-800 text-slate-400 dark:text-zinc-500 hover:text-slate-600 dark:hover:text-zinc-300 hover:border-slate-300 dark:hover:border-zinc-700'
                       }`}
                     >
@@ -1179,7 +1179,7 @@ export default function TabContas({ mes, ano }: Props) {
             )}
             <div className="flex gap-3 pt-1">
               <button type="button" onClick={fecharModal} className="flex-1 py-2.5 border border-slate-200 dark:border-zinc-800 rounded-xl text-sm text-slate-600 dark:text-zinc-300 hover:bg-slate-50 dark:hover:bg-zinc-800">Cancelar</button>
-              <button type="submit" className="flex-1 py-2.5 bg-indigo-600 dark:bg-purple-600 text-white rounded-xl text-sm font-semibold hover:bg-indigo-700 dark:hover:bg-purple-700 shadow-sm">Salvar</button>
+              <button type="submit" className="flex-1 py-2.5 bg-blue-600 dark:bg-blue-600 text-white rounded-xl text-sm font-semibold hover:bg-blue-700 dark:hover:bg-blue-700 shadow-sm">Salvar</button>
             </div>
           </form>
         </Modal>
@@ -1208,7 +1208,7 @@ export default function TabContas({ mes, ano }: Props) {
               {editFatura.valor !== editFatura.valorCalculado && (
                 <button type="button" onClick={handleResetFaturaValor} className="flex-1 py-2.5 border border-slate-200 dark:border-zinc-800 rounded-xl text-sm text-slate-600 dark:text-zinc-300 hover:bg-slate-50 dark:hover:bg-zinc-800">Usar soma</button>
               )}
-              <button type="submit" className="flex-1 py-2.5 bg-indigo-600 dark:bg-purple-600 text-white rounded-xl text-sm font-semibold hover:bg-indigo-700 dark:hover:bg-purple-700 shadow-sm">Salvar</button>
+              <button type="submit" className="flex-1 py-2.5 bg-blue-600 dark:bg-blue-600 text-white rounded-xl text-sm font-semibold hover:bg-blue-700 dark:hover:bg-blue-700 shadow-sm">Salvar</button>
             </div>
           </form>
         </Modal>
@@ -1252,7 +1252,7 @@ export default function TabContas({ mes, ano }: Props) {
             ))}
             {!showCatForm ? (
               <button onClick={() => setShowCatForm(true)}
-                className="w-full py-2.5 border-2 border-dashed border-slate-200 dark:border-zinc-800 rounded-xl text-sm text-slate-400 dark:text-zinc-400 hover:border-indigo-300 hover:text-indigo-500 dark:hover:text-purple-400 flex items-center justify-center gap-2">
+                className="w-full py-2.5 border-2 border-dashed border-slate-200 dark:border-zinc-800 rounded-xl text-sm text-slate-400 dark:text-zinc-400 hover:border-blue-300 hover:text-blue-500 dark:hover:text-blue-400 flex items-center justify-center gap-2">
                 <Plus /> Nova Categoria
               </button>
             ) : (
@@ -1269,7 +1269,7 @@ export default function TabContas({ mes, ano }: Props) {
                 </div>
                 <div className="flex gap-2">
                   <button type="button" onClick={() => { setShowCatForm(false); setFormCat({ nome: '', cor: '#6366f1' }); }} className="flex-1 py-2 border border-slate-200 dark:border-zinc-800 rounded-xl text-xs text-slate-600 dark:text-zinc-300 hover:bg-white dark:hover:bg-zinc-800">Cancelar</button>
-                  <button type="submit" className="flex-1 py-2 bg-indigo-600 dark:bg-purple-600 text-white rounded-xl text-xs font-semibold hover:bg-indigo-700 dark:hover:bg-purple-700">Salvar</button>
+                  <button type="submit" className="flex-1 py-2 bg-blue-600 dark:bg-blue-600 text-white rounded-xl text-xs font-semibold hover:bg-blue-700 dark:hover:bg-blue-700">Salvar</button>
                 </div>
               </form>
             )}
@@ -1282,13 +1282,13 @@ export default function TabContas({ mes, ano }: Props) {
                   <p className="text-sm font-medium text-slate-700 dark:text-zinc-200 truncate">{r.apelido}</p>
                   <p className="text-[11px] text-slate-400 dark:text-zinc-400 truncate">{r.chave}</p>
                 </div>
-                <button onClick={() => abrirEditarRec(r)} className="p-1.5 rounded-lg text-slate-400 dark:text-zinc-400 hover:text-indigo-500 dark:hover:text-purple-400 hover:bg-indigo-50 dark:hover:bg-purple-500/10 transition-colors"><Pencil /></button>
+                <button onClick={() => abrirEditarRec(r)} className="p-1.5 rounded-lg text-slate-400 dark:text-zinc-400 hover:text-blue-500 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-500/10 transition-colors"><Pencil /></button>
                 <button onClick={() => handleDeleteRec(r.id!)} className="p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-500/10 text-slate-300 dark:text-zinc-500 hover:text-red-400 transition-colors"><Trash /></button>
               </div>
             ))}
             {!showRecForm ? (
               <button onClick={() => { setEditRecId(null); setShowRecForm(true); }}
-                className="w-full py-2.5 border-2 border-dashed border-slate-200 dark:border-zinc-800 rounded-xl text-sm text-slate-400 dark:text-zinc-400 hover:border-indigo-300 hover:text-indigo-500 dark:hover:text-purple-400 flex items-center justify-center gap-2">
+                className="w-full py-2.5 border-2 border-dashed border-slate-200 dark:border-zinc-800 rounded-xl text-sm text-slate-400 dark:text-zinc-400 hover:border-blue-300 hover:text-blue-500 dark:hover:text-blue-400 flex items-center justify-center gap-2">
                 <Plus /> Novo Recebedor
               </button>
             ) : (
@@ -1314,7 +1314,7 @@ export default function TabContas({ mes, ano }: Props) {
                 </div>
                 <div className="flex gap-2">
                   <button type="button" onClick={fecharRecForm} className="flex-1 py-2 border border-slate-200 dark:border-zinc-800 rounded-xl text-xs text-slate-600 dark:text-zinc-300 hover:bg-white dark:hover:bg-zinc-800">Cancelar</button>
-                  <button type="submit" className="flex-1 py-2 bg-indigo-600 dark:bg-purple-600 text-white rounded-xl text-xs font-semibold hover:bg-indigo-700 dark:hover:bg-purple-700">Salvar</button>
+                  <button type="submit" className="flex-1 py-2 bg-blue-600 dark:bg-blue-600 text-white rounded-xl text-xs font-semibold hover:bg-blue-700 dark:hover:bg-blue-700">Salvar</button>
                 </div>
               </form>
             )}
@@ -1375,10 +1375,10 @@ export default function TabContas({ mes, ano }: Props) {
                       <p className="text-lg font-bold text-emerald-700 dark:text-emerald-300 mt-1 tabular-nums">{fmt(acompanhamentoStats.valorPago)}</p>
                       <p className="text-[11px] text-emerald-500 mt-0.5">{acompanhamentoStats.countPago} parcela(s)</p>
                     </div>
-                    <div className="bg-indigo-50 dark:bg-purple-500/10 border border-indigo-100 dark:border-purple-500/30 rounded-2xl p-3.5">
-                      <p className="text-indigo-600 dark:text-purple-400 text-[11px] font-semibold uppercase tracking-wide">Para quitar</p>
-                      <p className="text-lg font-bold text-indigo-700 dark:text-purple-300 mt-1 tabular-nums">{fmt(acompanhamentoStats.valorRestante)}</p>
-                      <p className="text-[11px] text-indigo-500 dark:text-purple-400 mt-0.5">{acompanhamentoStats.countRestante} parcela(s)</p>
+                    <div className="bg-blue-50 dark:bg-blue-500/10 border border-blue-100 dark:border-blue-500/30 rounded-2xl p-3.5">
+                      <p className="text-blue-600 dark:text-blue-400 text-[11px] font-semibold uppercase tracking-wide">Para quitar</p>
+                      <p className="text-lg font-bold text-blue-700 dark:text-blue-300 mt-1 tabular-nums">{fmt(acompanhamentoStats.valorRestante)}</p>
+                      <p className="text-[11px] text-blue-500 dark:text-blue-400 mt-0.5">{acompanhamentoStats.countRestante} parcela(s)</p>
                     </div>
                   </div>
 
@@ -1395,7 +1395,7 @@ export default function TabContas({ mes, ano }: Props) {
                           <div
                             key={num}
                             title={`Parcela ${num}/${acompanhamentoStats.totalParcelas}${doc ? ` · ${MESES_CURTOS[doc.mes - 1]}/${String(doc.ano).slice(2)}` : ''} · ${paga ? 'paga' : 'pendente'}`}
-                            className={`h-6 flex-1 min-w-[16px] rounded-md transition-colors ${paga ? 'bg-emerald-400' : 'bg-slate-100 dark:bg-zinc-800'} ${atual ? 'ring-2 ring-indigo-500 dark:ring-purple-500 ring-offset-1' : ''}`}
+                            className={`h-6 flex-1 min-w-[16px] rounded-md transition-colors ${paga ? 'bg-emerald-400' : 'bg-slate-100 dark:bg-zinc-800'} ${atual ? 'ring-2 ring-blue-500 dark:ring-blue-500 ring-offset-1' : ''}`}
                           />
                         );
                       })}
@@ -1466,7 +1466,7 @@ function PixBox({
           <select
             value={recebedorId ?? ''}
             onChange={(e) => onVincular(e.target.value)}
-            className="w-full px-3 py-2.5 rounded-xl border border-slate-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-sm text-slate-700 dark:text-zinc-200 focus:outline-none focus:ring-2 focus:ring-indigo-400 dark:focus:ring-purple-500"
+            className="w-full px-3 py-2.5 rounded-xl border border-slate-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-sm text-slate-700 dark:text-zinc-200 focus:outline-none focus:ring-2 focus:ring-blue-400 dark:focus:ring-blue-500"
           >
             <option value="">Sem recebedor</option>
             {recebedores.map((r) => <option key={r.id} value={r.id}>{r.apelido}</option>)}
@@ -1478,7 +1478,7 @@ function PixBox({
               className={`w-full py-3 rounded-xl text-sm font-semibold flex items-center justify-center gap-2 transition-colors ${
                 copiado
                   ? 'bg-emerald-500 text-white'
-                  : 'bg-indigo-600 dark:bg-purple-600 text-white hover:bg-indigo-700 dark:hover:bg-purple-700'
+                  : 'bg-blue-600 dark:bg-blue-600 text-white hover:bg-blue-700 dark:hover:bg-blue-700'
               }`}
             >
               {copiado ? <><Check /> Copiado!</> : <><CopyIcon /> Copiar Pix com valor</>}
