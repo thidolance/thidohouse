@@ -198,6 +198,12 @@ export const CONTA_ICONS: { key: string; label: string; node: ReactNode }[] = [
   { key: 'assinatura', label: 'Assinatura', node: (
     <path fillRule="evenodd" clipRule="evenodd" d="M4.755 10.059a7.5 7.5 0 0 1 12.548-3.364l1.903 1.903h-3.183a.75.75 0 1 0 0 1.5h4.992a.75.75 0 0 0 .75-.75V4.356a.75.75 0 0 0-1.5 0v3.18l-1.9-1.9A9 9 0 0 0 3.306 9.67a.75.75 0 1 0 1.45.388Zm15.408 3.352a.75.75 0 0 0-.919.53 7.5 7.5 0 0 1-12.548 3.364l-1.902-1.903h3.183a.75.75 0 0 0 0-1.5H2.984a.75.75 0 0 0-.75.75v4.992a.75.75 0 0 0 1.5 0v-3.18l1.9 1.9a9 9 0 0 0 15.059-4.035.75.75 0 0 0-.53-.918Z" />
   ) },
+  { key: 'reforma', label: 'Reforma / Manutenção', node: (
+    <path fillRule="evenodd" clipRule="evenodd" d="M12 6.75a5.25 5.25 0 0 1 6.775-5.025.75.75 0 0 1 .313 1.248l-3.32 3.319c.063.475.276.934.641 1.299.365.365.824.578 1.3.64l3.318-3.319a.75.75 0 0 1 1.248.313 5.25 5.25 0 0 1-5.472 6.756c-1.018-.086-1.87.1-2.309.634L7.344 21.3A3.298 3.298 0 1 1 2.7 16.657l8.684-7.151c.533-.44.72-1.291.634-2.309A5.342 5.342 0 0 1 12 6.75ZM4.117 19.125a.75.75 0 0 1 .75-.75h.008a.75.75 0 0 1 .75.75v.008a.75.75 0 0 1-.75.75h-.008a.75.75 0 0 1-.75-.75v-.008Z" />
+  ) },
+  { key: 'pagamento', label: 'Pagamento / Dinheiro', node: (
+    <path fillRule="evenodd" clipRule="evenodd" d="M10.464 2.48a.75.75 0 0 1 .67-.414h1.732a.75.75 0 0 1 .67.414l1.2 2.4a.75.75 0 0 1-.012.69C18.07 7.37 20.25 10.6 20.25 14.1c0 4.28-3.69 6.9-8.25 6.9s-8.25-2.62-8.25-6.9c0-3.5 2.18-6.73 5.526-8.53a.75.75 0 0 1-.012-.69l1.2-2.4ZM12 8.25a.75.75 0 0 1 .75.75v.316c.72.159 1.343.56 1.7 1.165a.75.75 0 1 1-1.292.764c-.137-.232-.42-.42-.908-.45v1.683c.72.159 1.343.56 1.7 1.165.357.605.357 1.37 0 1.975-.357.605-.98 1.006-1.7 1.165V18a.75.75 0 0 1-1.5 0v-.252c-.72-.159-1.343-.56-1.7-1.165a.75.75 0 1 1 1.292-.764c.137.232.42.42.908.45v-1.683c-.72-.159-1.343-.56-1.7-1.165-.357-.605-.357-1.37 0-1.975.357-.605.98-1.006 1.7-1.165V9a.75.75 0 0 1 .75-.75Z" />
+  ) },
   { key: 'outro', label: 'Outro', node: (
     <path fillRule="evenodd" clipRule="evenodd" d="M5.25 2.25a3 3 0 0 0-3 3v4.318a3 3 0 0 0 .879 2.121l9.58 9.581c.92.92 2.39 1.186 3.548.428a18.849 18.849 0 0 0 5.441-5.44c.758-1.16.492-2.629-.428-3.548l-9.58-9.581a3 3 0 0 0-2.122-.879H5.25ZM6.375 7.5a1.125 1.125 0 1 0 0-2.25 1.125 1.125 0 0 0 0 2.25Z" />
   ) },
@@ -239,11 +245,14 @@ export const COMPRA_CAT_ICONS: { key: string; label: string; node: ReactNode }[]
     </>
   ) },
   { key: 'filhos', label: 'Filhos', node: (
+    // Família / pessoas (estilo heroicons "users")
+    <path fillRule="evenodd" clipRule="evenodd" d="M8.25 6.375a4.125 4.125 0 1 1 8.25 0 4.125 4.125 0 0 1-8.25 0ZM15.75 9.75a3 3 0 1 1 6 0 3 3 0 0 1-6 0ZM2.25 9.75a3 3 0 1 1 6 0 3 3 0 0 1-6 0ZM6.31 15.117A6.745 6.745 0 0 1 12 12a6.745 6.745 0 0 1 6.709 7.498.75.75 0 0 1-.372.568A12.696 12.696 0 0 1 12 21.75c-2.305 0-4.47-.612-6.337-1.684a.75.75 0 0 1-.372-.568 6.787 6.787 0 0 1 1.019-4.38Z M5.082 14.254a8.287 8.287 0 0 0-1.308 5.135 9.687 9.687 0 0 1-1.764-.44l-.115-.04a.563.563 0 0 1-.373-.487l-.01-.121a3.75 3.75 0 0 1 3.57-4.047ZM20.226 19.389a8.287 8.287 0 0 0-1.308-5.135 3.75 3.75 0 0 1 3.57 4.047l-.01.121a.563.563 0 0 1-.373.486l-.115.04c-.567.2-1.156.349-1.764.441Z" />
+  ) },
+  { key: 'crianca', label: 'Criança', node: (
+    // Uma criança (cabeça + corpo)
     <>
-      {/* Cabeça */}
-      <circle cx="12" cy="5" r="2.6" />
-      {/* Corpinho com braços e pernas */}
-      <path d="M8.2 10.4a1 1 0 0 1 .9-.55h5.8a1 1 0 0 1 .9.55l1.4 2.9a1 1 0 1 1-1.8.86l-.5-1.05v2.1l.9 4.6a1.05 1.05 0 0 1-2.06.4l-1.14-4.26h-.44L13.06 20.3a1.05 1.05 0 0 1-2.06-.4l.9-4.6v-2.1l-.5 1.05a1 1 0 1 1-1.8-.86l1.4-2.9Z" />
+      <circle cx="12" cy="4.6" r="2.5" />
+      <path d="M8.2 10.4a3.8 3.8 0 0 1 7.6 0l-.72 7.5a1.08 1.08 0 0 1-2.15.05L12 13.5l-.93 4.45a1.08 1.08 0 0 1-2.15-.05l-.72-7.5Z" />
     </>
   ) },
   { key: 'besteiras', label: 'Besteiras', node: (
@@ -288,6 +297,7 @@ export const COMPRA_CAT_ICONS: { key: string; label: string; node: ReactNode }[]
     </>
   ) },
   { key: 'streaming', label: 'Streaming', node: contaIconNode('tv') },
+  { key: 'planos', label: 'Planos', node: contaIconNode('seguro') },
   { key: 'assinaturas', label: 'Assinaturas', node: (
     // Controle de TV (corpo + visor no topo + grade de botões)
     <path fillRule="evenodd" clipRule="evenodd" d="M9 2.25A2.25 2.25 0 0 0 6.75 4.5v15A2.25 2.25 0 0 0 9 21.75h6a2.25 2.25 0 0 0 2.25-2.25v-15A2.25 2.25 0 0 0 15 2.25H9Zm.75 3a.75.75 0 0 0-.75.75v2.25c0 .414.336.75.75.75h4.5a.75.75 0 0 0 .75-.75V6a.75.75 0 0 0-.75-.75h-4.5ZM10.5 12a.9.9 0 1 1-1.8 0 .9.9 0 0 1 1.8 0Zm3.3.9a.9.9 0 1 0 0-1.8.9.9 0 0 0 0 1.8ZM10.5 15.3a.9.9 0 1 1-1.8 0 .9.9 0 0 1 1.8 0Zm3.3.9a.9.9 0 1 0 0-1.8.9.9 0 0 0 0 1.8Zm-3.3 2.4a.9.9 0 1 1-1.8 0 .9.9 0 0 1 1.8 0Z" />
@@ -297,6 +307,38 @@ export const COMPRA_CAT_ICONS: { key: string; label: string; node: ReactNode }[]
     <path fillRule="evenodd" clipRule="evenodd" d="M7.5 5.25A2.25 2.25 0 0 1 9.75 3h4.5a2.25 2.25 0 0 1 2.25 2.25v.75h2.25A2.25 2.25 0 0 1 21 8.25v3.026a41.6 41.6 0 0 1-9 .974 41.6 41.6 0 0 1-9-.974V8.25A2.25 2.25 0 0 1 5.25 6H7.5v-.75Zm6 0v.75h-3v-.75a.75.75 0 0 1 .75-.75h1.5a.75.75 0 0 1 .75.75ZM3 13.845a43.1 43.1 0 0 0 9 .905c3.082 0 6.098-.314 9-.905v3.905A2.25 2.25 0 0 1 18.75 20H5.25A2.25 2.25 0 0 1 3 17.75v-3.905Zm9 .905a.75.75 0 0 0-.75.75v.008c0 .414.336.75.75.75h.008a.75.75 0 0 0 .75-.75v-.008a.75.75 0 0 0-.75-.75H12Z" />
   ) },
   { key: 'casa', label: 'Casa', node: contaIconNode('casa') },
+  { key: 'banco', label: 'Banco / Dívidas', node: (
+    // Prédio de banco: frontão + colunas + base
+    <>
+      <path d="M11.7 2.28a.75.75 0 0 1 .6 0l8.7 3.9A.9.9 0 0 1 20.6 7.9H3.4A.9.9 0 0 1 3 6.18l8.7-3.9Z" />
+      <rect x="4.6" y="9" width="2.1" height="6.9" rx="0.5" />
+      <rect x="8.7" y="9" width="2.1" height="6.9" rx="0.5" />
+      <rect x="13.2" y="9" width="2.1" height="6.9" rx="0.5" />
+      <rect x="17.3" y="9" width="2.1" height="6.9" rx="0.5" />
+      <rect x="3.2" y="17.3" width="17.6" height="2.3" rx="0.7" />
+    </>
+  ) },
+  { key: 'dinheiro', label: 'Dinheiro', node: (
+    // Cédula com moeda no centro
+    <path fillRule="evenodd" clipRule="evenodd" d="M3 7.5A1.5 1.5 0 0 1 4.5 6h15A1.5 1.5 0 0 1 21 7.5v9A1.5 1.5 0 0 1 19.5 18h-15A1.5 1.5 0 0 1 3 16.5v-9Zm9 1.5a3 3 0 1 0 0 6 3 3 0 0 0 0-6Z" />
+  ) },
+  { key: 'pet', label: 'Pet', node: (
+    // Patinha
+    <>
+      <ellipse cx="6.3" cy="10.6" rx="1.7" ry="2.1" />
+      <ellipse cx="10.2" cy="7.7" rx="1.7" ry="2.2" />
+      <ellipse cx="13.8" cy="7.7" rx="1.7" ry="2.2" />
+      <ellipse cx="17.7" cy="10.6" rx="1.7" ry="2.1" />
+      <path d="M12 12.3c-2.4 0-4.4 1.9-4.4 4.1 0 1.6 1.2 2.7 2.7 2.7.8 0 1.2-.3 1.7-.3s.9.3 1.7.3c1.5 0 2.7-1.1 2.7-2.7 0-2.2-2-4.1-4.4-4.1Z" />
+    </>
+  ) },
+  { key: 'agua', label: 'Água', node: contaIconNode('agua') },
+  { key: 'luz', label: 'Luz / Energia', node: contaIconNode('luz') },
+  { key: 'internet', label: 'Internet', node: contaIconNode('internet') },
+  { key: 'telefone', label: 'Telefone', node: contaIconNode('telefone') },
+  { key: 'gas', label: 'Gás', node: contaIconNode('gas') },
+  { key: 'reforma', label: 'Reforma', node: contaIconNode('reforma') },
+  { key: 'pagamento', label: 'Pagamento', node: contaIconNode('pagamento') },
   { key: 'outro', label: 'Outro', node: contaIconNode('outro') },
 ];
 
@@ -307,18 +349,27 @@ export function compraCatIconKey(nome?: string, icone?: string): string {
   const n = (nome ?? '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
   const syn: Record<string, string> = {
     mercado: 'mercado', supermercado: 'mercado', feira: 'mercado',
-    comida: 'comida', restaurante: 'comida', lanche: 'comida', ifood: 'comida', delivery: 'comida',
+    comida: 'comida', restaurante: 'comida', lanche: 'comida', ifood: 'comida', delivery: 'comida', alimentacao: 'comida',
     carro: 'carro', veiculo: 'carro', uber: 'carro', transporte: 'carro',
-    abastecimento: 'abastecimento', combustivel: 'abastecimento', gasolina: 'abastecimento', posto: 'abastecimento', gas: 'abastecimento',
-    filhos: 'filhos', filho: 'filhos', crianca: 'filhos', criancas: 'filhos', bebe: 'filhos',
+    abastecimento: 'abastecimento', combustivel: 'abastecimento', gasolina: 'abastecimento', posto: 'abastecimento',
+    filhos: 'filhos', filho: 'filhos', familia: 'filhos',
+    crianca: 'crianca', criancas: 'crianca', bebe: 'crianca', filha: 'crianca',
+    banco: 'banco', divida: 'banco', dividas: 'banco', emprestimo: 'banco', financiamento: 'banco', fatura: 'banco',
+    dinheiro: 'dinheiro', salario: 'dinheiro', renda: 'dinheiro', grana: 'dinheiro',
+    pet: 'pet', animal: 'pet', cachorro: 'pet', gato: 'pet', veterinario: 'pet',
+    agua: 'agua', luz: 'luz', energia: 'luz', internet: 'internet', wifi: 'internet',
+    telefone: 'telefone', celular: 'telefone', gas: 'gas',
+    reforma: 'reforma', manutencao: 'reforma', obra: 'reforma', conserto: 'reforma', reparo: 'reforma',
+    pagamento: 'pagamento', pagamentos: 'pagamento', boleto: 'pagamento',
     besteiras: 'besteiras', besteira: 'besteiras', doce: 'besteiras', doces: 'besteiras',
     entretenimento: 'entretenimento', lazer: 'entretenimento', diversao: 'entretenimento', parque: 'entretenimento', cinema: 'entretenimento', passeio: 'entretenimento', role: 'entretenimento',
     farmacia: 'farmacia', remedio: 'farmacia', remedios: 'farmacia', drogaria: 'farmacia',
-    saude: 'saude', medico: 'saude', plano: 'saude', dentista: 'saude', hospital: 'saude',
+    saude: 'saude', medico: 'saude', dentista: 'saude', hospital: 'saude', consulta: 'saude',
     educacao: 'educacao', escola: 'educacao', curso: 'educacao', faculdade: 'educacao',
     academia: 'academia', gym: 'academia', treino: 'academia',
     streaming: 'streaming', streming: 'streaming', netflix: 'streaming', spotify: 'streaming', tv: 'streaming',
     assinaturas: 'assinaturas', assinatura: 'assinaturas',
+    planos: 'planos', plano: 'planos', seguro: 'planos', seguros: 'planos', previdencia: 'planos',
     trabalho: 'trabalho', work: 'trabalho', escritorio: 'trabalho',
     casa: 'casa', lar: 'casa', moradia: 'casa', aluguel: 'casa',
   };

@@ -4,14 +4,14 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import dynamic from 'next/dynamic';
 import Modal from '../ui/Modal';
 import Card from '../ui/Card';
-import { Plus, Trash, Check, Pencil, ChevronRight, CONTA_ICONS, ContaIcon } from '../ui/Icons';
+import { Plus, Trash, Check, Pencil, ChevronRight, CONTA_ICONS, ContaIcon, CompraCatIcon, COMPRA_CAT_ICONS, compraCatIconKey } from '../ui/Icons';
 import { useRefetchOnFocus } from '@/lib/useRefetchOnFocus';
 import { formatCurrencyInput, parseCurrencyInput, formatCurrencyBRL } from '@/lib/currency';
 import {
   getContas, addConta, updateConta, updateContaAndFuture, updateContaReparcelada, getContasFuturasDoGrupo,
   deleteConta, deleteContaAndFuture,
   updateContaStatus, toggleContaFixa, getContasPorGrupo,
-  getCategoriasContas, addCategoriaContas, deleteCategoriaContas,
+  getCategoriasContas, addCategoriaContas, updateCategoriaContas, addCategoriasContasSugeridas, deleteCategoriaContas,
   getRecebedores, addRecebedor, updateRecebedor, deleteRecebedor, setContaRecebedor, setCartaoRecebedor,
   getCompras, getFaturasCartao, setFaturaCartaoStatus, setFaturaCartaoValor, getCartoes,
   getCustosEmpresa, getFaturasEmpresa, setFaturaEmpresaStatus, getCategoriasEmpresa,
@@ -124,8 +124,9 @@ const COR_FIXA     = '#f59e0b';
 const COR_ROTATIVA = '#6366f1';
 const COR_CARTOES  = '#ec4899';
 
-type OrdenacaoKey = 'vencimento-asc' | 'vencimento-desc' | 'valor-asc' | 'valor-desc' | 'nome-az' | 'nome-za' | 'status';
+type OrdenacaoKey = 'vencimento-asc' | 'vencimento-desc' | 'valor-asc' | 'valor-desc' | 'nome-az' | 'nome-za' | 'status' | 'categoria';
 const ORDENACAO_OPTS: { value: OrdenacaoKey; label: string }[] = [
+  { value: 'categoria',       label: 'Por categoria' },
   { value: 'vencimento-asc',  label: 'Vencimento ↑' },
   { value: 'vencimento-desc', label: 'Vencimento ↓' },
   { value: 'valor-asc',       label: 'Valor ↑'       },
@@ -181,9 +182,10 @@ export default function TabContas({ mes, ano }: Props) {
   const [showModal, setShowModal]        = useState(false);
   const [showConfigModal, setShowConfig] = useState(false);
   const [showCatForm, setShowCatForm]    = useState(false);
+  const [editCatId, setEditCatId]        = useState<string | null>(null);
   const [editId, setEditId]              = useState<string | null>(null);
   const [editConta, setEditConta]        = useState<Conta | null>(null);
-  const [formCat, setFormCat]            = useState({ nome: '', cor: '#6366f1' });
+  const [formCat, setFormCat]            = useState<{ nome: string; cor: string; icone: string }>({ nome: '', cor: '#6366f1', icone: 'outro' });
 
   // recebedores Pix (config + vínculo na conta)
   const [showRecForm, setShowRecForm]    = useState(false);
@@ -212,7 +214,7 @@ export default function TabContas({ mes, ano }: Props) {
   const [filtroStatus, setFiltroStatus]       = useState<'todos' | 'pago' | 'pendente'>('todos');
   const [filtroTipo, setFiltroTipo]           = useState<'todos' | 'contas' | 'cartoes' | 'empresa'>('todos');
   const [filtroCategoria, setFiltroCategoria] = useState('');
-  const [ordenacao, setOrdenacao]             = useState<OrdenacaoKey>('vencimento-asc');
+  const [ordenacao, setOrdenacao]             = useState<OrdenacaoKey>('categoria');
 
   // form
   const makeEmpty = useCallback((c: CategoriaContaConfig[]) => ({
@@ -283,6 +285,7 @@ export default function TabContas({ mes, ano }: Props) {
   // ── listas filtradas ──────────────────────────────────────────────────────
 
   const catCor = (nome: string) => cats.find((c) => c.nome === nome)?.cor ?? '#94a3b8';
+  const catIcone = (nome: string) => cats.find((c) => c.nome === nome)?.icone;
 
   const applyContaFilters = (list: Conta[]) => {
     let r = [...list];
@@ -337,6 +340,19 @@ export default function TabContas({ mes, ano }: Props) {
     });
   }, [itensCartao, filtroStatus, busca, ordenacao]);
 
+  // Subdivide uma seção (ex: Contas Fixas) por categoria: grupos do maior total
+  // para o menor; dentro de cada grupo, pendentes primeiro e por maior valor.
+  const agruparPorCategoria = (list: Conta[]) =>
+    Array.from(new Set(list.map((c) => c.categoria)))
+      .map((nome) => {
+        const itens = [...list]
+          .filter((c) => c.categoria === nome)
+          .sort((a, b) => (a.status !== b.status ? (a.status === 'pendente' ? -1 : 1) : b.valor - a.valor));
+        return { nome, cor: catCor(nome), icone: catIcone(nome), total: itens.reduce((s, c) => s + c.valor, 0), itens };
+      })
+      .filter((g) => g.itens.length > 0)
+      .sort((a, b) => b.total - a.total);
+
   const mostrarContas  = filtroTipo === 'todos' || filtroTipo === 'contas';
   const mostrarCartoes = filtroTipo === 'todos' || filtroTipo === 'cartoes';
   const mostrarEmpresa = filtroTipo === 'todos' || filtroTipo === 'empresa';
@@ -382,39 +398,12 @@ export default function TabContas({ mes, ano }: Props) {
     return [...contsData, ...cardsData, ...empData];
   }, [cats, contas, itensCartao, empresaSum]);
 
-  const donutSpec = useMemo(() => ({
-    type: 'pie',
-    autoFit: true,
-    background: 'transparent',
-    data: [{ id: 'pie', values: pieValues }],
-    valueField: 'value',
-    categoryField: 'name',
-    outerRadius: 0.75,
-    innerRadius: 0.52,
-    padAngle: 1,
-    color: pieValues.map((d) => d.fill),
-    pie: { style: { cornerRadius: 4 } },
-    label: { visible: false },
-    legends: [{
-      visible: true,
-      orient: 'bottom',
-      padding: { top: 10 },
-      maxRow: 3,
-      item: {
-        label: { style: { fontSize: 11, fill: '#64748b' } },
-        value: { visible: false },
-      },
-    }],
-    tooltip: {
-      mark: {
-        title: { visible: false },
-        content: [{
-          key: (d: Record<string, unknown>) => String(d['name']),
-          value: (d: Record<string, unknown>) => fmt(Number(d['value'])),
-        }],
-      },
-    },
-  }), [pieValues]);
+  // Ranking "Por Categoria" (substitui o donut): maior gasto primeiro.
+  const rankingCategoria = useMemo(
+    () => [...pieValues].sort((a, b) => b.value - a.value),
+    [pieValues],
+  );
+  const totalCategoria = useMemo(() => pieValues.reduce((s, v) => s + v.value, 0), [pieValues]);
 
   const tipoValues = useMemo(() => {
     const fixaTotal     = contas.filter((c) => c.fixa).reduce((s, c) => s + c.valor, 0);
@@ -682,16 +671,35 @@ export default function TabContas({ mes, ano }: Props) {
     await Promise.all(itensEmpresa.map((c) => setFaturaEmpresaStatus(c.categoriaId, mes, ano, newStatus)));
   }
 
+  function abrirNovaCat() {
+    setEditCatId(null);
+    setFormCat({ nome: '', cor: '#6366f1', icone: 'outro' });
+    setShowCatForm(true);
+  }
+
+  function abrirEditCat(cat: CategoriaContaConfig) {
+    setEditCatId(cat.id!);
+    setFormCat({ nome: cat.nome, cor: cat.cor, icone: cat.icone ?? compraCatIconKey(cat.nome) });
+    setShowCatForm(true);
+  }
+
   async function handleSaveCat(e: React.SubmitEvent<HTMLFormElement>) {
     e.preventDefault();
-    await addCategoriaContas(formCat);
+    if (editCatId) await updateCategoriaContas(editCatId, formCat);
+    else           await addCategoriaContas(formCat);
     setShowCatForm(false);
-    setFormCat({ nome: '', cor: '#6366f1' });
+    setEditCatId(null);
+    setFormCat({ nome: '', cor: '#6366f1', icone: 'outro' });
     loadCats();
   }
 
   async function handleDeleteCat(id: string) {
     await deleteCategoriaContas(id);
+    loadCats();
+  }
+
+  async function handleAddCatsSugeridas() {
+    await addCategoriasContasSugeridas();
     loadCats();
   }
 
@@ -757,7 +765,7 @@ export default function TabContas({ mes, ano }: Props) {
     setFiltroStatus('todos');
     setFiltroTipo('todos');
     setFiltroCategoria('');
-    setOrdenacao('vencimento-asc');
+    setOrdenacao('categoria');
   }
 
   // ── render helpers ────────────────────────────────────────────────────────
@@ -823,11 +831,32 @@ export default function TabContas({ mes, ano }: Props) {
     );
   }
 
-  function SectionHeader({ label, count, total: t }: { label: string; count: number; total: number }) {
+  function SectionHeader({ label, count, total: t, cor }: { label: string; count: number; total: number; cor?: string }) {
     return (
-      <div className="px-4 py-2 bg-gradient-to-r from-slate-50 dark:from-zinc-900 to-transparent flex items-center justify-between border-b border-slate-100/80 dark:border-zinc-800/80">
-        <p className="text-[11px] font-bold text-slate-400 dark:text-zinc-400 uppercase tracking-widest">{label}</p>
-        <p className="text-[11px] text-slate-400 dark:text-zinc-400">{count} · {fmt(t)}</p>
+      <div className="px-4 py-3 bg-slate-100/80 dark:bg-zinc-800/60 flex items-center justify-between border-y border-slate-200/80 dark:border-zinc-700/60">
+        <p className="text-sm font-extrabold text-slate-700 dark:text-zinc-100 uppercase tracking-wide flex items-center gap-2">
+          {cor && <span className="w-1.5 h-4 rounded-full flex-shrink-0" style={{ backgroundColor: cor }} />}
+          {label}
+        </p>
+        <p className="text-xs font-semibold text-slate-500 dark:text-zinc-300 tabular-nums">{count} · {fmt(t)}</p>
+      </div>
+    );
+  }
+
+  // Subcabeçalho de categoria dentro de uma seção (badge com ícone + nome + total).
+  function CategoriaSubHeader({ nome, cor, icone, count, total: t }: { nome: string; cor: string; icone?: string; count: number; total: number }) {
+    return (
+      <div className="flex items-center justify-between gap-2 pl-6 pr-4 py-1.5 bg-slate-50/60 dark:bg-zinc-900/40 border-b border-slate-100/60 dark:border-zinc-800/60">
+        <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-600 dark:text-zinc-300 min-w-0">
+          <span className="flex items-center justify-center w-5 h-5 rounded-md flex-shrink-0" style={{ backgroundColor: `${cor}22`, color: cor }}>
+            <CompraCatIcon nome={nome} icone={icone} className="w-3.5 h-3.5 dark:text-white" />
+          </span>
+          <span className="truncate">{nome}</span>
+          <span className="text-[10px] font-normal text-slate-400 dark:text-zinc-500 flex-shrink-0">{count}</span>
+        </span>
+        <span className="flex-shrink-0" style={{ color: cor }}>
+          <span className="text-[11px] font-semibold tabular-nums dark:text-white">{fmt(t)}</span>
+        </span>
       </div>
     );
   }
@@ -906,10 +935,40 @@ export default function TabContas({ mes, ano }: Props) {
       {/* ── Gráficos VChart ── */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <Card>
-          <p className="font-semibold text-slate-700 dark:text-zinc-200 text-sm mb-3">Por Categoria</p>
-          {pieValues.length > 0 ? (
-            <div style={{ height: 240 }}>
-              <VChart key={`donut-${pieValues.reduce((s, v) => s + v.value, 0).toFixed(0)}-${pieValues.length}`} spec={donutSpec as any} />
+          <div className="flex items-center justify-between mb-3 gap-2">
+            <p className="font-semibold text-slate-700 dark:text-zinc-200 text-sm">Por Categoria</p>
+            {rankingCategoria.length > 0 && (
+              <span className="text-[11px] text-slate-400 dark:text-zinc-400 flex-shrink-0">{rankingCategoria.length} item(s)</span>
+            )}
+          </div>
+          {rankingCategoria.length > 0 ? (
+            <div className="max-h-[280px] overflow-y-auto pr-1 space-y-3">
+              {rankingCategoria.map((it, idx) => {
+                const pctTotal = totalCategoria > 0 ? (it.value / totalCategoria) * 100 : 0;
+                const pctBar   = (it.value / rankingCategoria[0].value) * 100;
+                return (
+                  <div key={it.name} className="flex items-center gap-3">
+                    <span className="w-3.5 h-3.5 rounded-md flex-shrink-0" style={{ backgroundColor: it.fill }} />
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-baseline justify-between gap-2">
+                        <span className="text-sm font-medium text-slate-700 dark:text-zinc-200 truncate flex items-center gap-1.5">
+                          {it.name}
+                          {idx === 0 && rankingCategoria.length > 1 && (
+                            <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-400 font-semibold whitespace-nowrap">maior gasto</span>
+                          )}
+                        </span>
+                        <span className="text-sm font-bold text-slate-800 dark:text-zinc-100 tabular-nums flex-shrink-0">{fmt(it.value)}</span>
+                      </div>
+                      <div className="flex items-center gap-2 mt-1">
+                        <div className="flex-1 h-2 rounded-full bg-slate-100 dark:bg-zinc-800 overflow-hidden">
+                          <div className="h-full rounded-full transition-all duration-500" style={{ width: `${pctBar}%`, backgroundColor: it.fill }} />
+                        </div>
+                        <span className="text-[11px] text-slate-400 dark:text-zinc-400 tabular-nums w-9 text-right flex-shrink-0">{pctTotal.toFixed(0)}%</span>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           ) : (
             <div className="h-[240px] flex flex-col items-center justify-center text-slate-400 dark:text-zinc-400 gap-2">
@@ -952,44 +1011,6 @@ export default function TabContas({ mes, ano }: Props) {
               </select>
             </div>
           </div>
-          <div className="flex flex-wrap gap-1.5">
-            {(['todos', 'pendente', 'pago'] as const).map((s) => (
-              <button key={s} onClick={() => setFiltroStatus(s)}
-                className={`px-3 py-1 rounded-full text-xs font-semibold transition-all border ${
-                  filtroStatus === s
-                    ? s === 'todos' ? 'bg-slate-800 dark:bg-zinc-800 text-white border-slate-800'
-                      : s === 'pago' ? 'bg-emerald-500 text-white border-emerald-500'
-                      : 'bg-amber-400 text-white border-amber-400'
-                    : 'bg-white dark:bg-zinc-900 text-slate-500 dark:text-zinc-400 border-slate-200 dark:border-zinc-800 hover:border-slate-300 dark:hover:border-zinc-600 hover:bg-slate-50 dark:hover:bg-zinc-800'
-                }`}
-              >
-                {s === 'todos' ? 'Todos' : s === 'pago' ? '✓ Pago' : '⏳ Pendente'}
-              </button>
-            ))}
-            <div className="w-px bg-slate-200 dark:bg-zinc-800 self-stretch" />
-            {([['todos','Tudo'],['contas','Contas'],['cartoes','Cartões'],['empresa','Empresa']] as const).map(([v, l]) => (
-              <button key={v} onClick={() => { setFiltroTipo(v); setFiltroCategoria(''); }}
-                className={`px-3 py-1 rounded-full text-xs font-semibold transition-all border ${
-                  filtroTipo === v ? 'bg-indigo-600 dark:bg-purple-600 text-white border-indigo-600 dark:border-purple-600' : 'bg-white dark:bg-zinc-900 text-slate-500 dark:text-zinc-400 border-slate-200 dark:border-zinc-800 hover:border-slate-300 dark:hover:border-zinc-600'
-                }`}
-              >{l}</button>
-            ))}
-            {(filtroTipo === 'todos' || filtroTipo === 'contas') && cats.length > 0 && (
-              <>
-                <div className="w-px bg-slate-200 dark:bg-zinc-800 self-stretch" />
-                <select value={filtroCategoria} onChange={(e) => setFiltroCategoria(e.target.value)}
-                  className={`px-3 py-1 rounded-full text-xs font-semibold border transition-all bg-white dark:bg-zinc-900 cursor-pointer focus:outline-none ${filtroCategoria ? 'border-indigo-400 dark:border-purple-400 text-indigo-600 dark:text-purple-400' : 'border-slate-200 dark:border-zinc-800 text-slate-500 dark:text-zinc-400'}`}>
-                  <option value="">Categoria</option>
-                  {cats.map((c) => <option key={c.id} value={c.nome}>{c.nome}</option>)}
-                </select>
-              </>
-            )}
-            {filtrosAtivos && (
-              <button onClick={limparFiltros} className="ml-auto px-3 py-1 rounded-full text-xs font-semibold text-slate-400 dark:text-zinc-400 border border-slate-200 dark:border-zinc-800 hover:bg-slate-50 dark:hover:bg-zinc-800 transition-colors">
-                ✕ Limpar
-              </button>
-            )}
-          </div>
         </div>
 
         {filtrosAtivos && totalVisiveis >= 0 && (
@@ -1017,21 +1038,35 @@ export default function TabContas({ mes, ano }: Props) {
         ) : (
           <div className="divide-y divide-slate-50/80 dark:divide-zinc-800/80">
 
-            {/* ── Contas Fixas ── */}
+            {/* ── Contas Fixas (subdivididas por categoria quando "Por categoria") ── */}
             {mostrarContas && contasFixas.length > 0 && (
               <div>
-                <SectionHeader label="Contas Fixas" count={contasFixas.length} total={contasFixas.reduce((s, c) => s + c.valor, 0)} />
-                {contasFixas.map((c) => <ContaRow key={c.id} c={c} barColor={COR_FIXA} />)}
+                <SectionHeader label="Contas Fixas" cor={COR_FIXA} count={contasFixas.length} total={contasFixas.reduce((s, c) => s + c.valor, 0)} />
+                {ordenacao === 'categoria'
+                  ? agruparPorCategoria(contasFixas).map((g) => (
+                      <div key={g.nome}>
+                        <CategoriaSubHeader nome={g.nome} cor={g.cor} icone={g.icone} count={g.itens.length} total={g.total} />
+                        {g.itens.map((c) => <ContaRow key={c.id} c={c} barColor={g.cor} />)}
+                      </div>
+                    ))
+                  : contasFixas.map((c) => <ContaRow key={c.id} c={c} barColor={COR_FIXA} />)}
               </div>
             )}
 
-            {/* ── Contas regulares ── */}
+            {/* ── Contas regulares (subdivididas por categoria quando "Por categoria") ── */}
             {mostrarContas && contasRegulares.length > 0 && (
               <div>
                 {(filtroTipo === 'todos' || contasFixas.length > 0) && (
-                  <SectionHeader label="Contas Rotativas" count={contasRegulares.length} total={contasRegulares.reduce((s, c) => s + c.valor, 0)} />
+                  <SectionHeader label="Contas Rotativas" cor={COR_ROTATIVA} count={contasRegulares.length} total={contasRegulares.reduce((s, c) => s + c.valor, 0)} />
                 )}
-                {contasRegulares.map((c) => <ContaRow key={c.id} c={c} barColor={COR_ROTATIVA} />)}
+                {ordenacao === 'categoria'
+                  ? agruparPorCategoria(contasRegulares).map((g) => (
+                      <div key={g.nome}>
+                        <CategoriaSubHeader nome={g.nome} cor={g.cor} icone={g.icone} count={g.itens.length} total={g.total} />
+                        {g.itens.map((c) => <ContaRow key={c.id} c={c} barColor={g.cor} />)}
+                      </div>
+                    ))
+                  : contasRegulares.map((c) => <ContaRow key={c.id} c={c} barColor={COR_ROTATIVA} />)}
               </div>
             )}
 
@@ -1039,7 +1074,7 @@ export default function TabContas({ mes, ano }: Props) {
             {mostrarCartoes && cartoesFiltrados.length > 0 && (
               <div>
                 {filtroTipo === 'todos' && (
-                  <SectionHeader label="Cartões" count={cartoesFiltrados.length} total={cartoesFiltrados.reduce((s, c) => s + c.valor, 0)} />
+                  <SectionHeader label="Cartões" cor={COR_CARTOES} count={cartoesFiltrados.length} total={cartoesFiltrados.reduce((s, c) => s + c.valor, 0)} />
                 )}
                 {cartoesFiltrados.map((c) => (
                   <div key={c.cartaoId} className={`group flex items-center gap-3 px-4 py-3.5 transition-all ${c.status === 'pago' ? 'border-l-2 border-emerald-400 dark:border-emerald-500 bg-gradient-to-r from-emerald-100 via-emerald-50 to-transparent dark:from-emerald-500/20 dark:via-emerald-500/5 dark:to-transparent' : 'hover:bg-slate-50/80 dark:hover:bg-zinc-800/80'}`}>
@@ -1072,7 +1107,7 @@ export default function TabContas({ mes, ano }: Props) {
             {mostrarEmpresa && empresaSum > 0 && !(filtroStatus !== 'todos' && filtroStatus !== empresaStatus) && (
               <div>
                 {filtroTipo === 'todos' && (
-                  <SectionHeader label="Empresa" count={1} total={empresaSum} />
+                  <SectionHeader label="Empresa" cor="#38bdf8" count={1} total={empresaSum} />
                 )}
                 <div className={`group flex items-center gap-3 px-4 py-3.5 transition-all ${empresaStatus === 'pago' ? 'border-l-2 border-emerald-400 dark:border-emerald-500 bg-gradient-to-r from-emerald-100 via-emerald-50 to-transparent dark:from-emerald-500/20 dark:via-emerald-500/5 dark:to-transparent' : 'hover:bg-slate-50/80 dark:hover:bg-zinc-800/80'}`}>
                   <div className="w-0.5 h-10 rounded-full flex-shrink-0 bg-sky-400" />
@@ -1245,30 +1280,61 @@ export default function TabContas({ mes, ano }: Props) {
             <p className="text-xs font-semibold text-slate-500 dark:text-zinc-400 uppercase tracking-wide">Categorias</p>
             {cats.map((cat) => (
               <div key={cat.id} className="flex items-center gap-3 p-3 rounded-xl border border-slate-100 dark:border-zinc-800 hover:bg-slate-50 dark:hover:bg-zinc-800">
-                <span className="w-5 h-5 rounded-full flex-shrink-0" style={{ backgroundColor: cat.cor }} />
+                <span className="flex items-center justify-center w-9 h-9 rounded-xl flex-shrink-0" style={{ backgroundColor: `${cat.cor}22`, color: cat.cor }}>
+                  <CompraCatIcon nome={cat.nome} icone={cat.icone} className="w-5 h-5 dark:text-white" />
+                </span>
                 <p className="flex-1 text-sm font-medium text-slate-700 dark:text-zinc-200">{cat.nome}</p>
+                <button onClick={() => abrirEditCat(cat)} className="p-1.5 rounded-lg hover:bg-indigo-50 dark:hover:bg-purple-500/10 text-slate-300 dark:text-zinc-500 hover:text-indigo-400 dark:hover:text-purple-400 transition-colors"><Pencil /></button>
                 <button onClick={() => handleDeleteCat(cat.id!)} className="p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-500/10 text-slate-300 dark:text-zinc-500 hover:text-red-400 transition-colors"><Trash /></button>
               </div>
             ))}
             {!showCatForm ? (
-              <button onClick={() => setShowCatForm(true)}
-                className="w-full py-2.5 border-2 border-dashed border-slate-200 dark:border-zinc-800 rounded-xl text-sm text-slate-400 dark:text-zinc-400 hover:border-indigo-300 hover:text-indigo-500 dark:hover:text-purple-400 flex items-center justify-center gap-2">
-                <Plus /> Nova Categoria
-              </button>
+              <div className="flex flex-col sm:flex-row gap-2">
+                <button onClick={abrirNovaCat}
+                  className="flex-1 py-2.5 border-2 border-dashed border-slate-200 dark:border-zinc-800 rounded-xl text-sm text-slate-400 dark:text-zinc-400 hover:border-indigo-300 hover:text-indigo-500 dark:hover:text-purple-400 flex items-center justify-center gap-2">
+                  <Plus /> Nova Categoria
+                </button>
+                <button onClick={handleAddCatsSugeridas}
+                  className="flex-1 py-2.5 border border-indigo-200 dark:border-purple-500/40 rounded-xl text-sm text-indigo-600 dark:text-purple-300 hover:bg-indigo-50 dark:hover:bg-purple-500/10 transition-colors flex items-center justify-center gap-2 font-medium">
+                  <Plus /> Adicionar sugeridas
+                </button>
+              </div>
             ) : (
               <form onSubmit={handleSaveCat} className="border border-slate-200 dark:border-zinc-800 rounded-xl p-4 space-y-3 bg-slate-50 dark:bg-zinc-950">
-                <p className="text-sm font-semibold text-slate-700 dark:text-zinc-200">Nova Categoria</p>
+                <p className="text-sm font-semibold text-slate-700 dark:text-zinc-200">{editCatId ? 'Editar Categoria' : 'Nova Categoria'}</p>
                 <input required value={formCat.nome} onChange={(e) => setFormCat({ ...formCat, nome: e.target.value })} className={INPUT} placeholder="Ex: Assinaturas, Pet..." />
+                <div>
+                  <label className="block text-xs text-slate-500 dark:text-zinc-400 mb-1">Ícone</label>
+                  <div className="grid grid-cols-7 gap-1.5">
+                    {COMPRA_CAT_ICONS.map((ic) => (
+                      <button
+                        key={ic.key}
+                        type="button"
+                        title={ic.label}
+                        onClick={() => setFormCat({ ...formCat, icone: ic.key })}
+                        className="flex items-center justify-center aspect-square rounded-lg border transition-all"
+                        style={formCat.icone === ic.key
+                          ? { backgroundColor: `${formCat.cor}22`, color: formCat.cor, borderColor: formCat.cor }
+                          : { borderColor: '#e2e8f0', color: '#64748b' }}
+                      >
+                        <CompraCatIcon icone={ic.key} className="w-5 h-5" />
+                      </button>
+                    ))}
+                  </div>
+                </div>
                 <div>
                   <label className="block text-xs text-slate-500 dark:text-zinc-400 mb-1">Cor</label>
                   <div className="flex items-center gap-2">
                     <input type="color" value={formCat.cor} onChange={(e) => setFormCat({ ...formCat, cor: e.target.value })} className="w-10 h-9 rounded-lg border border-slate-200 dark:border-zinc-800 cursor-pointer p-0.5 bg-white dark:bg-zinc-900" />
                     <span className="text-xs text-slate-500 dark:text-zinc-400 font-mono">{formCat.cor}</span>
-                    <span className="px-3 py-1 rounded-full text-xs font-medium ml-2" style={{ backgroundColor: `${formCat.cor}22`, color: formCat.cor }}>{formCat.nome || 'Exemplo'}</span>
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium ml-2" style={{ backgroundColor: `${formCat.cor}22`, color: formCat.cor }}>
+                      <CompraCatIcon icone={formCat.icone} nome={formCat.nome} className="w-3.5 h-3.5" />
+                      {formCat.nome || 'Exemplo'}
+                    </span>
                   </div>
                 </div>
                 <div className="flex gap-2">
-                  <button type="button" onClick={() => { setShowCatForm(false); setFormCat({ nome: '', cor: '#6366f1' }); }} className="flex-1 py-2 border border-slate-200 dark:border-zinc-800 rounded-xl text-xs text-slate-600 dark:text-zinc-300 hover:bg-white dark:hover:bg-zinc-800">Cancelar</button>
+                  <button type="button" onClick={() => { setShowCatForm(false); setEditCatId(null); setFormCat({ nome: '', cor: '#6366f1', icone: 'outro' }); }} className="flex-1 py-2 border border-slate-200 dark:border-zinc-800 rounded-xl text-xs text-slate-600 dark:text-zinc-300 hover:bg-white dark:hover:bg-zinc-800">Cancelar</button>
                   <button type="submit" className="flex-1 py-2 bg-indigo-600 dark:bg-purple-600 text-white rounded-xl text-xs font-semibold hover:bg-indigo-700 dark:hover:bg-purple-700">Salvar</button>
                 </div>
               </form>

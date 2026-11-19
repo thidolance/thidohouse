@@ -327,13 +327,15 @@ export async function getContasHistorico(): Promise<Conta[]> {
 // ─── Categorias de Contas ────────────────────────────────────────────────────
 
 const DEFAULT_CATEGORIAS_CONTAS: Omit<CategoriaContaConfig, 'id'>[] = [
-  { nome: 'Moradia',     cor: '#6366f1' },
-  { nome: 'Alimentação', cor: '#f59e0b' },
-  { nome: 'Transporte',  cor: '#3b82f6' },
-  { nome: 'Saúde',       cor: '#10b981' },
-  { nome: 'Lazer',       cor: '#ec4899' },
-  { nome: 'Educação',    cor: '#8b5cf6' },
-  { nome: 'Outros',      cor: '#94a3b8' },
+  { nome: 'Moradia',     cor: '#6366f1', icone: 'casa' },
+  { nome: 'Alimentação', cor: '#16a34a', icone: 'comida' },
+  { nome: 'Transporte',  cor: '#3b82f6', icone: 'carro' },
+  { nome: 'Saúde',       cor: '#10b981', icone: 'saude' },
+  { nome: 'Filhos',      cor: '#f97316', icone: 'filhos' },
+  { nome: 'Planos',      cor: '#14b8a6', icone: 'planos' },
+  { nome: 'Lazer',       cor: '#ec4899', icone: 'entretenimento' },
+  { nome: 'Educação',    cor: '#8b5cf6', icone: 'educacao' },
+  { nome: 'Outros',      cor: '#94a3b8', icone: 'outro' },
 ];
 
 export async function getCategoriasContas(): Promise<CategoriaContaConfig[]> {
@@ -345,6 +347,18 @@ export async function getCategoriasContas(): Promise<CategoriaContaConfig[]> {
 
 export async function addCategoriaContas(c: Omit<CategoriaContaConfig, 'id'>): Promise<void> {
   await addDoc(collection(db, 'categorias_contas'), c);
+}
+
+export async function updateCategoriaContas(id: string, c: Omit<CategoriaContaConfig, 'id'>): Promise<void> {
+  await updateDoc(doc(db, 'categorias_contas', id), c as Record<string, unknown>);
+}
+
+// Adiciona as categorias de contas padrão que ainda não existem (compara pelo nome).
+export async function addCategoriasContasSugeridas(): Promise<void> {
+  const existentes = await cachedCollection<CategoriaContaConfig>('categorias_contas');
+  const nomes = new Set(existentes.map((c) => c.nome.trim().toLowerCase()));
+  const faltantes = DEFAULT_CATEGORIAS_CONTAS.filter((c) => !nomes.has(c.nome.trim().toLowerCase()));
+  await Promise.all(faltantes.map((c) => addDoc(collection(db, 'categorias_contas'), c)));
 }
 
 export async function deleteCategoriaContas(id: string): Promise<void> {

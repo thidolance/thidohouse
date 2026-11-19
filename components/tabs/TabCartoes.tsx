@@ -812,7 +812,7 @@ export default function TabCartoes({ mes, ano }: Props) {
                       {g.nome}
                       <span className="text-[11px] font-normal text-slate-400 dark:text-zinc-500">{g.itens.length}</span>
                     </span>
-                    <span className="text-sm font-bold tabular-nums" style={{ color: g.cor }}>{fmt(g.total)}</span>
+                    <span className="flex-shrink-0" style={{ color: g.cor }}><span className="text-xs font-semibold tabular-nums dark:text-white">{fmt(g.total)}</span></span>
                   </div>
                   <div className="space-y-2">
                     {g.itens.map((p) => linhaCompraDoCartao(p, cartaoAtivo.cor))}
@@ -891,7 +891,7 @@ export default function TabCartoes({ mes, ano }: Props) {
                       {g.nome}
                       <span className="text-[11px] font-normal text-slate-400 dark:text-zinc-500">{g.itens.length}</span>
                     </span>
-                    <span className="text-sm font-bold tabular-nums" style={{ color: g.cor }}>{fmt(g.total)}</span>
+                    <span className="flex-shrink-0" style={{ color: g.cor }}><span className="text-xs font-semibold tabular-nums dark:text-white">{fmt(g.total)}</span></span>
                   </div>
                   <div className="space-y-2">
                     {g.itens.map((p) => linhaCompra(p))}
