@@ -167,7 +167,7 @@ export default function TabCartoes({ mes, ano }: Props) {
   const [loading, setLoading]       = useState(false);
   const [cartaoSelecionado, setCartaoSelecionado] = useState<string | null>(null);
   const [filtroCategoria, setFiltroCategoria]     = useState<string | null>(null);
-  const [ordemLista, setOrdemLista]               = useState<'data' | 'valor' | 'categoria'>('data');
+  const [ordemLista, setOrdemLista]               = useState<'data' | 'valor' | 'categoria'>('categoria');
 
   // modais
   const [showCompraModal, setShowCompraModal]   = useState(false);
