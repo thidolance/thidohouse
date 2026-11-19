@@ -328,9 +328,11 @@ export async function getContasHistorico(): Promise<Conta[]> {
 
 const DEFAULT_CATEGORIAS_CONTAS: Omit<CategoriaContaConfig, 'id'>[] = [
   { nome: 'Moradia',     cor: '#6366f1' },
-  { nome: 'Alimentação', cor: '#f59e0b' },
+  { nome: 'Alimentação', cor: '#16a34a' },
   { nome: 'Transporte',  cor: '#3b82f6' },
   { nome: 'Saúde',       cor: '#10b981' },
+  { nome: 'Filhos',      cor: '#f97316' },
+  { nome: 'Planos',      cor: '#14b8a6' },
   { nome: 'Lazer',       cor: '#ec4899' },
   { nome: 'Educação',    cor: '#8b5cf6' },
   { nome: 'Outros',      cor: '#94a3b8' },
@@ -345,6 +347,14 @@ export async function getCategoriasContas(): Promise<CategoriaContaConfig[]> {
 
 export async function addCategoriaContas(c: Omit<CategoriaContaConfig, 'id'>): Promise<void> {
   await addDoc(collection(db, 'categorias_contas'), c);
+}
+
+// Adiciona as categorias de contas padrão que ainda não existem (compara pelo nome).
+export async function addCategoriasContasSugeridas(): Promise<void> {
+  const existentes = await cachedCollection<CategoriaContaConfig>('categorias_contas');
+  const nomes = new Set(existentes.map((c) => c.nome.trim().toLowerCase()));
+  const faltantes = DEFAULT_CATEGORIAS_CONTAS.filter((c) => !nomes.has(c.nome.trim().toLowerCase()));
+  await Promise.all(faltantes.map((c) => addDoc(collection(db, 'categorias_contas'), c)));
 }
 
 export async function deleteCategoriaContas(id: string): Promise<void> {

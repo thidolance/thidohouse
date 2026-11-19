@@ -11,7 +11,7 @@ import {
   getContas, addConta, updateConta, updateContaAndFuture, updateContaReparcelada, getContasFuturasDoGrupo,
   deleteConta, deleteContaAndFuture,
   updateContaStatus, toggleContaFixa, getContasPorGrupo,
-  getCategoriasContas, addCategoriaContas, deleteCategoriaContas,
+  getCategoriasContas, addCategoriaContas, addCategoriasContasSugeridas, deleteCategoriaContas,
   getRecebedores, addRecebedor, updateRecebedor, deleteRecebedor, setContaRecebedor, setCartaoRecebedor,
   getCompras, getFaturasCartao, setFaturaCartaoStatus, setFaturaCartaoValor, getCartoes,
   getCustosEmpresa, getFaturasEmpresa, setFaturaEmpresaStatus, getCategoriasEmpresa,
@@ -682,6 +682,11 @@ export default function TabContas({ mes, ano }: Props) {
     loadCats();
   }
 
+  async function handleAddCatsSugeridas() {
+    await addCategoriasContasSugeridas();
+    loadCats();
+  }
+
   // ── recebedores Pix ─────────────────────────────────────────────────────────
 
   async function handleSaveRec(e: React.SubmitEvent<HTMLFormElement>) {
@@ -830,7 +835,9 @@ export default function TabContas({ mes, ano }: Props) {
           <span className="truncate">{nome}</span>
           <span className="text-[10px] font-normal text-slate-400 dark:text-zinc-500 flex-shrink-0">{count}</span>
         </span>
-        <span className="text-xs font-bold tabular-nums flex-shrink-0" style={{ color: cor }}>{fmt(t)}</span>
+        <span className="flex-shrink-0" style={{ color: cor }}>
+          <span className="text-xs font-bold tabular-nums dark:text-white">{fmt(t)}</span>
+        </span>
       </div>
     );
   }
@@ -1292,16 +1299,24 @@ export default function TabContas({ mes, ano }: Props) {
             <p className="text-xs font-semibold text-slate-500 dark:text-zinc-400 uppercase tracking-wide">Categorias</p>
             {cats.map((cat) => (
               <div key={cat.id} className="flex items-center gap-3 p-3 rounded-xl border border-slate-100 dark:border-zinc-800 hover:bg-slate-50 dark:hover:bg-zinc-800">
-                <span className="w-5 h-5 rounded-full flex-shrink-0" style={{ backgroundColor: cat.cor }} />
+                <span className="flex items-center justify-center w-9 h-9 rounded-xl flex-shrink-0" style={{ backgroundColor: `${cat.cor}22`, color: cat.cor }}>
+                  <CompraCatIcon nome={cat.nome} className="w-5 h-5 dark:text-white" />
+                </span>
                 <p className="flex-1 text-sm font-medium text-slate-700 dark:text-zinc-200">{cat.nome}</p>
                 <button onClick={() => handleDeleteCat(cat.id!)} className="p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-500/10 text-slate-300 dark:text-zinc-500 hover:text-red-400 transition-colors"><Trash /></button>
               </div>
             ))}
             {!showCatForm ? (
-              <button onClick={() => setShowCatForm(true)}
-                className="w-full py-2.5 border-2 border-dashed border-slate-200 dark:border-zinc-800 rounded-xl text-sm text-slate-400 dark:text-zinc-400 hover:border-indigo-300 hover:text-indigo-500 dark:hover:text-purple-400 flex items-center justify-center gap-2">
-                <Plus /> Nova Categoria
-              </button>
+              <div className="flex flex-col sm:flex-row gap-2">
+                <button onClick={() => setShowCatForm(true)}
+                  className="flex-1 py-2.5 border-2 border-dashed border-slate-200 dark:border-zinc-800 rounded-xl text-sm text-slate-400 dark:text-zinc-400 hover:border-indigo-300 hover:text-indigo-500 dark:hover:text-purple-400 flex items-center justify-center gap-2">
+                  <Plus /> Nova Categoria
+                </button>
+                <button onClick={handleAddCatsSugeridas}
+                  className="flex-1 py-2.5 border border-indigo-200 dark:border-purple-500/40 rounded-xl text-sm text-indigo-600 dark:text-purple-300 hover:bg-indigo-50 dark:hover:bg-purple-500/10 transition-colors flex items-center justify-center gap-2 font-medium">
+                  <Plus /> Adicionar sugeridas
+                </button>
+              </div>
             ) : (
               <form onSubmit={handleSaveCat} className="border border-slate-200 dark:border-zinc-800 rounded-xl p-4 space-y-3 bg-slate-50 dark:bg-zinc-950">
                 <p className="text-sm font-semibold text-slate-700 dark:text-zinc-200">Nova Categoria</p>

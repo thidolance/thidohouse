@@ -288,6 +288,7 @@ export const COMPRA_CAT_ICONS: { key: string; label: string; node: ReactNode }[]
     </>
   ) },
   { key: 'streaming', label: 'Streaming', node: contaIconNode('tv') },
+  { key: 'planos', label: 'Planos', node: contaIconNode('seguro') },
   { key: 'assinaturas', label: 'Assinaturas', node: (
     // Controle de TV (corpo + visor no topo + grade de botões)
     <path fillRule="evenodd" clipRule="evenodd" d="M9 2.25A2.25 2.25 0 0 0 6.75 4.5v15A2.25 2.25 0 0 0 9 21.75h6a2.25 2.25 0 0 0 2.25-2.25v-15A2.25 2.25 0 0 0 15 2.25H9Zm.75 3a.75.75 0 0 0-.75.75v2.25c0 .414.336.75.75.75h4.5a.75.75 0 0 0 .75-.75V6a.75.75 0 0 0-.75-.75h-4.5ZM10.5 12a.9.9 0 1 1-1.8 0 .9.9 0 0 1 1.8 0Zm3.3.9a.9.9 0 1 0 0-1.8.9.9 0 0 0 0 1.8ZM10.5 15.3a.9.9 0 1 1-1.8 0 .9.9 0 0 1 1.8 0Zm3.3.9a.9.9 0 1 0 0-1.8.9.9 0 0 0 0 1.8Zm-3.3 2.4a.9.9 0 1 1-1.8 0 .9.9 0 0 1 1.8 0Z" />
@@ -307,18 +308,19 @@ export function compraCatIconKey(nome?: string, icone?: string): string {
   const n = (nome ?? '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
   const syn: Record<string, string> = {
     mercado: 'mercado', supermercado: 'mercado', feira: 'mercado',
-    comida: 'comida', restaurante: 'comida', lanche: 'comida', ifood: 'comida', delivery: 'comida',
+    comida: 'comida', restaurante: 'comida', lanche: 'comida', ifood: 'comida', delivery: 'comida', alimentacao: 'comida',
     carro: 'carro', veiculo: 'carro', uber: 'carro', transporte: 'carro',
     abastecimento: 'abastecimento', combustivel: 'abastecimento', gasolina: 'abastecimento', posto: 'abastecimento', gas: 'abastecimento',
     filhos: 'filhos', filho: 'filhos', crianca: 'filhos', criancas: 'filhos', bebe: 'filhos',
     besteiras: 'besteiras', besteira: 'besteiras', doce: 'besteiras', doces: 'besteiras',
     entretenimento: 'entretenimento', lazer: 'entretenimento', diversao: 'entretenimento', parque: 'entretenimento', cinema: 'entretenimento', passeio: 'entretenimento', role: 'entretenimento',
     farmacia: 'farmacia', remedio: 'farmacia', remedios: 'farmacia', drogaria: 'farmacia',
-    saude: 'saude', medico: 'saude', plano: 'saude', dentista: 'saude', hospital: 'saude',
+    saude: 'saude', medico: 'saude', dentista: 'saude', hospital: 'saude', consulta: 'saude',
     educacao: 'educacao', escola: 'educacao', curso: 'educacao', faculdade: 'educacao',
     academia: 'academia', gym: 'academia', treino: 'academia',
     streaming: 'streaming', streming: 'streaming', netflix: 'streaming', spotify: 'streaming', tv: 'streaming',
     assinaturas: 'assinaturas', assinatura: 'assinaturas',
+    planos: 'planos', plano: 'planos', seguro: 'planos', seguros: 'planos', previdencia: 'planos',
     trabalho: 'trabalho', work: 'trabalho', escritorio: 'trabalho',
     casa: 'casa', lar: 'casa', moradia: 'casa', aluguel: 'casa',
   };
