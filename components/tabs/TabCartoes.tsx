@@ -14,6 +14,7 @@ import {
   getCategorias, addCategoria, updateCategoria, deleteCategoria, addCategoriasSugeridas,
 } from '@/lib/firestore';
 import type { CompraParcelada, Cartao, CategoriaCompra } from '@/lib/types';
+import { DEFAULT_CATEGORIAS } from '@/lib/cartoes';
 
 const fmt = (v: number) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 
@@ -456,6 +457,11 @@ export default function TabCartoes({ mes, ano }: Props) {
 
   const isParcelada = parseInt(formCompra.totalParcelas || '0') > 1;
 
+  // Categorias sugeridas (padrão) que ainda não foram criadas na conta.
+  const sugeridasFaltantes = DEFAULT_CATEGORIAS.filter(
+    (d) => !categorias.some((c) => c.nome.trim().toLowerCase() === d.nome.trim().toLowerCase()),
+  );
+
   return (
     <div className="space-y-5">
       {/* ── Header ── */}
@@ -845,6 +851,16 @@ export default function TabCartoes({ mes, ano }: Props) {
                     {cat.nome}
                   </button>
                 ))}
+                {sugeridasFaltantes.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={handleAddSugeridas}
+                    title={`Adicionar: ${sugeridasFaltantes.map((c) => c.nome).join(', ')}`}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border border-dashed border-indigo-300 dark:border-purple-500/50 text-indigo-600 dark:text-purple-300 hover:bg-indigo-50 dark:hover:bg-purple-500/10 transition-colors"
+                  >
+                    <Plus /> Sugeridas
+                  </button>
+                )}
               </div>
             </div>
 
