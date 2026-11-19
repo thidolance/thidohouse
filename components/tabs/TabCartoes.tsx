@@ -656,8 +656,8 @@ export default function TabCartoes({ mes, ano }: Props) {
                   <div className="flex items-center gap-3 min-w-0">
                     <span
                       className="flex items-center justify-center w-10 h-10 rounded-xl flex-shrink-0"
-                      style={{ backgroundColor: `${catCor(p.tipo)}22`, color: catCor(p.tipo) }}
-                      title={p.tipo}
+                      style={{ backgroundColor: `${cartaoAtivo.cor}26`, color: cartaoAtivo.cor }}
+                      title={`${p.tipo} · ${cartaoAtivo.nome}`}
                     >
                       <CompraCatIcon nome={p.tipo} icone={catIcone(p.tipo)} className="w-5 h-5 dark:text-white" />
                     </span>
@@ -734,13 +734,11 @@ export default function TabCartoes({ mes, ano }: Props) {
                   <div key={p.id} className="flex items-center justify-between p-3 rounded-xl hover:bg-slate-50 dark:hover:bg-zinc-800 transition-colors">
                     <div className="flex items-center gap-3 min-w-0">
                       <span
-                        className="relative flex items-center justify-center w-10 h-10 rounded-xl flex-shrink-0"
-                        style={{ backgroundColor: `${catCor(p.tipo)}22`, color: catCor(p.tipo) }}
-                        title={p.tipo}
+                        className="flex items-center justify-center w-10 h-10 rounded-xl flex-shrink-0"
+                        style={{ backgroundColor: `${c?.cor ?? '#94a3b8'}26`, color: c?.cor ?? '#94a3b8' }}
+                        title={`${p.tipo} · ${c?.nome ?? ''}`}
                       >
                         <CompraCatIcon nome={p.tipo} icone={catIcone(p.tipo)} className="w-5 h-5 dark:text-white" />
-                        {/* ponto com a cor do cartão, para identificar o cartão de relance */}
-                        <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full ring-2 ring-white dark:ring-zinc-900" style={{ backgroundColor: c?.cor ?? '#94a3b8' }} />
                       </span>
                       <div className="min-w-0">
                         <p className="font-medium text-slate-700 dark:text-zinc-200 text-sm truncate">{p.descricao}</p>
