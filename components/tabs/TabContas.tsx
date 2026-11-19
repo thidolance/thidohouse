@@ -4,14 +4,14 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import dynamic from 'next/dynamic';
 import Modal from '../ui/Modal';
 import Card from '../ui/Card';
-import { Plus, Trash, Check, Pencil, ChevronRight, CONTA_ICONS, ContaIcon, CompraCatIcon } from '../ui/Icons';
+import { Plus, Trash, Check, Pencil, ChevronRight, CONTA_ICONS, ContaIcon, CompraCatIcon, COMPRA_CAT_ICONS, compraCatIconKey } from '../ui/Icons';
 import { useRefetchOnFocus } from '@/lib/useRefetchOnFocus';
 import { formatCurrencyInput, parseCurrencyInput, formatCurrencyBRL } from '@/lib/currency';
 import {
   getContas, addConta, updateConta, updateContaAndFuture, updateContaReparcelada, getContasFuturasDoGrupo,
   deleteConta, deleteContaAndFuture,
   updateContaStatus, toggleContaFixa, getContasPorGrupo,
-  getCategoriasContas, addCategoriaContas, addCategoriasContasSugeridas, deleteCategoriaContas,
+  getCategoriasContas, addCategoriaContas, updateCategoriaContas, addCategoriasContasSugeridas, deleteCategoriaContas,
   getRecebedores, addRecebedor, updateRecebedor, deleteRecebedor, setContaRecebedor, setCartaoRecebedor,
   getCompras, getFaturasCartao, setFaturaCartaoStatus, setFaturaCartaoValor, getCartoes,
   getCustosEmpresa, getFaturasEmpresa, setFaturaEmpresaStatus, getCategoriasEmpresa,
@@ -182,9 +182,10 @@ export default function TabContas({ mes, ano }: Props) {
   const [showModal, setShowModal]        = useState(false);
   const [showConfigModal, setShowConfig] = useState(false);
   const [showCatForm, setShowCatForm]    = useState(false);
+  const [editCatId, setEditCatId]        = useState<string | null>(null);
   const [editId, setEditId]              = useState<string | null>(null);
   const [editConta, setEditConta]        = useState<Conta | null>(null);
-  const [formCat, setFormCat]            = useState({ nome: '', cor: '#6366f1' });
+  const [formCat, setFormCat]            = useState<{ nome: string; cor: string; icone: string }>({ nome: '', cor: '#6366f1', icone: 'outro' });
 
   // recebedores Pix (config + vínculo na conta)
   const [showRecForm, setShowRecForm]    = useState(false);
@@ -284,6 +285,7 @@ export default function TabContas({ mes, ano }: Props) {
   // ── listas filtradas ──────────────────────────────────────────────────────
 
   const catCor = (nome: string) => cats.find((c) => c.nome === nome)?.cor ?? '#94a3b8';
+  const catIcone = (nome: string) => cats.find((c) => c.nome === nome)?.icone;
 
   const applyContaFilters = (list: Conta[]) => {
     let r = [...list];
@@ -346,7 +348,7 @@ export default function TabContas({ mes, ano }: Props) {
         const itens = [...list]
           .filter((c) => c.categoria === nome)
           .sort((a, b) => (a.status !== b.status ? (a.status === 'pendente' ? -1 : 1) : b.valor - a.valor));
-        return { nome, cor: catCor(nome), total: itens.reduce((s, c) => s + c.valor, 0), itens };
+        return { nome, cor: catCor(nome), icone: catIcone(nome), total: itens.reduce((s, c) => s + c.valor, 0), itens };
       })
       .filter((g) => g.itens.length > 0)
       .sort((a, b) => b.total - a.total);
@@ -669,11 +671,25 @@ export default function TabContas({ mes, ano }: Props) {
     await Promise.all(itensEmpresa.map((c) => setFaturaEmpresaStatus(c.categoriaId, mes, ano, newStatus)));
   }
 
+  function abrirNovaCat() {
+    setEditCatId(null);
+    setFormCat({ nome: '', cor: '#6366f1', icone: 'outro' });
+    setShowCatForm(true);
+  }
+
+  function abrirEditCat(cat: CategoriaContaConfig) {
+    setEditCatId(cat.id!);
+    setFormCat({ nome: cat.nome, cor: cat.cor, icone: cat.icone ?? compraCatIconKey(cat.nome) });
+    setShowCatForm(true);
+  }
+
   async function handleSaveCat(e: React.SubmitEvent<HTMLFormElement>) {
     e.preventDefault();
-    await addCategoriaContas(formCat);
+    if (editCatId) await updateCategoriaContas(editCatId, formCat);
+    else           await addCategoriaContas(formCat);
     setShowCatForm(false);
-    setFormCat({ nome: '', cor: '#6366f1' });
+    setEditCatId(null);
+    setFormCat({ nome: '', cor: '#6366f1', icone: 'outro' });
     loadCats();
   }
 
@@ -825,12 +841,12 @@ export default function TabContas({ mes, ano }: Props) {
   }
 
   // Subcabeçalho de categoria dentro de uma seção (badge com ícone + nome + total).
-  function CategoriaSubHeader({ nome, cor, count, total: t }: { nome: string; cor: string; count: number; total: number }) {
+  function CategoriaSubHeader({ nome, cor, icone, count, total: t }: { nome: string; cor: string; icone?: string; count: number; total: number }) {
     return (
       <div className="flex items-center justify-between gap-2 pl-6 pr-4 py-1.5 bg-slate-50/60 dark:bg-zinc-900/40 border-b border-slate-100/60 dark:border-zinc-800/60">
         <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-600 dark:text-zinc-300 min-w-0">
           <span className="flex items-center justify-center w-5 h-5 rounded-md flex-shrink-0" style={{ backgroundColor: `${cor}22`, color: cor }}>
-            <CompraCatIcon nome={nome} className="w-3.5 h-3.5 dark:text-white" />
+            <CompraCatIcon nome={nome} icone={icone} className="w-3.5 h-3.5 dark:text-white" />
           </span>
           <span className="truncate">{nome}</span>
           <span className="text-[10px] font-normal text-slate-400 dark:text-zinc-500 flex-shrink-0">{count}</span>
@@ -1064,7 +1080,7 @@ export default function TabContas({ mes, ano }: Props) {
                 {ordenacao === 'categoria'
                   ? agruparPorCategoria(contasFixas).map((g) => (
                       <div key={g.nome}>
-                        <CategoriaSubHeader nome={g.nome} cor={g.cor} count={g.itens.length} total={g.total} />
+                        <CategoriaSubHeader nome={g.nome} cor={g.cor} icone={g.icone} count={g.itens.length} total={g.total} />
                         {g.itens.map((c) => <ContaRow key={c.id} c={c} barColor={g.cor} />)}
                       </div>
                     ))
@@ -1081,7 +1097,7 @@ export default function TabContas({ mes, ano }: Props) {
                 {ordenacao === 'categoria'
                   ? agruparPorCategoria(contasRegulares).map((g) => (
                       <div key={g.nome}>
-                        <CategoriaSubHeader nome={g.nome} cor={g.cor} count={g.itens.length} total={g.total} />
+                        <CategoriaSubHeader nome={g.nome} cor={g.cor} icone={g.icone} count={g.itens.length} total={g.total} />
                         {g.itens.map((c) => <ContaRow key={c.id} c={c} barColor={g.cor} />)}
                       </div>
                     ))
@@ -1300,15 +1316,16 @@ export default function TabContas({ mes, ano }: Props) {
             {cats.map((cat) => (
               <div key={cat.id} className="flex items-center gap-3 p-3 rounded-xl border border-slate-100 dark:border-zinc-800 hover:bg-slate-50 dark:hover:bg-zinc-800">
                 <span className="flex items-center justify-center w-9 h-9 rounded-xl flex-shrink-0" style={{ backgroundColor: `${cat.cor}22`, color: cat.cor }}>
-                  <CompraCatIcon nome={cat.nome} className="w-5 h-5 dark:text-white" />
+                  <CompraCatIcon nome={cat.nome} icone={cat.icone} className="w-5 h-5 dark:text-white" />
                 </span>
                 <p className="flex-1 text-sm font-medium text-slate-700 dark:text-zinc-200">{cat.nome}</p>
+                <button onClick={() => abrirEditCat(cat)} className="p-1.5 rounded-lg hover:bg-indigo-50 dark:hover:bg-purple-500/10 text-slate-300 dark:text-zinc-500 hover:text-indigo-400 dark:hover:text-purple-400 transition-colors"><Pencil /></button>
                 <button onClick={() => handleDeleteCat(cat.id!)} className="p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-500/10 text-slate-300 dark:text-zinc-500 hover:text-red-400 transition-colors"><Trash /></button>
               </div>
             ))}
             {!showCatForm ? (
               <div className="flex flex-col sm:flex-row gap-2">
-                <button onClick={() => setShowCatForm(true)}
+                <button onClick={abrirNovaCat}
                   className="flex-1 py-2.5 border-2 border-dashed border-slate-200 dark:border-zinc-800 rounded-xl text-sm text-slate-400 dark:text-zinc-400 hover:border-indigo-300 hover:text-indigo-500 dark:hover:text-purple-400 flex items-center justify-center gap-2">
                   <Plus /> Nova Categoria
                 </button>
@@ -1319,18 +1336,40 @@ export default function TabContas({ mes, ano }: Props) {
               </div>
             ) : (
               <form onSubmit={handleSaveCat} className="border border-slate-200 dark:border-zinc-800 rounded-xl p-4 space-y-3 bg-slate-50 dark:bg-zinc-950">
-                <p className="text-sm font-semibold text-slate-700 dark:text-zinc-200">Nova Categoria</p>
+                <p className="text-sm font-semibold text-slate-700 dark:text-zinc-200">{editCatId ? 'Editar Categoria' : 'Nova Categoria'}</p>
                 <input required value={formCat.nome} onChange={(e) => setFormCat({ ...formCat, nome: e.target.value })} className={INPUT} placeholder="Ex: Assinaturas, Pet..." />
+                <div>
+                  <label className="block text-xs text-slate-500 dark:text-zinc-400 mb-1">Ícone</label>
+                  <div className="grid grid-cols-7 gap-1.5">
+                    {COMPRA_CAT_ICONS.map((ic) => (
+                      <button
+                        key={ic.key}
+                        type="button"
+                        title={ic.label}
+                        onClick={() => setFormCat({ ...formCat, icone: ic.key })}
+                        className="flex items-center justify-center aspect-square rounded-lg border transition-all"
+                        style={formCat.icone === ic.key
+                          ? { backgroundColor: `${formCat.cor}22`, color: formCat.cor, borderColor: formCat.cor }
+                          : { borderColor: '#e2e8f0', color: '#64748b' }}
+                      >
+                        <CompraCatIcon icone={ic.key} className="w-5 h-5" />
+                      </button>
+                    ))}
+                  </div>
+                </div>
                 <div>
                   <label className="block text-xs text-slate-500 dark:text-zinc-400 mb-1">Cor</label>
                   <div className="flex items-center gap-2">
                     <input type="color" value={formCat.cor} onChange={(e) => setFormCat({ ...formCat, cor: e.target.value })} className="w-10 h-9 rounded-lg border border-slate-200 dark:border-zinc-800 cursor-pointer p-0.5 bg-white dark:bg-zinc-900" />
                     <span className="text-xs text-slate-500 dark:text-zinc-400 font-mono">{formCat.cor}</span>
-                    <span className="px-3 py-1 rounded-full text-xs font-medium ml-2" style={{ backgroundColor: `${formCat.cor}22`, color: formCat.cor }}>{formCat.nome || 'Exemplo'}</span>
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium ml-2" style={{ backgroundColor: `${formCat.cor}22`, color: formCat.cor }}>
+                      <CompraCatIcon icone={formCat.icone} nome={formCat.nome} className="w-3.5 h-3.5" />
+                      {formCat.nome || 'Exemplo'}
+                    </span>
                   </div>
                 </div>
                 <div className="flex gap-2">
-                  <button type="button" onClick={() => { setShowCatForm(false); setFormCat({ nome: '', cor: '#6366f1' }); }} className="flex-1 py-2 border border-slate-200 dark:border-zinc-800 rounded-xl text-xs text-slate-600 dark:text-zinc-300 hover:bg-white dark:hover:bg-zinc-800">Cancelar</button>
+                  <button type="button" onClick={() => { setShowCatForm(false); setEditCatId(null); setFormCat({ nome: '', cor: '#6366f1', icone: 'outro' }); }} className="flex-1 py-2 border border-slate-200 dark:border-zinc-800 rounded-xl text-xs text-slate-600 dark:text-zinc-300 hover:bg-white dark:hover:bg-zinc-800">Cancelar</button>
                   <button type="submit" className="flex-1 py-2 bg-indigo-600 dark:bg-purple-600 text-white rounded-xl text-xs font-semibold hover:bg-indigo-700 dark:hover:bg-purple-700">Salvar</button>
                 </div>
               </form>

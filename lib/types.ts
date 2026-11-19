@@ -52,6 +52,9 @@ export interface CategoriaContaConfig {
   id?: string;
   nome: string;
   cor: string;
+  // Ícone da categoria (ex: 'casa', 'comida'...) — ver COMPRA_CAT_ICONS em ui/Icons.
+  // Quando ausente, o ícone é inferido pelo nome.
+  icone?: string;
 }
 
 export interface Conta {
