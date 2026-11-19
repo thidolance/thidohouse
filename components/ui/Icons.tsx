@@ -259,7 +259,10 @@ export const COMPRA_CAT_ICONS: { key: string; label: string; node: ReactNode }[]
     </>
   ) },
   { key: 'streaming', label: 'Streaming', node: contaIconNode('tv') },
-  { key: 'assinaturas', label: 'Assinaturas', node: contaIconNode('assinatura') },
+  { key: 'assinaturas', label: 'Assinaturas', node: (
+    // Controle de TV (corpo + visor no topo + grade de botões)
+    <path fillRule="evenodd" clipRule="evenodd" d="M9 2.25A2.25 2.25 0 0 0 6.75 4.5v15A2.25 2.25 0 0 0 9 21.75h6a2.25 2.25 0 0 0 2.25-2.25v-15A2.25 2.25 0 0 0 15 2.25H9Zm.75 3a.75.75 0 0 0-.75.75v2.25c0 .414.336.75.75.75h4.5a.75.75 0 0 0 .75-.75V6a.75.75 0 0 0-.75-.75h-4.5ZM10.5 12a.9.9 0 1 1-1.8 0 .9.9 0 0 1 1.8 0Zm3.3.9a.9.9 0 1 0 0-1.8.9.9 0 0 0 0 1.8ZM10.5 15.3a.9.9 0 1 1-1.8 0 .9.9 0 0 1 1.8 0Zm3.3.9a.9.9 0 1 0 0-1.8.9.9 0 0 0 0 1.8Zm-3.3 2.4a.9.9 0 1 1-1.8 0 .9.9 0 0 1 1.8 0Z" />
+  ) },
   { key: 'trabalho', label: 'Trabalho', node: (
     // Maleta
     <path fillRule="evenodd" clipRule="evenodd" d="M7.5 5.25A2.25 2.25 0 0 1 9.75 3h4.5a2.25 2.25 0 0 1 2.25 2.25v.75h2.25A2.25 2.25 0 0 1 21 8.25v3.026a41.6 41.6 0 0 1-9 .974 41.6 41.6 0 0 1-9-.974V8.25A2.25 2.25 0 0 1 5.25 6H7.5v-.75Zm6 0v.75h-3v-.75a.75.75 0 0 1 .75-.75h1.5a.75.75 0 0 1 .75.75ZM3 13.845a43.1 43.1 0 0 0 9 .905c3.082 0 6.098-.314 9-.905v3.905A2.25 2.25 0 0 1 18.75 20H5.25A2.25 2.25 0 0 1 3 17.75v-3.905Zm9 .905a.75.75 0 0 0-.75.75v.008c0 .414.336.75.75.75h.008a.75.75 0 0 0 .75-.75v-.008a.75.75 0 0 0-.75-.75H12Z" />
