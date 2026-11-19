@@ -239,11 +239,12 @@ export const COMPRA_CAT_ICONS: { key: string; label: string; node: ReactNode }[]
     </>
   ) },
   { key: 'filhos', label: 'Filhos', node: (
+    // Adulto + criança (família)
     <>
-      {/* Cabeça */}
-      <circle cx="12" cy="5" r="2.6" />
-      {/* Corpinho com braços e pernas */}
-      <path d="M8.2 10.4a1 1 0 0 1 .9-.55h5.8a1 1 0 0 1 .9.55l1.4 2.9a1 1 0 1 1-1.8.86l-.5-1.05v2.1l.9 4.6a1.05 1.05 0 0 1-2.06.4l-1.14-4.26h-.44L13.06 20.3a1.05 1.05 0 0 1-2.06-.4l.9-4.6v-2.1l-.5 1.05a1 1 0 1 1-1.8-.86l1.4-2.9Z" />
+      <circle cx="7.5" cy="4.5" r="2.3" />
+      <path d="M4.3 9.6a3.2 3.2 0 0 1 6.4 0l-.62 6.9a1.05 1.05 0 0 1-2.09.06L7.5 13.2l-.49 3.36a1.05 1.05 0 0 1-2.09-.06L4.3 9.6Z" />
+      <circle cx="16.3" cy="7.2" r="1.85" />
+      <path d="M13.75 11.6a2.55 2.55 0 0 1 5.1 0l-.5 5.3a.92.92 0 0 1-1.83.05l-.42-2.55-.42 2.55a.92.92 0 0 1-1.83-.05l-.5-5.3Z" />
     </>
   ) },
   { key: 'besteiras', label: 'Besteiras', node: (

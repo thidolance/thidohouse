@@ -836,7 +836,7 @@ export default function TabContas({ mes, ano }: Props) {
           <span className="text-[10px] font-normal text-slate-400 dark:text-zinc-500 flex-shrink-0">{count}</span>
         </span>
         <span className="flex-shrink-0" style={{ color: cor }}>
-          <span className="text-xs font-bold tabular-nums dark:text-white">{fmt(t)}</span>
+          <span className="text-[11px] font-semibold tabular-nums dark:text-white">{fmt(t)}</span>
         </span>
       </div>
     );
