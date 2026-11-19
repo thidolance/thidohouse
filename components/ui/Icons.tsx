@@ -213,6 +213,127 @@ export function ContaIcon({ nome, className = 'w-4 h-4', color }: { nome?: strin
   );
 }
 
+// Ícones das categorias de compra do cartão. Alguns reaproveitam o desenho dos
+// ícones de conta (carro, mercado, casa...); os específicos de consumo (comida,
+// academia, farmácia...) são desenhados aqui. Tudo monocromático via currentColor.
+const contaIconNode = (key: string): ReactNode => CONTA_ICONS.find((i) => i.key === key)?.node ?? null;
+
+export const COMPRA_CAT_ICONS: { key: string; label: string; node: ReactNode }[] = [
+  { key: 'mercado', label: 'Mercado', node: contaIconNode('mercado') },
+  { key: 'comida', label: 'Comida', node: (
+    <>
+      {/* Pão de cima */}
+      <path d="M3 8.4C3 5.6 7 3.75 12 3.75S21 5.6 21 8.4a.6.6 0 0 1-.6.6H3.6a.6.6 0 0 1-.6-.6Z" />
+      {/* Recheio */}
+      <path d="M3.2 10.6h17.6a.6.6 0 0 1 .59.72c-.1.5-.46.93-1 .93H3.6c-.53 0-.9-.43-1-.93a.6.6 0 0 1 .6-.72Z" />
+      {/* Pão de baixo */}
+      <path d="M3.6 14.4h16.8a.6.6 0 0 1 .58.75C20.2 17.9 16.6 20.25 12 20.25S3.8 17.9 3.02 15.15a.6.6 0 0 1 .58-.75Z" />
+    </>
+  ) },
+  { key: 'carro', label: 'Carro', node: contaIconNode('carro') },
+  { key: 'abastecimento', label: 'Abastecimento', node: (
+    // Bomba de combustível (cabine com visor + mangueira/bico)
+    <>
+      <path fillRule="evenodd" clipRule="evenodd" d="M6.75 2.25A2.25 2.25 0 0 0 4.5 4.5v15.75h-.75a.75.75 0 0 0 0 1.5h9a.75.75 0 0 0 0-1.5h-.75V4.5a2.25 2.25 0 0 0-2.25-2.25h-3Zm.75 3a.75.75 0 0 0-.75.75v2.25c0 .414.336.75.75.75h3a.75.75 0 0 0 .75-.75V6a.75.75 0 0 0-.75-.75h-3Z" />
+      <path d="M14.25 8.25a.75.75 0 0 1 .75.75v.6a1.8 1.8 0 0 0 1.2 1.7c.33.12.55.43.55.78v5.37a1.25 1.25 0 1 0 2.5 0v-4.19l-.97-.97a.75.75 0 1 1 1.06-1.06l1.19 1.19c.14.14.22.33.22.53v4.5a2.75 2.75 0 1 1-5.5 0v-5.1a3.3 3.3 0 0 1-1.5-2.75V9a.75.75 0 0 1 .75-.75Z" />
+    </>
+  ) },
+  { key: 'filhos', label: 'Filhos', node: (
+    <>
+      {/* Cabeça */}
+      <circle cx="12" cy="5" r="2.6" />
+      {/* Corpinho com braços e pernas */}
+      <path d="M8.2 10.4a1 1 0 0 1 .9-.55h5.8a1 1 0 0 1 .9.55l1.4 2.9a1 1 0 1 1-1.8.86l-.5-1.05v2.1l.9 4.6a1.05 1.05 0 0 1-2.06.4l-1.14-4.26h-.44L13.06 20.3a1.05 1.05 0 0 1-2.06-.4l.9-4.6v-2.1l-.5 1.05a1 1 0 1 1-1.8-.86l1.4-2.9Z" />
+    </>
+  ) },
+  { key: 'besteiras', label: 'Besteiras', node: (
+    // Rosquinha (donut)
+    <path fillRule="evenodd" clipRule="evenodd" d="M12 2.25c-5.385 0-9.75 4.365-9.75 9.75S6.615 21.75 12 21.75s9.75-4.365 9.75-9.75S17.385 2.25 12 2.25Zm0 6.75a3 3 0 1 0 0 6 3 3 0 0 0 0-6Z" />
+  ) },
+  { key: 'entretenimento', label: 'Entretenimento', node: (
+    // Roda-gigante (parquinho)
+    <>
+      <path fillRule="evenodd" clipRule="evenodd" d="M12 2a9 9 0 1 0 0 18 9 9 0 0 0 0-18Zm0 2.2a6.8 6.8 0 1 1 0 13.6 6.8 6.8 0 0 1 0-13.6Z" />
+      <rect x="11.5" y="4.2" width="1" height="13.6" rx="0.5" />
+      <rect x="11.5" y="4.2" width="1" height="13.6" rx="0.5" transform="rotate(60 12 11)" />
+      <rect x="11.5" y="4.2" width="1" height="13.6" rx="0.5" transform="rotate(120 12 11)" />
+      <circle cx="12" cy="11" r="1.5" />
+      <circle cx="12" cy="3.6" r="1" />
+      <circle cx="12" cy="18.4" r="1" />
+      <circle cx="18.4" cy="7.3" r="1" />
+      <circle cx="5.6" cy="14.7" r="1" />
+      <circle cx="5.6" cy="7.3" r="1" />
+      <circle cx="18.4" cy="14.7" r="1" />
+      <path d="M11.2 11 L7.9 21 H9.7 L12 13.9 L14.3 21 H16.1 L12.8 11 Z" />
+      <rect x="7.2" y="20.6" width="9.6" height="1.6" rx="0.8" />
+    </>
+  ) },
+  { key: 'farmacia', label: 'Farmácia', node: (
+    // Cápsula/comprimido na diagonal
+    <path fillRule="evenodd" clipRule="evenodd" d="M4.22 10.28a6 6 0 0 1 8.49-8.49l5.5 5.5a6 6 0 1 1-8.49 8.49l-5.5-5.5Zm2.12-1.06 5.5 5.5 3.18-3.18-5.5-5.5-3.18 3.18Z" />
+  ) },
+  { key: 'saude', label: 'Saúde', node: (
+    // Coração com uma cruz/+ (plano de saúde)
+    <path fillRule="evenodd" clipRule="evenodd" d="M11.645 20.91l-.007-.003-.022-.012a15.247 15.247 0 0 1-.383-.218 25.18 25.18 0 0 1-4.244-3.17C4.688 15.36 2.25 12.174 2.25 8.25 2.25 5.322 4.714 3 7.688 3A5.5 5.5 0 0 1 12 5.052 5.5 5.5 0 0 1 16.313 3c2.973 0 5.437 2.322 5.437 5.25 0 3.925-2.438 7.111-4.739 9.256a25.175 25.175 0 0 1-4.244 3.17 15.247 15.247 0 0 1-.383.219l-.022.012-.007.004-.003.001a.752.752 0 0 1-.704 0l-.003-.001ZM11.1 6.9h1.8v1.8h1.8v1.8h-1.8v1.8h-1.8v-1.8H9.3V8.7h1.8V6.9Z" />
+  ) },
+  { key: 'educacao', label: 'Educação', node: contaIconNode('educacao') },
+  { key: 'academia', label: 'Academia', node: (
+    // Halter
+    <>
+      <path d="M2.75 9.25a.9.9 0 0 1 .9.9v3.7a.9.9 0 0 1-1.8 0v-3.7a.9.9 0 0 1 .9-.9Z" />
+      <path d="M5.75 7.4a1 1 0 0 1 1 1v7.2a1 1 0 1 1-2 0V8.4a1 1 0 0 1 1-1Z" />
+      <path d="M6.9 10.8h10.2a.7.7 0 0 1 .7.7v1a.7.7 0 0 1-.7.7H6.9a.7.7 0 0 1-.7-.7v-1a.7.7 0 0 1 .7-.7Z" />
+      <path d="M18.25 7.4a1 1 0 0 1 1 1v7.2a1 1 0 1 1-2 0V8.4a1 1 0 0 1 1-1Z" />
+      <path d="M21.25 9.25a.9.9 0 0 1 .9.9v3.7a.9.9 0 0 1-1.8 0v-3.7a.9.9 0 0 1 .9-.9Z" />
+    </>
+  ) },
+  { key: 'streaming', label: 'Streaming', node: contaIconNode('tv') },
+  { key: 'assinaturas', label: 'Assinaturas', node: (
+    // Controle de TV (corpo + visor no topo + grade de botões)
+    <path fillRule="evenodd" clipRule="evenodd" d="M9 2.25A2.25 2.25 0 0 0 6.75 4.5v15A2.25 2.25 0 0 0 9 21.75h6a2.25 2.25 0 0 0 2.25-2.25v-15A2.25 2.25 0 0 0 15 2.25H9Zm.75 3a.75.75 0 0 0-.75.75v2.25c0 .414.336.75.75.75h4.5a.75.75 0 0 0 .75-.75V6a.75.75 0 0 0-.75-.75h-4.5ZM10.5 12a.9.9 0 1 1-1.8 0 .9.9 0 0 1 1.8 0Zm3.3.9a.9.9 0 1 0 0-1.8.9.9 0 0 0 0 1.8ZM10.5 15.3a.9.9 0 1 1-1.8 0 .9.9 0 0 1 1.8 0Zm3.3.9a.9.9 0 1 0 0-1.8.9.9 0 0 0 0 1.8Zm-3.3 2.4a.9.9 0 1 1-1.8 0 .9.9 0 0 1 1.8 0Z" />
+  ) },
+  { key: 'trabalho', label: 'Trabalho', node: (
+    // Maleta
+    <path fillRule="evenodd" clipRule="evenodd" d="M7.5 5.25A2.25 2.25 0 0 1 9.75 3h4.5a2.25 2.25 0 0 1 2.25 2.25v.75h2.25A2.25 2.25 0 0 1 21 8.25v3.026a41.6 41.6 0 0 1-9 .974 41.6 41.6 0 0 1-9-.974V8.25A2.25 2.25 0 0 1 5.25 6H7.5v-.75Zm6 0v.75h-3v-.75a.75.75 0 0 1 .75-.75h1.5a.75.75 0 0 1 .75.75ZM3 13.845a43.1 43.1 0 0 0 9 .905c3.082 0 6.098-.314 9-.905v3.905A2.25 2.25 0 0 1 18.75 20H5.25A2.25 2.25 0 0 1 3 17.75v-3.905Zm9 .905a.75.75 0 0 0-.75.75v.008c0 .414.336.75.75.75h.008a.75.75 0 0 0 .75-.75v-.008a.75.75 0 0 0-.75-.75H12Z" />
+  ) },
+  { key: 'casa', label: 'Casa', node: contaIconNode('casa') },
+  { key: 'outro', label: 'Outro', node: contaIconNode('outro') },
+];
+
+// Resolve o ícone de uma categoria de compra: usa o `icone` salvo quando válido;
+// senão tenta casar pelo nome (sem acento, minúsculo) com sinônimos comuns.
+export function compraCatIconKey(nome?: string, icone?: string): string {
+  if (icone && COMPRA_CAT_ICONS.some((i) => i.key === icone)) return icone;
+  const n = (nome ?? '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
+  const syn: Record<string, string> = {
+    mercado: 'mercado', supermercado: 'mercado', feira: 'mercado',
+    comida: 'comida', restaurante: 'comida', lanche: 'comida', ifood: 'comida', delivery: 'comida',
+    carro: 'carro', veiculo: 'carro', uber: 'carro', transporte: 'carro',
+    abastecimento: 'abastecimento', combustivel: 'abastecimento', gasolina: 'abastecimento', posto: 'abastecimento', gas: 'abastecimento',
+    filhos: 'filhos', filho: 'filhos', crianca: 'filhos', criancas: 'filhos', bebe: 'filhos',
+    besteiras: 'besteiras', besteira: 'besteiras', doce: 'besteiras', doces: 'besteiras',
+    entretenimento: 'entretenimento', lazer: 'entretenimento', diversao: 'entretenimento', parque: 'entretenimento', cinema: 'entretenimento', passeio: 'entretenimento', role: 'entretenimento',
+    farmacia: 'farmacia', remedio: 'farmacia', remedios: 'farmacia', drogaria: 'farmacia',
+    saude: 'saude', medico: 'saude', plano: 'saude', dentista: 'saude', hospital: 'saude',
+    educacao: 'educacao', escola: 'educacao', curso: 'educacao', faculdade: 'educacao',
+    academia: 'academia', gym: 'academia', treino: 'academia',
+    streaming: 'streaming', streming: 'streaming', netflix: 'streaming', spotify: 'streaming', tv: 'streaming',
+    assinaturas: 'assinaturas', assinatura: 'assinaturas',
+    trabalho: 'trabalho', work: 'trabalho', escritorio: 'trabalho',
+    casa: 'casa', lar: 'casa', moradia: 'casa', aluguel: 'casa',
+  };
+  return syn[n] ?? 'outro';
+}
+
+export function CompraCatIcon({ nome, icone, className = 'w-4 h-4', color }: { nome?: string; icone?: string; className?: string; color?: string }) {
+  const item = COMPRA_CAT_ICONS.find((i) => i.key === compraCatIconKey(nome, icone)) ?? COMPRA_CAT_ICONS[COMPRA_CAT_ICONS.length - 1];
+  return (
+    <svg className={className} style={color ? { color } : undefined} fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+      {item.node}
+    </svg>
+  );
+}
+
 // Família: pai, mãe, menino de 4 anos e bebê
 export function FamilyIcon({ className = 'w-6 h-6' }: { className?: string }) {
   return (

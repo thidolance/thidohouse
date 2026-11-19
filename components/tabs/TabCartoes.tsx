@@ -1,25 +1,20 @@
 'use client';
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import dynamic from 'next/dynamic';
-
-const VChart = dynamic(
-  () => import('@visactor/react-vchart').then((m) => m.VChart),
-  { ssr: false, loading: () => <div className="animate-pulse bg-slate-100 dark:bg-zinc-800 rounded-xl h-full w-full" /> },
-);
 import Modal from '../ui/Modal';
 import Card from '../ui/Card';
 import DatePicker from '../ui/DatePicker';
-import { Plus, Trash, Pencil, ContaIcon } from '../ui/Icons';
+import { Plus, Trash, Pencil, ContaIcon, CompraCatIcon, COMPRA_CAT_ICONS, compraCatIconKey } from '../ui/Icons';
 import { useRefetchOnFocus } from '@/lib/useRefetchOnFocus';
 import { formatCurrencyInput, parseCurrencyInput, formatCurrencyBRL } from '@/lib/currency';
 import {
   subscribeCompras, addCompra, updateCompra, updateCompraAndFuture, updateCompraReparcelada, getComprasFuturasDoGrupo,
   deleteCompra, deleteCompraAndFuture, toggleCompraFixa,
   getCartoes, addCartao, updateCartao, deleteCartao,
-  getCategorias, addCategoria, deleteCategoria,
+  getCategorias, addCategoria, updateCategoria, deleteCategoria, addCategoriasSugeridas,
 } from '@/lib/firestore';
 import type { CompraParcelada, Cartao, CategoriaCompra } from '@/lib/types';
+import { DEFAULT_CATEGORIAS } from '@/lib/cartoes';
 
 const fmt = (v: number) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 
@@ -89,6 +84,65 @@ function PinIcon({ filled }: { filled?: boolean }) {
 
 const INPUT = 'w-full border border-slate-200 dark:border-zinc-800 rounded-xl px-3 py-2 text-sm text-slate-900 dark:text-zinc-50 bg-white dark:bg-zinc-900 focus:outline-none focus:ring-2 focus:ring-indigo-300 dark:focus:ring-purple-500';
 
+// Badge de parcelamento: "3/12" com mini barra de progresso das parcelas pagas.
+function ParcelaBadge({ atual, total }: { atual: number; total: number }) {
+  const pct = Math.min(100, Math.max(0, (atual / total) * 100));
+  return (
+    <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold px-2 py-0.5 rounded-md bg-indigo-50 dark:bg-purple-500/15 text-indigo-600 dark:text-purple-300">
+      <span className="tabular-nums">{atual}/{total}</span>
+      <span className="w-6 h-1.5 rounded-full bg-indigo-200/70 dark:bg-purple-500/25 overflow-hidden">
+        <span className="block h-full rounded-full bg-indigo-500 dark:bg-purple-400" style={{ width: `${pct}%` }} />
+      </span>
+    </span>
+  );
+}
+
+// Uma linha do ranking de categorias (ícone + barra proporcional + valor + %).
+type RankItem = { nome: string; cor: string; icone?: string; total: number };
+
+function CategoriaRanking({ itens, max = 5 }: { itens: RankItem[]; max?: number }) {
+  const soma = itens.reduce((s, i) => s + i.total, 0);
+  const maior = Math.max(...itens.map((i) => i.total), 1);
+  const visiveis = itens.slice(0, max);
+  return (
+    <div className="space-y-3">
+      {visiveis.map((it, idx) => {
+        const pctTotal = soma > 0 ? (it.total / soma) * 100 : 0;
+        const pctBar   = (it.total / maior) * 100;
+        return (
+          <div key={it.nome} className="flex items-center gap-3">
+            <span
+              className="flex items-center justify-center w-9 h-9 rounded-xl flex-shrink-0"
+              style={{ backgroundColor: `${it.cor}22`, color: it.cor }}
+            >
+              <CompraCatIcon nome={it.nome} icone={it.icone} className="w-5 h-5 dark:text-white" />
+            </span>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-baseline justify-between gap-2">
+                <span className="text-sm font-medium text-slate-700 dark:text-zinc-200 truncate flex items-center gap-1.5">
+                  {it.nome}
+                  {idx === 0 && itens.length > 1 && (
+                    <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-400 font-semibold whitespace-nowrap">
+                      maior gasto
+                    </span>
+                  )}
+                </span>
+                <span className="text-sm font-bold text-slate-800 dark:text-zinc-100 tabular-nums flex-shrink-0">{fmt(it.total)}</span>
+              </div>
+              <div className="flex items-center gap-2 mt-1">
+                <div className="flex-1 h-2 rounded-full bg-slate-100 dark:bg-zinc-800 overflow-hidden">
+                  <div className="h-full rounded-full transition-all duration-500" style={{ width: `${pctBar}%`, backgroundColor: it.cor }} />
+                </div>
+                <span className="text-[11px] text-slate-400 dark:text-zinc-400 tabular-nums w-9 text-right flex-shrink-0">{pctTotal.toFixed(0)}%</span>
+              </div>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 interface Props { mes: number; ano: number; }
 
 type FormCompra = {
@@ -103,8 +157,8 @@ const COMPRA_EMPTY: FormCompra = {
 type FormCartao = { nome: string; cor: string; bandeira: 'Visa' | 'Mastercard'; limite: string };
 const CARTAO_EMPTY: FormCartao = { nome: '', cor: '#6366f1', bandeira: 'Visa', limite: '' };
 
-type FormCategoria = { nome: string; cor: string };
-const CAT_EMPTY: FormCategoria = { nome: '', cor: '#10b981' };
+type FormCategoria = { nome: string; cor: string; icone: string };
+const CAT_EMPTY: FormCategoria = { nome: '', cor: '#10b981', icone: 'outro' };
 
 export default function TabCartoes({ mes, ano }: Props) {
   const [compras, setCompras]       = useState<CompraParcelada[]>([]);
@@ -113,6 +167,7 @@ export default function TabCartoes({ mes, ano }: Props) {
   const [loading, setLoading]       = useState(false);
   const [cartaoSelecionado, setCartaoSelecionado] = useState<string | null>(null);
   const [filtroCategoria, setFiltroCategoria]     = useState<string | null>(null);
+  const [ordemLista, setOrdemLista]               = useState<'data' | 'valor' | 'categoria'>('categoria');
 
   // modais
   const [showCompraModal, setShowCompraModal]   = useState(false);
@@ -129,6 +184,7 @@ export default function TabCartoes({ mes, ano }: Props) {
   const [showCartaoForm, setShowCartaoForm] = useState(false);
 
   // form categoria
+  const [editCatId, setEditCatId]       = useState<string | null>(null);
   const [formCat, setFormCat]           = useState<FormCategoria>(CAT_EMPTY);
   const [showCatForm, setShowCatForm]   = useState(false);
 
@@ -159,9 +215,13 @@ export default function TabCartoes({ mes, ano }: Props) {
     return unsub;
   }, [mes, ano]);
 
-  // ── helpers de cor ─────────────────────────────────────────────────────────
-  function catCor(nome: string) {
-    return categorias.find((c) => c.nome === nome)?.cor ?? '#94a3b8';
+  // ── helpers de ícone ───────────────────────────────────────────────────────
+  function catIcone(nome: string) {
+    return categorias.find((c) => c.nome === nome)?.icone;
+  }
+  // Categoria pré-selecionada ao abrir "Nova compra": usa "Outros" quando existir.
+  function nomeCategoriaPadrao() {
+    return categorias.find((c) => c.nome.toLowerCase() === 'outros')?.nome ?? categorias[0]?.nome ?? '';
   }
 
   // ── compras ────────────────────────────────────────────────────────────────
@@ -195,7 +255,7 @@ export default function TabCartoes({ mes, ano }: Props) {
           await updateCompraReparcelada(editCompraId, data, original);
           setShowCompraModal(false);
           setEditCompraId(null);
-          setFormCompra({ ...COMPRA_EMPTY, cartaoId: cartoes[0]?.id ?? '', tipo: categorias[0]?.nome ?? '' });
+          setFormCompra({ ...COMPRA_EMPTY, cartaoId: cartoes[0]?.id ?? '', tipo: nomeCategoriaPadrao() });
           return;
         }
       }
@@ -211,7 +271,7 @@ export default function TabCartoes({ mes, ano }: Props) {
     }
     setShowCompraModal(false);
     setEditCompraId(null);
-    setFormCompra({ ...COMPRA_EMPTY, cartaoId: cartoes[0]?.id ?? '', tipo: categorias[0]?.nome ?? '' });
+    setFormCompra({ ...COMPRA_EMPTY, cartaoId: cartoes[0]?.id ?? '', tipo: nomeCategoriaPadrao() });
   }
 
   async function confirmarEditCompra(scope: 'this' | 'future') {
@@ -220,7 +280,7 @@ export default function TabCartoes({ mes, ano }: Props) {
     if (scope === 'future') await updateCompraAndFuture(id, data, original);
     else                    await updateCompra(id, data, original);
     setEditCompraId(null);
-    setFormCompra({ ...COMPRA_EMPTY, cartaoId: cartoes[0]?.id ?? '', tipo: categorias[0]?.nome ?? '' });
+    setFormCompra({ ...COMPRA_EMPTY, cartaoId: cartoes[0]?.id ?? '', tipo: nomeCategoriaPadrao() });
   }
 
   function abrirNovaCompra(cartaoId?: string) {
@@ -228,7 +288,7 @@ export default function TabCartoes({ mes, ano }: Props) {
     setFormCompra({
       ...COMPRA_EMPTY,
       cartaoId: cartaoId ?? cartoes[0]?.id ?? '',
-      tipo: categorias[0]?.nome ?? '',
+      tipo: nomeCategoriaPadrao(),
       data: new Date().toISOString().slice(0, 10),
     });
     setShowCompraModal(true);
@@ -306,11 +366,30 @@ export default function TabCartoes({ mes, ano }: Props) {
   }
 
   // ── categorias (config) ────────────────────────────────────────────────────
+  function abrirNovaCategoria() {
+    setEditCatId(null);
+    setFormCat(CAT_EMPTY);
+    setShowCatForm(true);
+  }
+
+  function abrirEditCategoria(cat: CategoriaCompra) {
+    setEditCatId(cat.id!);
+    setFormCat({ nome: cat.nome, cor: cat.cor, icone: cat.icone ?? compraCatIconKey(cat.nome) });
+    setShowCatForm(true);
+  }
+
   async function handleSaveCategoria(e: React.SubmitEvent<HTMLFormElement>) {
     e.preventDefault();
-    await addCategoria(formCat);
+    if (editCatId) await updateCategoria(editCatId, formCat);
+    else           await addCategoria(formCat);
     setShowCatForm(false);
+    setEditCatId(null);
     setFormCat(CAT_EMPTY);
+    loadConfig();
+  }
+
+  async function handleAddSugeridas() {
+    await addCategoriasSugeridas();
     loadConfig();
   }
 
@@ -334,11 +413,25 @@ export default function TabCartoes({ mes, ano }: Props) {
     };
   });
 
-  const totalPorCategoria = categorias.map((cat) => ({
-    ...cat,
-    fill: cat.cor,
-    total: compras.filter((p) => p.tipo === cat.nome).reduce((s, p) => s + p.valorParcela, 0),
-  })).filter((c) => c.total > 0);
+  // Cartões com gasto no mês, ordenados do maior para o menor (para as barras).
+  const cartoesComGasto = totalPorCartao.filter((c) => c.total > 0).sort((a, b) => b.total - a.total);
+  const maxGastoCartao  = Math.max(...cartoesComGasto.map((c) => c.total), 1);
+
+  // Ranking de categorias (ordenado do maior gasto para o menor) a partir de uma
+  // lista de compras — reusado no geral e por cartão.
+  const rankingCategorias = useCallback((lista: CompraParcelada[]): RankItem[] =>
+    categorias
+      .map((cat) => ({
+        nome: cat.nome,
+        cor: cat.cor,
+        icone: cat.icone,
+        total: lista.filter((p) => p.tipo === cat.nome).reduce((s, p) => s + p.valorParcela, 0),
+      }))
+      .filter((c) => c.total > 0)
+      .sort((a, b) => b.total - a.total),
+  [categorias]);
+
+  const rankingGeral = useMemo(() => rankingCategorias(compras), [rankingCategorias, compras]);
 
   // Ordena pela data da compra (mais recente primeiro); fixas sempre vão para o final
   const porDataComFixaPorUltimo = (a: CompraParcelada, b: CompraParcelada) => {
@@ -350,9 +443,40 @@ export default function TabCartoes({ mes, ano }: Props) {
     ? compras.filter((c) => c.cartaoId === cartaoSelecionado).sort(porDataComFixaPorUltimo)
     : [];
 
-  const comprasOrdenadas = [...compras]
-    .filter((c) => !filtroCategoria || c.tipo === filtroCategoria)
-    .sort(porDataComFixaPorUltimo);
+  const rankingCartao = rankingCategorias(comprasDoCartao);
+  // Ranking exibido no card do topo: do cartão selecionado, ou geral do mês.
+  const rankingVisivel = cartaoSelecionado ? rankingCartao : rankingGeral;
+
+  // Lista do cartão selecionado: ordenada (recentes/valor) e agrupada por categoria.
+  const comprasDoCartaoOrdenada = [...comprasDoCartao].sort(
+    ordemLista === 'valor'
+      ? (a, b) => b.valorParcela - a.valorParcela
+      : porDataComFixaPorUltimo,
+  );
+  const gruposDoCartao = rankingCartao.map((g) => ({
+    ...g,
+    itens: comprasDoCartao
+      .filter((c) => c.tipo === g.nome)
+      .sort((a, b) => b.valorParcela - a.valorParcela),
+  }));
+
+  const comprasFiltradas = compras.filter((c) => !filtroCategoria || c.tipo === filtroCategoria);
+
+  // Lista plana ordenada por data (recentes) ou por valor (maior primeiro).
+  const comprasOrdenadas = [...comprasFiltradas].sort(
+    ordemLista === 'valor'
+      ? (a, b) => b.valorParcela - a.valorParcela
+      : porDataComFixaPorUltimo,
+  );
+
+  // Agrupamento por categoria: grupos do maior gasto para o menor; dentro de cada
+  // grupo, do maior valor para o menor.
+  const gruposPorCategoria = rankingCategorias(comprasFiltradas).map((g) => ({
+    ...g,
+    itens: comprasFiltradas
+      .filter((c) => c.tipo === g.nome)
+      .sort((a, b) => b.valorParcela - a.valorParcela),
+  }));
 
   // Categorias que realmente têm compras no mês, para montar os chips do filtro
   const categoriasComCompras = categorias.filter((cat) => compras.some((c) => c.tipo === cat.nome));
@@ -361,72 +485,89 @@ export default function TabCartoes({ mes, ano }: Props) {
 
   const isParcelada = parseInt(formCompra.totalParcelas || '0') > 1;
 
-  // ── specs VChart ──────────────────────────────────────────────────────────
+  // Categorias sugeridas (padrão) que ainda não foram criadas na conta.
+  const sugeridasFaltantes = DEFAULT_CATEGORIAS.filter(
+    (d) => !categorias.some((c) => c.nome.trim().toLowerCase() === d.nome.trim().toLowerCase()),
+  );
 
-  const cartaoBarSpec = useMemo(() => ({
-    type: 'bar',
-    autoFit: true,
-    background: 'transparent',
-    data: [{ id: 'bar', values: totalPorCartao.filter((c) => c.total > 0) }],
-    xField: 'nome',
-    yField: 'total',
-    bar: {
-      style: {
-        cornerRadius: [8, 8, 0, 0],
-        fill: (d: Record<string, unknown>) => String(d['fill']),
-      },
-    },
-    axes: [
-      { orient: 'bottom', domainLine: { visible: false }, tick: { visible: false }, label: { style: { fontSize: 12, fill: '#64748b' } } },
-      {
-        orient: 'left',
-        grid: { style: { stroke: 'rgba(113,113,122,0.2)', lineDash: [3, 3] } },
-        domainLine: { visible: false },
-        tick: { visible: false },
-        label: {
-          style: { fontSize: 11, fill: '#94a3b8' },
-          formatMethod: (v: number) => v === 0 ? 'R$0' : `R$${(v / 1000).toFixed(0)}k`,
-        },
-      },
-    ],
-    tooltip: {
-      mark: {
-        title: { visible: false },
-        content: [{ key: (d: Record<string, unknown>) => String(d['nome']), value: (d: Record<string, unknown>) => fmt(Number(d['total'])) }],
-      },
-    },
-  }), [totalPorCartao]);
+  // Linha de uma compra no detalhe do cartão (badge na cor do cartão; sem nome do cartão).
+  function linhaCompraDoCartao(p: CompraParcelada, cor: string) {
+    return (
+      <div key={p.id} className="flex items-center justify-between p-3 rounded-xl hover:bg-slate-50 dark:hover:bg-zinc-800 transition-colors">
+        <div className="flex items-center gap-3 min-w-0">
+          <span
+            className="flex items-center justify-center w-10 h-10 rounded-xl flex-shrink-0"
+            style={{ backgroundColor: `${cor}26`, color: cor }}
+            title={p.tipo}
+          >
+            <CompraCatIcon nome={p.tipo} icone={catIcone(p.tipo)} className="w-5 h-5 dark:text-white" />
+          </span>
+          <div className="min-w-0">
+            <p className="font-medium text-slate-700 dark:text-zinc-200 text-sm truncate">{p.descricao}</p>
+            {p.data && <p className="text-[11px] text-slate-400 dark:text-zinc-400 leading-tight">{new Date(p.data + 'T12:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' })}</p>}
+            {p.totalParcelas > 1 && (
+              <div className="flex items-center gap-1.5 mt-1">
+                <ParcelaBadge atual={p.parcelaAtual} total={p.totalParcelas} />
+                <span className="text-[11px] text-slate-400 dark:text-zinc-400">de {fmt(p.valorTotal)}</span>
+              </div>
+            )}
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="font-bold text-sm text-slate-800 dark:text-zinc-100 tabular-nums">{fmt(p.valorParcela)}</span>
+          <button onClick={() => handleToggleFixa(p)} title={p.fixa ? 'Remover recorrência' : 'Marcar como fixa'}
+            className={`p-1.5 rounded-lg transition-colors ${p.fixa ? 'text-amber-500 bg-amber-50 dark:bg-amber-500/10' : 'text-slate-300 dark:text-zinc-500 hover:text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-500/10'}`}>
+            <PinIcon filled={p.fixa} />
+          </button>
+          <button onClick={() => abrirEditCompra(p)} className="p-1.5 rounded-lg hover:bg-indigo-50 dark:hover:bg-purple-500/10 text-slate-300 dark:text-zinc-500 hover:text-indigo-400 dark:hover:text-purple-400 transition-colors"><Pencil /></button>
+          <button onClick={() => iniciarDeleteCompra(p)} className="p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-500/10 text-slate-300 dark:text-zinc-500 hover:text-red-400 transition-colors"><Trash /></button>
+        </div>
+      </div>
+    );
+  }
 
-  const catDonutSpec = useMemo(() => ({
-    type: 'pie',
-    autoFit: true,
-    background: 'transparent',
-    data: [{ id: 'cat', values: totalPorCategoria }],
-    valueField: 'total',
-    categoryField: 'nome',
-    outerRadius: 0.75,
-    innerRadius: 0.52,
-    padAngle: 0.8,
-    color: totalPorCategoria.map((d) => d.fill),
-    pie: { style: { cornerRadius: 4 } },
-    label: { visible: false },
-    legends: [{
-      visible: true,
-      orient: 'bottom',
-      padding: { top: 8 },
-      maxRow: 3,
-      item: {
-        label: { style: { fontSize: 11, fill: '#64748b' } },
-        value: { visible: false },
-      },
-    }],
-    tooltip: {
-      mark: {
-        title: { visible: false },
-        content: [{ key: (d: Record<string, unknown>) => String(d['nome']), value: (d: Record<string, unknown>) => fmt(Number(d['total'])) }],
-      },
-    },
-  }), [totalPorCategoria]);
+  // Linha de uma compra na lista "Todas as Compras" (reusada na lista plana e agrupada).
+  function linhaCompra(p: CompraParcelada) {
+    const c = cartoes.find((c) => c.id === p.cartaoId);
+    return (
+      <div key={p.id} className="flex items-center justify-between p-3 rounded-xl hover:bg-slate-50 dark:hover:bg-zinc-800 transition-colors">
+        <div className="flex items-center gap-3 min-w-0">
+          <span
+            className="flex items-center justify-center w-10 h-10 rounded-xl flex-shrink-0"
+            style={{ backgroundColor: `${c?.cor ?? '#94a3b8'}26`, color: c?.cor ?? '#94a3b8' }}
+            title={`${p.tipo} · ${c?.nome ?? ''}`}
+          >
+            <CompraCatIcon nome={p.tipo} icone={catIcone(p.tipo)} className="w-5 h-5 dark:text-white" />
+          </span>
+          <div className="min-w-0">
+            <p className="font-medium text-slate-700 dark:text-zinc-200 text-sm truncate">{p.descricao}</p>
+            {p.data && <p className="text-[11px] text-slate-400 dark:text-zinc-400 leading-tight">{new Date(p.data + 'T12:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' })}</p>}
+            <div className="flex items-center gap-1.5 mt-1">
+              <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-slate-600 dark:text-zinc-300">
+                <span className="w-2 h-2 rounded-full" style={{ backgroundColor: c?.cor ?? '#94a3b8' }} />
+                {c?.nome}
+              </span>
+              {p.totalParcelas > 1 && (
+                <>
+                  <span className="text-slate-300 dark:text-zinc-500 text-[11px]">·</span>
+                  <ParcelaBadge atual={p.parcelaAtual} total={p.totalParcelas} />
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="font-semibold text-sm text-slate-700 dark:text-zinc-200">{fmt(p.valorParcela)}</span>
+          <button onClick={() => handleToggleFixa(p)} title={p.fixa ? 'Remover recorrência' : 'Marcar como fixa'}
+            className={`p-1.5 rounded-lg transition-colors ${p.fixa ? 'text-amber-500 bg-amber-50 dark:bg-amber-500/10' : 'text-slate-300 dark:text-zinc-500 hover:text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-500/10'}`}>
+            <PinIcon filled={p.fixa} />
+          </button>
+          <button onClick={() => abrirEditCompra(p)} className="p-1.5 rounded-lg hover:bg-indigo-50 dark:hover:bg-purple-500/10 text-slate-300 dark:text-zinc-500 hover:text-indigo-400 dark:hover:text-purple-400 transition-colors"><Pencil /></button>
+          <button onClick={() => iniciarDeleteCompra(p)} className="p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-500/10 text-slate-300 dark:text-zinc-500 hover:text-red-400 transition-colors"><Trash /></button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-5">
@@ -452,20 +593,49 @@ export default function TabCartoes({ mes, ano }: Props) {
         </div>
       </div>
 
-      {/* ── Card total ── */}
-      <div className="bg-gradient-to-br from-indigo-600 dark:from-purple-600 to-violet-700 rounded-2xl px-4 py-3 text-white shadow-lg shadow-indigo-200 dark:shadow-purple-500/20">
-        <p className="text-indigo-100 dark:text-purple-100 text-xs font-medium uppercase tracking-wide">Total do Mês</p>
+      {/* ── Card total (clicável: limpa o cartão selecionado e volta ao total) ── */}
+      <button
+        type="button"
+        onClick={() => setCartaoSelecionado(null)}
+        className={`block w-full text-left bg-gradient-to-br from-indigo-600 dark:from-purple-600 to-violet-700 rounded-2xl px-4 py-3 text-white shadow-lg shadow-indigo-200 dark:shadow-purple-500/20 transition-all ${cartaoSelecionado ? 'ring-2 ring-white/60 hover:brightness-110 cursor-pointer' : 'cursor-default'}`}
+      >
+        <div className="flex items-center justify-between">
+          <p className="text-indigo-100 dark:text-purple-100 text-xs font-medium uppercase tracking-wide">Total do Mês</p>
+          {cartaoSelecionado && <span className="text-[11px] bg-white/20 rounded-full px-2 py-0.5 font-medium">ver total ↩</span>}
+        </div>
         <p className="text-2xl font-bold mt-0.5 tabular-nums">{fmt(totalGeral)}</p>
         <p className="text-indigo-100 dark:text-purple-100 text-[11px] mt-1">{compras.length} compra(s) em {cartoes.length} cartão(s)</p>
-      </div>
+      </button>
 
       {/* ── Gráficos ── */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <Card>
           <p className="font-semibold text-slate-700 dark:text-zinc-200 text-sm mb-3">Gasto por Cartão</p>
-          {totalGeral > 0 ? (
-            <div style={{ height: 220 }}>
-              <VChart key={`cartao-bar-${totalGeral.toFixed(0)}`} spec={cartaoBarSpec as any} />
+          {cartoesComGasto.length > 0 ? (
+            <div className="space-y-3">
+              {cartoesComGasto.map((c) => {
+                const pctTotal = totalGeral > 0 ? (c.total / totalGeral) * 100 : 0;
+                const pctBar   = (c.total / maxGastoCartao) * 100;
+                return (
+                  <div key={c.id} className="flex items-center gap-3">
+                    <span className="flex items-center justify-center w-9 h-9 rounded-xl flex-shrink-0 text-white" style={{ backgroundColor: c.cor }}>
+                      <ContaIcon nome="cartao" className="w-5 h-5" />
+                    </span>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-baseline justify-between gap-2">
+                        <span className="text-sm font-medium text-slate-700 dark:text-zinc-200 truncate">{c.nome}</span>
+                        <span className="text-sm font-bold text-slate-800 dark:text-zinc-100 tabular-nums flex-shrink-0">{fmt(c.total)}</span>
+                      </div>
+                      <div className="flex items-center gap-2 mt-1">
+                        <div className="flex-1 h-2 rounded-full bg-slate-100 dark:bg-zinc-800 overflow-hidden">
+                          <div className="h-full rounded-full transition-all duration-500" style={{ width: `${pctBar}%`, backgroundColor: c.cor }} />
+                        </div>
+                        <span className="text-[11px] text-slate-400 dark:text-zinc-400 tabular-nums w-9 text-right flex-shrink-0">{pctTotal.toFixed(0)}%</span>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           ) : (
             <div className="h-[220px] flex flex-col items-center justify-center text-slate-400 dark:text-zinc-400 gap-2">
@@ -475,15 +645,30 @@ export default function TabCartoes({ mes, ano }: Props) {
           )}
         </Card>
         <Card>
-          <p className="font-semibold text-slate-700 dark:text-zinc-200 text-sm mb-3">Por Categoria</p>
-          {totalPorCategoria.length > 0 ? (
-            <div style={{ height: 220 }}>
-              <VChart key={`cat-donut-${totalGeral.toFixed(0)}`} spec={catDonutSpec as any} />
+          <div className="flex items-center justify-between mb-3 gap-2">
+            <p className="font-semibold text-slate-700 dark:text-zinc-200 text-sm truncate flex items-center gap-1.5 min-w-0">
+              {cartaoSelecionado && cartaoAtivo ? (
+                <>
+                  <span className="truncate">Onde você gasta mais</span>
+                  <span className="inline-flex items-center gap-1 flex-shrink-0 px-2 py-0.5 rounded-full text-white" style={{ backgroundColor: cartaoAtivo.cor }}>
+                    <ContaIcon nome="cartao" className="w-3 h-3" />
+                    {cartaoAtivo.nome}
+                  </span>
+                </>
+              ) : 'Onde você gasta mais'}
+            </p>
+            {rankingVisivel.length > 0 && (
+              <span className="text-[11px] text-slate-400 dark:text-zinc-400 flex-shrink-0">{rankingVisivel.length} categoria(s)</span>
+            )}
+          </div>
+          {rankingVisivel.length > 0 ? (
+            <div className="max-h-[260px] overflow-y-auto pr-1">
+              <CategoriaRanking itens={rankingVisivel} max={rankingVisivel.length} />
             </div>
           ) : (
             <div className="h-[220px] flex flex-col items-center justify-center text-slate-400 dark:text-zinc-400 gap-2">
               <span className="text-3xl">📊</span>
-              <p className="text-sm">Sem dados de categoria</p>
+              <p className="text-sm">{cartaoSelecionado ? 'Sem compras neste cartão' : 'Sem dados de categoria'}</p>
             </div>
           )}
         </Card>
@@ -595,39 +780,49 @@ export default function TabCartoes({ mes, ano }: Props) {
               <Plus /> Adicionar
             </button>
           </div>
+
+          {/* Ordenação / agrupamento (mesma da lista geral) */}
+          {comprasDoCartao.length > 0 && (
+            <div className="flex gap-0.5 bg-slate-100 dark:bg-zinc-800 p-0.5 rounded-lg text-xs mb-4 w-fit">
+              {([['data', 'Recentes'], ['valor', 'Maior valor'], ['categoria', 'Categoria']] as const).map(([key, label]) => (
+                <button
+                  key={key}
+                  onClick={() => setOrdemLista(key)}
+                  className={`px-2.5 py-1 rounded-md font-medium transition-all ${ordemLista === key ? 'bg-white text-slate-800 shadow-sm dark:bg-purple-600 dark:text-white' : 'text-slate-500 dark:text-zinc-400 hover:text-slate-700 dark:hover:text-zinc-200'}`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          )}
+
           {loading ? (
             <p className="text-slate-400 dark:text-zinc-400 text-sm text-center py-6">Carregando...</p>
           ) : comprasDoCartao.length === 0 ? (
             <p className="text-slate-400 dark:text-zinc-400 text-sm text-center py-6">Nenhuma compra neste mês</p>
-          ) : (
-            <div className="space-y-2">
-              {comprasDoCartao.map((p) => (
-                <div key={p.id} className="flex items-center justify-between p-3 rounded-xl hover:bg-slate-50 dark:hover:bg-zinc-800 transition-colors">
-                  <div className="flex items-center gap-3">
-                    <span className="text-xs px-2 py-0.5 rounded-full font-medium" style={{ backgroundColor: `${catCor(p.tipo)}22`, color: catCor(p.tipo) }}>
-                      {p.tipo}
+          ) : ordemLista === 'categoria' ? (
+            <div className="space-y-5">
+              {gruposDoCartao.map((g) => (
+                <div key={g.nome}>
+                  <div className="flex items-center justify-between gap-2 mb-2 px-1">
+                    <span className="inline-flex items-center gap-2 text-sm font-semibold text-slate-700 dark:text-zinc-200">
+                      <span className="flex items-center justify-center w-6 h-6 rounded-lg flex-shrink-0" style={{ backgroundColor: `${g.cor}22`, color: g.cor }}>
+                        <CompraCatIcon nome={g.nome} icone={g.icone} className="w-4 h-4 dark:text-white" />
+                      </span>
+                      {g.nome}
+                      <span className="text-[11px] font-normal text-slate-400 dark:text-zinc-500">{g.itens.length}</span>
                     </span>
-                    <div>
-                      <p className="font-medium text-slate-700 dark:text-zinc-200 text-sm">{p.descricao}</p>
-                      {p.data && <p className="text-[11px] text-slate-400 dark:text-zinc-400 leading-tight">{new Date(p.data + 'T12:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' })}</p>}
-                      <div className="flex items-center gap-1.5 mt-0.5">
-                        <span className="text-[11px] px-1.5 py-0.5 rounded-full bg-slate-100 dark:bg-zinc-800 text-slate-500 dark:text-zinc-400 font-medium">{p.parcelaAtual}/{p.totalParcelas}</span>
-                        <span className="text-slate-300 dark:text-zinc-500 text-[11px]">·</span>
-                        <span className="text-[11px] text-slate-400 dark:text-zinc-400">total {fmt(p.valorTotal)}</span>
-                      </div>
-                    </div>
+                    <span className="text-sm font-bold tabular-nums" style={{ color: g.cor }}>{fmt(g.total)}</span>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <span className="font-bold text-sm text-slate-800 dark:text-zinc-100 tabular-nums">{fmt(p.valorParcela)}</span>
-                    <button onClick={() => handleToggleFixa(p)} title={p.fixa ? 'Remover recorrência' : 'Marcar como fixa'}
-                      className={`p-1.5 rounded-lg transition-colors ${p.fixa ? 'text-amber-500 bg-amber-50 dark:bg-amber-500/10' : 'text-slate-300 dark:text-zinc-500 hover:text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-500/10'}`}>
-                      <PinIcon filled={p.fixa} />
-                    </button>
-                    <button onClick={() => abrirEditCompra(p)} className="p-1.5 rounded-lg hover:bg-indigo-50 dark:hover:bg-purple-500/10 text-slate-300 dark:text-zinc-500 hover:text-indigo-400 dark:hover:text-purple-400 transition-colors"><Pencil /></button>
-                    <button onClick={() => iniciarDeleteCompra(p)} className="p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-500/10 text-slate-300 dark:text-zinc-500 hover:text-red-400 transition-colors"><Trash /></button>
+                  <div className="space-y-2">
+                    {g.itens.map((p) => linhaCompraDoCartao(p, cartaoAtivo.cor))}
                   </div>
                 </div>
               ))}
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {comprasDoCartaoOrdenada.map((p) => linhaCompraDoCartao(p, cartaoAtivo.cor))}
             </div>
           )}
           </div>
@@ -637,7 +832,21 @@ export default function TabCartoes({ mes, ano }: Props) {
       {/* Todas as compras */}
       {!cartaoSelecionado && (
         <Card>
-          <h3 className="font-semibold text-slate-700 dark:text-zinc-200 mb-3">Todas as Compras do Mês</h3>
+          <div className="flex items-center justify-between gap-2 mb-3 flex-wrap">
+            <h3 className="font-semibold text-slate-700 dark:text-zinc-200">Todas as Compras do Mês</h3>
+            {/* Ordenação / agrupamento */}
+            <div className="flex gap-0.5 bg-slate-100 dark:bg-zinc-800 p-0.5 rounded-lg text-xs">
+              {([['data', 'Recentes'], ['valor', 'Maior valor'], ['categoria', 'Categoria']] as const).map(([key, label]) => (
+                <button
+                  key={key}
+                  onClick={() => setOrdemLista(key)}
+                  className={`px-2.5 py-1 rounded-md font-medium transition-all ${ordemLista === key ? 'bg-white text-slate-800 shadow-sm dark:bg-purple-600 dark:text-white' : 'text-slate-500 dark:text-zinc-400 hover:text-slate-700 dark:hover:text-zinc-200'}`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
 
           {/* Filtro por categoria */}
           {categoriasComCompras.length > 0 && (
@@ -652,11 +861,12 @@ export default function TabCartoes({ mes, ano }: Props) {
                 <button
                   key={cat.id}
                   onClick={() => setFiltroCategoria(filtroCategoria === cat.nome ? null : cat.nome)}
-                  className="px-3 py-1.5 rounded-full text-xs font-medium transition-all border"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all border"
                   style={filtroCategoria === cat.nome
                     ? { backgroundColor: cat.cor, color: '#fff', borderColor: cat.cor }
                     : { borderColor: '#e2e8f0', color: '#64748b' }}
                 >
+                  <CompraCatIcon nome={cat.nome} icone={cat.icone} className="w-3.5 h-3.5" />
                   {cat.nome}
                 </button>
               ))}
@@ -669,39 +879,29 @@ export default function TabCartoes({ mes, ano }: Props) {
             <p className="text-slate-400 dark:text-zinc-400 text-sm text-center py-8">Clique em um cartão para filtrar ou adicione uma compra</p>
           ) : comprasOrdenadas.length === 0 ? (
             <p className="text-slate-400 dark:text-zinc-400 text-sm text-center py-8">Nenhuma compra nesta categoria</p>
+          ) : ordemLista === 'categoria' ? (
+            <div className="space-y-5">
+              {gruposPorCategoria.map((g) => (
+                <div key={g.nome}>
+                  <div className="flex items-center justify-between gap-2 mb-2 px-1">
+                    <span className="inline-flex items-center gap-2 text-sm font-semibold text-slate-700 dark:text-zinc-200">
+                      <span className="flex items-center justify-center w-6 h-6 rounded-lg flex-shrink-0" style={{ backgroundColor: `${g.cor}22`, color: g.cor }}>
+                        <CompraCatIcon nome={g.nome} icone={g.icone} className="w-4 h-4 dark:text-white" />
+                      </span>
+                      {g.nome}
+                      <span className="text-[11px] font-normal text-slate-400 dark:text-zinc-500">{g.itens.length}</span>
+                    </span>
+                    <span className="text-sm font-bold tabular-nums" style={{ color: g.cor }}>{fmt(g.total)}</span>
+                  </div>
+                  <div className="space-y-2">
+                    {g.itens.map((p) => linhaCompra(p))}
+                  </div>
+                </div>
+              ))}
+            </div>
           ) : (
             <div className="space-y-2">
-              {comprasOrdenadas.map((p) => {
-                const c = cartoes.find((c) => c.id === p.cartaoId);
-                return (
-                  <div key={p.id} className="flex items-center justify-between p-3 rounded-xl hover:bg-slate-50 dark:hover:bg-zinc-800 transition-colors">
-                    <div className="flex items-center gap-3">
-                      <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: c?.cor ?? '#94a3b8' }} />
-                      <span className="text-xs px-2 py-0.5 rounded-full font-medium" style={{ backgroundColor: `${catCor(p.tipo)}22`, color: catCor(p.tipo) }}>
-                        {p.tipo}
-                      </span>
-                      <div>
-                        <p className="font-medium text-slate-700 dark:text-zinc-200 text-sm">{p.descricao}</p>
-                        {p.data && <p className="text-[11px] text-slate-400 dark:text-zinc-400 leading-tight">{new Date(p.data + 'T12:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' })}</p>}
-                        <div className="flex items-center gap-1.5 mt-0.5">
-                          <span className="text-[11px] font-semibold" style={{ color: c?.cor ?? '#94a3b8' }}>{c?.nome}</span>
-                          <span className="text-slate-300 dark:text-zinc-500 text-[11px]">·</span>
-                          <span className="text-[11px] px-1.5 py-0.5 rounded-full bg-slate-100 dark:bg-zinc-800 text-slate-500 dark:text-zinc-400 font-medium">{p.parcelaAtual}/{p.totalParcelas}</span>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="font-semibold text-sm text-slate-700 dark:text-zinc-200">{fmt(p.valorParcela)}</span>
-                      <button onClick={() => handleToggleFixa(p)} title={p.fixa ? 'Remover recorrência' : 'Marcar como fixa'}
-                        className={`p-1.5 rounded-lg transition-colors ${p.fixa ? 'text-amber-500 bg-amber-50 dark:bg-amber-500/10' : 'text-slate-300 dark:text-zinc-500 hover:text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-500/10'}`}>
-                        <PinIcon filled={p.fixa} />
-                      </button>
-                      <button onClick={() => abrirEditCompra(p)} className="p-1.5 rounded-lg hover:bg-indigo-50 dark:hover:bg-purple-500/10 text-slate-300 dark:text-zinc-500 hover:text-indigo-400 dark:hover:text-purple-400 transition-colors"><Pencil /></button>
-                      <button onClick={() => iniciarDeleteCompra(p)} className="p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-500/10 text-slate-300 dark:text-zinc-500 hover:text-red-400 transition-colors"><Trash /></button>
-                    </div>
-                  </div>
-                );
-              })}
+              {comprasOrdenadas.map((p) => linhaCompra(p))}
             </div>
           )}
         </Card>
@@ -747,14 +947,25 @@ export default function TabCartoes({ mes, ano }: Props) {
                     key={cat.id}
                     type="button"
                     onClick={() => setFormCompra({ ...formCompra, tipo: cat.nome })}
-                    className="px-3 py-1.5 rounded-full text-xs font-medium transition-all border"
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all border"
                     style={formCompra.tipo === cat.nome
                       ? { backgroundColor: cat.cor, color: '#fff', borderColor: cat.cor }
                       : { borderColor: '#e2e8f0', color: '#64748b' }}
                   >
+                    <CompraCatIcon nome={cat.nome} icone={cat.icone} className="w-3.5 h-3.5" />
                     {cat.nome}
                   </button>
                 ))}
+                {sugeridasFaltantes.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={handleAddSugeridas}
+                    title={`Adicionar: ${sugeridasFaltantes.map((c) => c.nome).join(', ')}`}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border border-dashed border-indigo-300 dark:border-purple-500/50 text-indigo-600 dark:text-purple-300 hover:bg-indigo-50 dark:hover:bg-purple-500/10 transition-colors"
+                  >
+                    <Plus /> Sugeridas
+                  </button>
+                )}
               </div>
             </div>
 
@@ -764,8 +975,8 @@ export default function TabCartoes({ mes, ano }: Props) {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-slate-700 dark:text-zinc-200 mb-1">Data da Compra</label>
-              <DatePicker required value={formCompra.data} onChange={(v) => setFormCompra({ ...formCompra, data: v })} className={INPUT} />
+              <label className="block text-sm font-medium text-slate-700 dark:text-zinc-200 mb-1">Data da Compra <span className="text-slate-400 dark:text-zinc-500 font-normal">(opcional)</span></label>
+              <DatePicker value={formCompra.data} onChange={(v) => setFormCompra({ ...formCompra, data: v })} className={INPUT} />
             </div>
 
             <div className="grid grid-cols-2 gap-3">
@@ -914,32 +1125,62 @@ export default function TabCartoes({ mes, ano }: Props) {
             <div className="space-y-3">
               {categorias.map((cat) => (
                 <div key={cat.id} className="flex items-center gap-3 p-3 rounded-xl border border-slate-100 dark:border-zinc-800 hover:bg-slate-50 dark:hover:bg-zinc-800">
-                  <span className="w-5 h-5 rounded-full flex-shrink-0" style={{ backgroundColor: cat.cor }} />
+                  <span className="flex items-center justify-center w-9 h-9 rounded-xl flex-shrink-0" style={{ backgroundColor: `${cat.cor}22`, color: cat.cor }}>
+                    <CompraCatIcon nome={cat.nome} icone={cat.icone} className="w-5 h-5 dark:text-white" />
+                  </span>
                   <p className="flex-1 text-sm font-medium text-slate-700 dark:text-zinc-200">{cat.nome}</p>
+                  <button onClick={() => abrirEditCategoria(cat)} className="p-1.5 rounded-lg hover:bg-indigo-50 dark:hover:bg-purple-500/10 text-slate-300 dark:text-zinc-500 hover:text-indigo-400 dark:hover:text-purple-400 transition-colors"><Pencil /></button>
                   <button onClick={() => handleDeleteCategoria(cat.id!)} className="p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-500/10 text-slate-300 dark:text-zinc-500 hover:text-red-400 transition-colors"><Trash /></button>
                 </div>
               ))}
 
-              {!showCatForm ? (
-                <button onClick={() => setShowCatForm(true)} className="w-full py-2.5 border-2 border-dashed border-slate-200 dark:border-zinc-800 rounded-xl text-sm text-slate-400 dark:text-zinc-400 hover:border-indigo-300 hover:text-indigo-500 dark:hover:text-purple-400 transition-colors flex items-center justify-center gap-2">
-                  <Plus /> Nova Categoria
-                </button>
-              ) : (
+              {!showCatForm && (
+                <div className="flex flex-col sm:flex-row gap-2">
+                  <button onClick={abrirNovaCategoria} className="flex-1 py-2.5 border-2 border-dashed border-slate-200 dark:border-zinc-800 rounded-xl text-sm text-slate-400 dark:text-zinc-400 hover:border-indigo-300 hover:text-indigo-500 dark:hover:text-purple-400 transition-colors flex items-center justify-center gap-2">
+                    <Plus /> Nova Categoria
+                  </button>
+                  <button onClick={handleAddSugeridas} className="flex-1 py-2.5 border border-indigo-200 dark:border-purple-500/40 rounded-xl text-sm text-indigo-600 dark:text-purple-300 hover:bg-indigo-50 dark:hover:bg-purple-500/10 transition-colors flex items-center justify-center gap-2 font-medium">
+                    <Plus /> Adicionar sugeridas
+                  </button>
+                </div>
+              )}
+
+              {showCatForm && (
                 <form onSubmit={handleSaveCategoria} className="border border-slate-200 dark:border-zinc-800 rounded-xl p-4 space-y-3 bg-slate-50 dark:bg-zinc-950">
-                  <p className="text-sm font-semibold text-slate-700 dark:text-zinc-200">Nova Categoria</p>
+                  <p className="text-sm font-semibold text-slate-700 dark:text-zinc-200">{editCatId ? 'Editar Categoria' : 'Nova Categoria'}</p>
                   <input required value={formCat.nome} onChange={(e) => setFormCat({ ...formCat, nome: e.target.value })} className={INPUT} placeholder="Ex: Carro, Roupas..." />
+                  <div>
+                    <label className="block text-xs text-slate-500 dark:text-zinc-400 mb-1">Ícone</label>
+                    <div className="grid grid-cols-7 gap-1.5">
+                      {COMPRA_CAT_ICONS.map((ic) => (
+                        <button
+                          key={ic.key}
+                          type="button"
+                          title={ic.label}
+                          onClick={() => setFormCat({ ...formCat, icone: ic.key })}
+                          className="flex items-center justify-center aspect-square rounded-lg border transition-all"
+                          style={formCat.icone === ic.key
+                            ? { backgroundColor: `${formCat.cor}22`, color: formCat.cor, borderColor: formCat.cor }
+                            : { borderColor: '#e2e8f0', color: '#64748b' }}
+                        >
+                          <CompraCatIcon icone={ic.key} className="w-5 h-5" />
+                        </button>
+                      ))}
+                    </div>
+                  </div>
                   <div>
                     <label className="block text-xs text-slate-500 dark:text-zinc-400 mb-1">Cor</label>
                     <div className="flex items-center gap-2">
                       <input type="color" value={formCat.cor} onChange={(e) => setFormCat({ ...formCat, cor: e.target.value })} className="w-10 h-9 rounded-lg border border-slate-200 dark:border-zinc-800 cursor-pointer p-0.5 bg-white dark:bg-zinc-900" />
                       <span className="text-xs text-slate-500 dark:text-zinc-400 font-mono">{formCat.cor}</span>
-                      <span className="px-3 py-1 rounded-full text-xs font-medium ml-2" style={{ backgroundColor: `${formCat.cor}22`, color: formCat.cor }}>
+                      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium ml-2" style={{ backgroundColor: `${formCat.cor}22`, color: formCat.cor }}>
+                        <CompraCatIcon icone={formCat.icone} nome={formCat.nome} className="w-3.5 h-3.5" />
                         {formCat.nome || 'Exemplo'}
                       </span>
                     </div>
                   </div>
                   <div className="flex gap-2">
-                    <button type="button" onClick={() => { setShowCatForm(false); setFormCat(CAT_EMPTY); }} className="flex-1 py-2 border border-slate-200 dark:border-zinc-800 rounded-xl text-xs text-slate-600 dark:text-zinc-300 hover:bg-white dark:hover:bg-zinc-800">Cancelar</button>
+                    <button type="button" onClick={() => { setShowCatForm(false); setEditCatId(null); setFormCat(CAT_EMPTY); }} className="flex-1 py-2 border border-slate-200 dark:border-zinc-800 rounded-xl text-xs text-slate-600 dark:text-zinc-300 hover:bg-white dark:hover:bg-zinc-800">Cancelar</button>
                     <button type="submit" className="flex-1 py-2 bg-indigo-600 dark:bg-purple-600 text-white rounded-xl text-xs font-medium hover:bg-indigo-700 dark:hover:bg-purple-700">Salvar</button>
                   </div>
                 </form>

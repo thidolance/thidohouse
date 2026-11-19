@@ -424,6 +424,19 @@ export async function addCategoria(c: Omit<CategoriaCompra, 'id'>): Promise<void
   await addDoc(collection(db, 'categorias'), c);
 }
 
+export async function updateCategoria(id: string, c: Omit<CategoriaCompra, 'id'>): Promise<void> {
+  await updateDoc(doc(db, 'categorias', id), c as Record<string, unknown>);
+}
+
+// Adiciona as categorias padrão que ainda não existem (compara pelo nome), sem
+// mexer nas já cadastradas. Usado pelo botão "Adicionar sugeridas" na config.
+export async function addCategoriasSugeridas(): Promise<void> {
+  const existentes = await cachedCollection<CategoriaCompra>('categorias');
+  const nomes = new Set(existentes.map((c) => c.nome.trim().toLowerCase()));
+  const faltantes = DEFAULT_CATEGORIAS.filter((c) => !nomes.has(c.nome.trim().toLowerCase()));
+  await Promise.all(faltantes.map((c) => addDoc(collection(db, 'categorias'), c)));
+}
+
 export async function deleteCategoria(id: string): Promise<void> {
   await deleteDoc(doc(db, 'categorias', id));
 }
