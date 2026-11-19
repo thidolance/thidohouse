@@ -1011,34 +1011,6 @@ export default function TabContas({ mes, ano }: Props) {
               </select>
             </div>
           </div>
-          <div className="flex flex-wrap gap-1.5">
-            {(['todos', 'pendente', 'pago'] as const).map((s) => (
-              <button key={s} onClick={() => setFiltroStatus(s)}
-                className={`px-3 py-1 rounded-full text-xs font-semibold transition-all border ${
-                  filtroStatus === s
-                    ? s === 'todos' ? 'bg-slate-800 dark:bg-zinc-800 text-white border-slate-800'
-                      : s === 'pago' ? 'bg-emerald-500 text-white border-emerald-500'
-                      : 'bg-amber-400 text-white border-amber-400'
-                    : 'bg-white dark:bg-zinc-900 text-slate-500 dark:text-zinc-400 border-slate-200 dark:border-zinc-800 hover:border-slate-300 dark:hover:border-zinc-600 hover:bg-slate-50 dark:hover:bg-zinc-800'
-                }`}
-              >
-                {s === 'todos' ? 'Todos' : s === 'pago' ? '✓ Pago' : '⏳ Pendente'}
-              </button>
-            ))}
-            <div className="w-px bg-slate-200 dark:bg-zinc-800 self-stretch" />
-            {([['todos','Tudo'],['contas','Contas'],['cartoes','Cartões'],['empresa','Empresa']] as const).map(([v, l]) => (
-              <button key={v} onClick={() => { setFiltroTipo(v); setFiltroCategoria(''); }}
-                className={`px-3 py-1 rounded-full text-xs font-semibold transition-all border ${
-                  filtroTipo === v ? 'bg-indigo-600 dark:bg-purple-600 text-white border-indigo-600 dark:border-purple-600' : 'bg-white dark:bg-zinc-900 text-slate-500 dark:text-zinc-400 border-slate-200 dark:border-zinc-800 hover:border-slate-300 dark:hover:border-zinc-600'
-                }`}
-              >{l}</button>
-            ))}
-            {filtrosAtivos && (
-              <button onClick={limparFiltros} className="ml-auto px-3 py-1 rounded-full text-xs font-semibold text-slate-400 dark:text-zinc-400 border border-slate-200 dark:border-zinc-800 hover:bg-slate-50 dark:hover:bg-zinc-800 transition-colors">
-                ✕ Limpar
-              </button>
-            )}
-          </div>
         </div>
 
         {filtrosAtivos && totalVisiveis >= 0 && (
