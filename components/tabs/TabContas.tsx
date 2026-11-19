@@ -831,11 +831,14 @@ export default function TabContas({ mes, ano }: Props) {
     );
   }
 
-  function SectionHeader({ label, count, total: t }: { label: string; count: number; total: number }) {
+  function SectionHeader({ label, count, total: t, cor }: { label: string; count: number; total: number; cor?: string }) {
     return (
-      <div className="px-4 py-2 bg-gradient-to-r from-slate-50 dark:from-zinc-900 to-transparent flex items-center justify-between border-b border-slate-100/80 dark:border-zinc-800/80">
-        <p className="text-[11px] font-bold text-slate-400 dark:text-zinc-400 uppercase tracking-widest">{label}</p>
-        <p className="text-[11px] text-slate-400 dark:text-zinc-400">{count} · {fmt(t)}</p>
+      <div className="px-4 py-3 bg-slate-100/80 dark:bg-zinc-800/60 flex items-center justify-between border-y border-slate-200/80 dark:border-zinc-700/60">
+        <p className="text-sm font-extrabold text-slate-700 dark:text-zinc-100 uppercase tracking-wide flex items-center gap-2">
+          {cor && <span className="w-1.5 h-4 rounded-full flex-shrink-0" style={{ backgroundColor: cor }} />}
+          {label}
+        </p>
+        <p className="text-xs font-semibold text-slate-500 dark:text-zinc-300 tabular-nums">{count} · {fmt(t)}</p>
       </div>
     );
   }
@@ -1076,7 +1079,7 @@ export default function TabContas({ mes, ano }: Props) {
             {/* ── Contas Fixas (subdivididas por categoria quando "Por categoria") ── */}
             {mostrarContas && contasFixas.length > 0 && (
               <div>
-                <SectionHeader label="Contas Fixas" count={contasFixas.length} total={contasFixas.reduce((s, c) => s + c.valor, 0)} />
+                <SectionHeader label="Contas Fixas" cor={COR_FIXA} count={contasFixas.length} total={contasFixas.reduce((s, c) => s + c.valor, 0)} />
                 {ordenacao === 'categoria'
                   ? agruparPorCategoria(contasFixas).map((g) => (
                       <div key={g.nome}>
@@ -1092,7 +1095,7 @@ export default function TabContas({ mes, ano }: Props) {
             {mostrarContas && contasRegulares.length > 0 && (
               <div>
                 {(filtroTipo === 'todos' || contasFixas.length > 0) && (
-                  <SectionHeader label="Contas Rotativas" count={contasRegulares.length} total={contasRegulares.reduce((s, c) => s + c.valor, 0)} />
+                  <SectionHeader label="Contas Rotativas" cor={COR_ROTATIVA} count={contasRegulares.length} total={contasRegulares.reduce((s, c) => s + c.valor, 0)} />
                 )}
                 {ordenacao === 'categoria'
                   ? agruparPorCategoria(contasRegulares).map((g) => (
@@ -1109,7 +1112,7 @@ export default function TabContas({ mes, ano }: Props) {
             {mostrarCartoes && cartoesFiltrados.length > 0 && (
               <div>
                 {filtroTipo === 'todos' && (
-                  <SectionHeader label="Cartões" count={cartoesFiltrados.length} total={cartoesFiltrados.reduce((s, c) => s + c.valor, 0)} />
+                  <SectionHeader label="Cartões" cor={COR_CARTOES} count={cartoesFiltrados.length} total={cartoesFiltrados.reduce((s, c) => s + c.valor, 0)} />
                 )}
                 {cartoesFiltrados.map((c) => (
                   <div key={c.cartaoId} className={`group flex items-center gap-3 px-4 py-3.5 transition-all ${c.status === 'pago' ? 'border-l-2 border-emerald-400 dark:border-emerald-500 bg-gradient-to-r from-emerald-100 via-emerald-50 to-transparent dark:from-emerald-500/20 dark:via-emerald-500/5 dark:to-transparent' : 'hover:bg-slate-50/80 dark:hover:bg-zinc-800/80'}`}>
@@ -1142,7 +1145,7 @@ export default function TabContas({ mes, ano }: Props) {
             {mostrarEmpresa && empresaSum > 0 && !(filtroStatus !== 'todos' && filtroStatus !== empresaStatus) && (
               <div>
                 {filtroTipo === 'todos' && (
-                  <SectionHeader label="Empresa" count={1} total={empresaSum} />
+                  <SectionHeader label="Empresa" cor="#38bdf8" count={1} total={empresaSum} />
                 )}
                 <div className={`group flex items-center gap-3 px-4 py-3.5 transition-all ${empresaStatus === 'pago' ? 'border-l-2 border-emerald-400 dark:border-emerald-500 bg-gradient-to-r from-emerald-100 via-emerald-50 to-transparent dark:from-emerald-500/20 dark:via-emerald-500/5 dark:to-transparent' : 'hover:bg-slate-50/80 dark:hover:bg-zinc-800/80'}`}>
                   <div className="w-0.5 h-10 rounded-full flex-shrink-0 bg-sky-400" />

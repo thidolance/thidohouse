@@ -198,6 +198,12 @@ export const CONTA_ICONS: { key: string; label: string; node: ReactNode }[] = [
   { key: 'assinatura', label: 'Assinatura', node: (
     <path fillRule="evenodd" clipRule="evenodd" d="M4.755 10.059a7.5 7.5 0 0 1 12.548-3.364l1.903 1.903h-3.183a.75.75 0 1 0 0 1.5h4.992a.75.75 0 0 0 .75-.75V4.356a.75.75 0 0 0-1.5 0v3.18l-1.9-1.9A9 9 0 0 0 3.306 9.67a.75.75 0 1 0 1.45.388Zm15.408 3.352a.75.75 0 0 0-.919.53 7.5 7.5 0 0 1-12.548 3.364l-1.902-1.903h3.183a.75.75 0 0 0 0-1.5H2.984a.75.75 0 0 0-.75.75v4.992a.75.75 0 0 0 1.5 0v-3.18l1.9 1.9a9 9 0 0 0 15.059-4.035.75.75 0 0 0-.53-.918Z" />
   ) },
+  { key: 'reforma', label: 'Reforma / Manutenção', node: (
+    <path fillRule="evenodd" clipRule="evenodd" d="M12 6.75a5.25 5.25 0 0 1 6.775-5.025.75.75 0 0 1 .313 1.248l-3.32 3.319c.063.475.276.934.641 1.299.365.365.824.578 1.3.64l3.318-3.319a.75.75 0 0 1 1.248.313 5.25 5.25 0 0 1-5.472 6.756c-1.018-.086-1.87.1-2.309.634L7.344 21.3A3.298 3.298 0 1 1 2.7 16.657l8.684-7.151c.533-.44.72-1.291.634-2.309A5.342 5.342 0 0 1 12 6.75ZM4.117 19.125a.75.75 0 0 1 .75-.75h.008a.75.75 0 0 1 .75.75v.008a.75.75 0 0 1-.75.75h-.008a.75.75 0 0 1-.75-.75v-.008Z" />
+  ) },
+  { key: 'pagamento', label: 'Pagamento / Dinheiro', node: (
+    <path fillRule="evenodd" clipRule="evenodd" d="M10.464 2.48a.75.75 0 0 1 .67-.414h1.732a.75.75 0 0 1 .67.414l1.2 2.4a.75.75 0 0 1-.012.69C18.07 7.37 20.25 10.6 20.25 14.1c0 4.28-3.69 6.9-8.25 6.9s-8.25-2.62-8.25-6.9c0-3.5 2.18-6.73 5.526-8.53a.75.75 0 0 1-.012-.69l1.2-2.4ZM12 8.25a.75.75 0 0 1 .75.75v.316c.72.159 1.343.56 1.7 1.165a.75.75 0 1 1-1.292.764c-.137-.232-.42-.42-.908-.45v1.683c.72.159 1.343.56 1.7 1.165.357.605.357 1.37 0 1.975-.357.605-.98 1.006-1.7 1.165V18a.75.75 0 0 1-1.5 0v-.252c-.72-.159-1.343-.56-1.7-1.165a.75.75 0 1 1 1.292-.764c.137.232.42.42.908.45v-1.683c-.72-.159-1.343-.56-1.7-1.165-.357-.605-.357-1.37 0-1.975.357-.605.98-1.006 1.7-1.165V9a.75.75 0 0 1 .75-.75Z" />
+  ) },
   { key: 'outro', label: 'Outro', node: (
     <path fillRule="evenodd" clipRule="evenodd" d="M5.25 2.25a3 3 0 0 0-3 3v4.318a3 3 0 0 0 .879 2.121l9.58 9.581c.92.92 2.39 1.186 3.548.428a18.849 18.849 0 0 0 5.441-5.44c.758-1.16.492-2.629-.428-3.548l-9.58-9.581a3 3 0 0 0-2.122-.879H5.25ZM6.375 7.5a1.125 1.125 0 1 0 0-2.25 1.125 1.125 0 0 0 0 2.25Z" />
   ) },
@@ -331,6 +337,8 @@ export const COMPRA_CAT_ICONS: { key: string; label: string; node: ReactNode }[]
   { key: 'internet', label: 'Internet', node: contaIconNode('internet') },
   { key: 'telefone', label: 'Telefone', node: contaIconNode('telefone') },
   { key: 'gas', label: 'Gás', node: contaIconNode('gas') },
+  { key: 'reforma', label: 'Reforma', node: contaIconNode('reforma') },
+  { key: 'pagamento', label: 'Pagamento', node: contaIconNode('pagamento') },
   { key: 'outro', label: 'Outro', node: contaIconNode('outro') },
 ];
 
@@ -351,6 +359,8 @@ export function compraCatIconKey(nome?: string, icone?: string): string {
     pet: 'pet', animal: 'pet', cachorro: 'pet', gato: 'pet', veterinario: 'pet',
     agua: 'agua', luz: 'luz', energia: 'luz', internet: 'internet', wifi: 'internet',
     telefone: 'telefone', celular: 'telefone', gas: 'gas',
+    reforma: 'reforma', manutencao: 'reforma', obra: 'reforma', conserto: 'reforma', reparo: 'reforma',
+    pagamento: 'pagamento', pagamentos: 'pagamento', boleto: 'pagamento',
     besteiras: 'besteiras', besteira: 'besteiras', doce: 'besteiras', doces: 'besteiras',
     entretenimento: 'entretenimento', lazer: 'entretenimento', diversao: 'entretenimento', parque: 'entretenimento', cinema: 'entretenimento', passeio: 'entretenimento', role: 'entretenimento',
     farmacia: 'farmacia', remedio: 'farmacia', remedios: 'farmacia', drogaria: 'farmacia',
