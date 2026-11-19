@@ -242,6 +242,13 @@ export const COMPRA_CAT_ICONS: { key: string; label: string; node: ReactNode }[]
     // Família / pessoas (estilo heroicons "users")
     <path fillRule="evenodd" clipRule="evenodd" d="M8.25 6.375a4.125 4.125 0 1 1 8.25 0 4.125 4.125 0 0 1-8.25 0ZM15.75 9.75a3 3 0 1 1 6 0 3 3 0 0 1-6 0ZM2.25 9.75a3 3 0 1 1 6 0 3 3 0 0 1-6 0ZM6.31 15.117A6.745 6.745 0 0 1 12 12a6.745 6.745 0 0 1 6.709 7.498.75.75 0 0 1-.372.568A12.696 12.696 0 0 1 12 21.75c-2.305 0-4.47-.612-6.337-1.684a.75.75 0 0 1-.372-.568 6.787 6.787 0 0 1 1.019-4.38Z M5.082 14.254a8.287 8.287 0 0 0-1.308 5.135 9.687 9.687 0 0 1-1.764-.44l-.115-.04a.563.563 0 0 1-.373-.487l-.01-.121a3.75 3.75 0 0 1 3.57-4.047ZM20.226 19.389a8.287 8.287 0 0 0-1.308-5.135 3.75 3.75 0 0 1 3.57 4.047l-.01.121a.563.563 0 0 1-.373.486l-.115.04c-.567.2-1.156.349-1.764.441Z" />
   ) },
+  { key: 'crianca', label: 'Criança', node: (
+    // Uma criança (cabeça + corpo)
+    <>
+      <circle cx="12" cy="4.6" r="2.5" />
+      <path d="M8.2 10.4a3.8 3.8 0 0 1 7.6 0l-.72 7.5a1.08 1.08 0 0 1-2.15.05L12 13.5l-.93 4.45a1.08 1.08 0 0 1-2.15-.05l-.72-7.5Z" />
+    </>
+  ) },
   { key: 'besteiras', label: 'Besteiras', node: (
     // Rosquinha (donut)
     <path fillRule="evenodd" clipRule="evenodd" d="M12 2.25c-5.385 0-9.75 4.365-9.75 9.75S6.615 21.75 12 21.75s9.75-4.365 9.75-9.75S17.385 2.25 12 2.25Zm0 6.75a3 3 0 1 0 0 6 3 3 0 0 0 0-6Z" />
@@ -294,6 +301,36 @@ export const COMPRA_CAT_ICONS: { key: string; label: string; node: ReactNode }[]
     <path fillRule="evenodd" clipRule="evenodd" d="M7.5 5.25A2.25 2.25 0 0 1 9.75 3h4.5a2.25 2.25 0 0 1 2.25 2.25v.75h2.25A2.25 2.25 0 0 1 21 8.25v3.026a41.6 41.6 0 0 1-9 .974 41.6 41.6 0 0 1-9-.974V8.25A2.25 2.25 0 0 1 5.25 6H7.5v-.75Zm6 0v.75h-3v-.75a.75.75 0 0 1 .75-.75h1.5a.75.75 0 0 1 .75.75ZM3 13.845a43.1 43.1 0 0 0 9 .905c3.082 0 6.098-.314 9-.905v3.905A2.25 2.25 0 0 1 18.75 20H5.25A2.25 2.25 0 0 1 3 17.75v-3.905Zm9 .905a.75.75 0 0 0-.75.75v.008c0 .414.336.75.75.75h.008a.75.75 0 0 0 .75-.75v-.008a.75.75 0 0 0-.75-.75H12Z" />
   ) },
   { key: 'casa', label: 'Casa', node: contaIconNode('casa') },
+  { key: 'banco', label: 'Banco / Dívidas', node: (
+    // Prédio de banco: frontão + colunas + base
+    <>
+      <path d="M11.7 2.28a.75.75 0 0 1 .6 0l8.7 3.9A.9.9 0 0 1 20.6 7.9H3.4A.9.9 0 0 1 3 6.18l8.7-3.9Z" />
+      <rect x="4.6" y="9" width="2.1" height="6.9" rx="0.5" />
+      <rect x="8.7" y="9" width="2.1" height="6.9" rx="0.5" />
+      <rect x="13.2" y="9" width="2.1" height="6.9" rx="0.5" />
+      <rect x="17.3" y="9" width="2.1" height="6.9" rx="0.5" />
+      <rect x="3.2" y="17.3" width="17.6" height="2.3" rx="0.7" />
+    </>
+  ) },
+  { key: 'dinheiro', label: 'Dinheiro', node: (
+    // Cédula com moeda no centro
+    <path fillRule="evenodd" clipRule="evenodd" d="M3 7.5A1.5 1.5 0 0 1 4.5 6h15A1.5 1.5 0 0 1 21 7.5v9A1.5 1.5 0 0 1 19.5 18h-15A1.5 1.5 0 0 1 3 16.5v-9Zm9 1.5a3 3 0 1 0 0 6 3 3 0 0 0 0-6Z" />
+  ) },
+  { key: 'pet', label: 'Pet', node: (
+    // Patinha
+    <>
+      <ellipse cx="6.3" cy="10.6" rx="1.7" ry="2.1" />
+      <ellipse cx="10.2" cy="7.7" rx="1.7" ry="2.2" />
+      <ellipse cx="13.8" cy="7.7" rx="1.7" ry="2.2" />
+      <ellipse cx="17.7" cy="10.6" rx="1.7" ry="2.1" />
+      <path d="M12 12.3c-2.4 0-4.4 1.9-4.4 4.1 0 1.6 1.2 2.7 2.7 2.7.8 0 1.2-.3 1.7-.3s.9.3 1.7.3c1.5 0 2.7-1.1 2.7-2.7 0-2.2-2-4.1-4.4-4.1Z" />
+    </>
+  ) },
+  { key: 'agua', label: 'Água', node: contaIconNode('agua') },
+  { key: 'luz', label: 'Luz / Energia', node: contaIconNode('luz') },
+  { key: 'internet', label: 'Internet', node: contaIconNode('internet') },
+  { key: 'telefone', label: 'Telefone', node: contaIconNode('telefone') },
+  { key: 'gas', label: 'Gás', node: contaIconNode('gas') },
   { key: 'outro', label: 'Outro', node: contaIconNode('outro') },
 ];
 
@@ -306,8 +343,14 @@ export function compraCatIconKey(nome?: string, icone?: string): string {
     mercado: 'mercado', supermercado: 'mercado', feira: 'mercado',
     comida: 'comida', restaurante: 'comida', lanche: 'comida', ifood: 'comida', delivery: 'comida', alimentacao: 'comida',
     carro: 'carro', veiculo: 'carro', uber: 'carro', transporte: 'carro',
-    abastecimento: 'abastecimento', combustivel: 'abastecimento', gasolina: 'abastecimento', posto: 'abastecimento', gas: 'abastecimento',
-    filhos: 'filhos', filho: 'filhos', crianca: 'filhos', criancas: 'filhos', bebe: 'filhos',
+    abastecimento: 'abastecimento', combustivel: 'abastecimento', gasolina: 'abastecimento', posto: 'abastecimento',
+    filhos: 'filhos', filho: 'filhos', familia: 'filhos',
+    crianca: 'crianca', criancas: 'crianca', bebe: 'crianca', filha: 'crianca',
+    banco: 'banco', divida: 'banco', dividas: 'banco', emprestimo: 'banco', financiamento: 'banco', fatura: 'banco',
+    dinheiro: 'dinheiro', salario: 'dinheiro', renda: 'dinheiro', grana: 'dinheiro',
+    pet: 'pet', animal: 'pet', cachorro: 'pet', gato: 'pet', veterinario: 'pet',
+    agua: 'agua', luz: 'luz', energia: 'luz', internet: 'internet', wifi: 'internet',
+    telefone: 'telefone', celular: 'telefone', gas: 'gas',
     besteiras: 'besteiras', besteira: 'besteiras', doce: 'besteiras', doces: 'besteiras',
     entretenimento: 'entretenimento', lazer: 'entretenimento', diversao: 'entretenimento', parque: 'entretenimento', cinema: 'entretenimento', passeio: 'entretenimento', role: 'entretenimento',
     farmacia: 'farmacia', remedio: 'farmacia', remedios: 'farmacia', drogaria: 'farmacia',
