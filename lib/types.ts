@@ -97,6 +97,9 @@ export interface CategoriaCompra {
   id?: string;
   nome: string;
   cor: string;
+  // Ícone da categoria (ex: 'comida', 'carro'...) — ver COMPRA_CAT_ICONS em ui/Icons.
+  // Quando ausente, o ícone é inferido pelo nome.
+  icone?: string;
 }
 
 export interface CategoriaEmpresa {

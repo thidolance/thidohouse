@@ -10,14 +10,14 @@ const VChart = dynamic(
 import Modal from '../ui/Modal';
 import Card from '../ui/Card';
 import DatePicker from '../ui/DatePicker';
-import { Plus, Trash, Pencil, ContaIcon } from '../ui/Icons';
+import { Plus, Trash, Pencil, ContaIcon, CompraCatIcon, COMPRA_CAT_ICONS, compraCatIconKey } from '../ui/Icons';
 import { useRefetchOnFocus } from '@/lib/useRefetchOnFocus';
 import { formatCurrencyInput, parseCurrencyInput, formatCurrencyBRL } from '@/lib/currency';
 import {
   subscribeCompras, addCompra, updateCompra, updateCompraAndFuture, updateCompraReparcelada, getComprasFuturasDoGrupo,
   deleteCompra, deleteCompraAndFuture, toggleCompraFixa,
   getCartoes, addCartao, updateCartao, deleteCartao,
-  getCategorias, addCategoria, deleteCategoria,
+  getCategorias, addCategoria, updateCategoria, deleteCategoria, addCategoriasSugeridas,
 } from '@/lib/firestore';
 import type { CompraParcelada, Cartao, CategoriaCompra } from '@/lib/types';
 
@@ -89,6 +89,52 @@ function PinIcon({ filled }: { filled?: boolean }) {
 
 const INPUT = 'w-full border border-slate-200 dark:border-zinc-800 rounded-xl px-3 py-2 text-sm text-slate-900 dark:text-zinc-50 bg-white dark:bg-zinc-900 focus:outline-none focus:ring-2 focus:ring-indigo-300 dark:focus:ring-purple-500';
 
+// Uma linha do ranking de categorias (ícone + barra proporcional + valor + %).
+type RankItem = { nome: string; cor: string; icone?: string; total: number };
+
+function CategoriaRanking({ itens, max = 5 }: { itens: RankItem[]; max?: number }) {
+  const soma = itens.reduce((s, i) => s + i.total, 0);
+  const maior = Math.max(...itens.map((i) => i.total), 1);
+  const visiveis = itens.slice(0, max);
+  return (
+    <div className="space-y-3">
+      {visiveis.map((it, idx) => {
+        const pctTotal = soma > 0 ? (it.total / soma) * 100 : 0;
+        const pctBar   = (it.total / maior) * 100;
+        return (
+          <div key={it.nome} className="flex items-center gap-3">
+            <span
+              className="flex items-center justify-center w-9 h-9 rounded-xl flex-shrink-0"
+              style={{ backgroundColor: `${it.cor}22`, color: it.cor }}
+            >
+              <CompraCatIcon nome={it.nome} icone={it.icone} className="w-5 h-5" />
+            </span>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-baseline justify-between gap-2">
+                <span className="text-sm font-medium text-slate-700 dark:text-zinc-200 truncate flex items-center gap-1.5">
+                  {it.nome}
+                  {idx === 0 && itens.length > 1 && (
+                    <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-400 font-semibold whitespace-nowrap">
+                      maior gasto
+                    </span>
+                  )}
+                </span>
+                <span className="text-sm font-bold text-slate-800 dark:text-zinc-100 tabular-nums flex-shrink-0">{fmt(it.total)}</span>
+              </div>
+              <div className="flex items-center gap-2 mt-1">
+                <div className="flex-1 h-2 rounded-full bg-slate-100 dark:bg-zinc-800 overflow-hidden">
+                  <div className="h-full rounded-full transition-all duration-500" style={{ width: `${pctBar}%`, backgroundColor: it.cor }} />
+                </div>
+                <span className="text-[11px] text-slate-400 dark:text-zinc-400 tabular-nums w-9 text-right flex-shrink-0">{pctTotal.toFixed(0)}%</span>
+              </div>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 interface Props { mes: number; ano: number; }
 
 type FormCompra = {
@@ -103,8 +149,8 @@ const COMPRA_EMPTY: FormCompra = {
 type FormCartao = { nome: string; cor: string; bandeira: 'Visa' | 'Mastercard'; limite: string };
 const CARTAO_EMPTY: FormCartao = { nome: '', cor: '#6366f1', bandeira: 'Visa', limite: '' };
 
-type FormCategoria = { nome: string; cor: string };
-const CAT_EMPTY: FormCategoria = { nome: '', cor: '#10b981' };
+type FormCategoria = { nome: string; cor: string; icone: string };
+const CAT_EMPTY: FormCategoria = { nome: '', cor: '#10b981', icone: 'outro' };
 
 export default function TabCartoes({ mes, ano }: Props) {
   const [compras, setCompras]       = useState<CompraParcelada[]>([]);
@@ -129,6 +175,7 @@ export default function TabCartoes({ mes, ano }: Props) {
   const [showCartaoForm, setShowCartaoForm] = useState(false);
 
   // form categoria
+  const [editCatId, setEditCatId]       = useState<string | null>(null);
   const [formCat, setFormCat]           = useState<FormCategoria>(CAT_EMPTY);
   const [showCatForm, setShowCatForm]   = useState(false);
 
@@ -159,9 +206,12 @@ export default function TabCartoes({ mes, ano }: Props) {
     return unsub;
   }, [mes, ano]);
 
-  // ── helpers de cor ─────────────────────────────────────────────────────────
+  // ── helpers de cor/ícone ───────────────────────────────────────────────────
   function catCor(nome: string) {
     return categorias.find((c) => c.nome === nome)?.cor ?? '#94a3b8';
+  }
+  function catIcone(nome: string) {
+    return categorias.find((c) => c.nome === nome)?.icone;
   }
 
   // ── compras ────────────────────────────────────────────────────────────────
@@ -306,11 +356,30 @@ export default function TabCartoes({ mes, ano }: Props) {
   }
 
   // ── categorias (config) ────────────────────────────────────────────────────
+  function abrirNovaCategoria() {
+    setEditCatId(null);
+    setFormCat(CAT_EMPTY);
+    setShowCatForm(true);
+  }
+
+  function abrirEditCategoria(cat: CategoriaCompra) {
+    setEditCatId(cat.id!);
+    setFormCat({ nome: cat.nome, cor: cat.cor, icone: cat.icone ?? compraCatIconKey(cat.nome) });
+    setShowCatForm(true);
+  }
+
   async function handleSaveCategoria(e: React.SubmitEvent<HTMLFormElement>) {
     e.preventDefault();
-    await addCategoria(formCat);
+    if (editCatId) await updateCategoria(editCatId, formCat);
+    else           await addCategoria(formCat);
     setShowCatForm(false);
+    setEditCatId(null);
     setFormCat(CAT_EMPTY);
+    loadConfig();
+  }
+
+  async function handleAddSugeridas() {
+    await addCategoriasSugeridas();
     loadConfig();
   }
 
@@ -334,11 +403,21 @@ export default function TabCartoes({ mes, ano }: Props) {
     };
   });
 
-  const totalPorCategoria = categorias.map((cat) => ({
-    ...cat,
-    fill: cat.cor,
-    total: compras.filter((p) => p.tipo === cat.nome).reduce((s, p) => s + p.valorParcela, 0),
-  })).filter((c) => c.total > 0);
+  // Ranking de categorias (ordenado do maior gasto para o menor) a partir de uma
+  // lista de compras — reusado no geral e por cartão.
+  const rankingCategorias = useCallback((lista: CompraParcelada[]): RankItem[] =>
+    categorias
+      .map((cat) => ({
+        nome: cat.nome,
+        cor: cat.cor,
+        icone: cat.icone,
+        total: lista.filter((p) => p.tipo === cat.nome).reduce((s, p) => s + p.valorParcela, 0),
+      }))
+      .filter((c) => c.total > 0)
+      .sort((a, b) => b.total - a.total),
+  [categorias]);
+
+  const rankingGeral = useMemo(() => rankingCategorias(compras), [rankingCategorias, compras]);
 
   // Ordena pela data da compra (mais recente primeiro); fixas sempre vão para o final
   const porDataComFixaPorUltimo = (a: CompraParcelada, b: CompraParcelada) => {
@@ -349,6 +428,8 @@ export default function TabCartoes({ mes, ano }: Props) {
   const comprasDoCartao = cartaoSelecionado
     ? compras.filter((c) => c.cartaoId === cartaoSelecionado).sort(porDataComFixaPorUltimo)
     : [];
+
+  const rankingCartao = rankingCategorias(comprasDoCartao);
 
   const comprasOrdenadas = [...compras]
     .filter((c) => !filtroCategoria || c.tipo === filtroCategoria)
@@ -397,37 +478,6 @@ export default function TabCartoes({ mes, ano }: Props) {
     },
   }), [totalPorCartao]);
 
-  const catDonutSpec = useMemo(() => ({
-    type: 'pie',
-    autoFit: true,
-    background: 'transparent',
-    data: [{ id: 'cat', values: totalPorCategoria }],
-    valueField: 'total',
-    categoryField: 'nome',
-    outerRadius: 0.75,
-    innerRadius: 0.52,
-    padAngle: 0.8,
-    color: totalPorCategoria.map((d) => d.fill),
-    pie: { style: { cornerRadius: 4 } },
-    label: { visible: false },
-    legends: [{
-      visible: true,
-      orient: 'bottom',
-      padding: { top: 8 },
-      maxRow: 3,
-      item: {
-        label: { style: { fontSize: 11, fill: '#64748b' } },
-        value: { visible: false },
-      },
-    }],
-    tooltip: {
-      mark: {
-        title: { visible: false },
-        content: [{ key: (d: Record<string, unknown>) => String(d['nome']), value: (d: Record<string, unknown>) => fmt(Number(d['total'])) }],
-      },
-    },
-  }), [totalPorCategoria]);
-
   return (
     <div className="space-y-5">
       {/* ── Header ── */}
@@ -475,10 +525,15 @@ export default function TabCartoes({ mes, ano }: Props) {
           )}
         </Card>
         <Card>
-          <p className="font-semibold text-slate-700 dark:text-zinc-200 text-sm mb-3">Por Categoria</p>
-          {totalPorCategoria.length > 0 ? (
-            <div style={{ height: 220 }}>
-              <VChart key={`cat-donut-${totalGeral.toFixed(0)}`} spec={catDonutSpec as any} />
+          <div className="flex items-center justify-between mb-3">
+            <p className="font-semibold text-slate-700 dark:text-zinc-200 text-sm">Onde você gasta mais</p>
+            {rankingGeral.length > 0 && (
+              <span className="text-[11px] text-slate-400 dark:text-zinc-400">{rankingGeral.length} categoria(s)</span>
+            )}
+          </div>
+          {rankingGeral.length > 0 ? (
+            <div className="max-h-[260px] overflow-y-auto pr-1">
+              <CategoriaRanking itens={rankingGeral} max={rankingGeral.length} />
             </div>
           ) : (
             <div className="h-[220px] flex flex-col items-center justify-center text-slate-400 dark:text-zinc-400 gap-2">
@@ -595,6 +650,17 @@ export default function TabCartoes({ mes, ano }: Props) {
               <Plus /> Adicionar
             </button>
           </div>
+
+          {/* Em que categorias este cartão mais gasta */}
+          {rankingCartao.length > 0 && (
+            <div className="mb-4 rounded-xl bg-white/60 dark:bg-zinc-900/40 border border-white/50 dark:border-zinc-800 p-4">
+              <p className="text-xs font-semibold text-slate-500 dark:text-zinc-400 uppercase tracking-wide mb-3">
+                Gastos por categoria
+              </p>
+              <CategoriaRanking itens={rankingCartao} max={5} />
+            </div>
+          )}
+
           {loading ? (
             <p className="text-slate-400 dark:text-zinc-400 text-sm text-center py-6">Carregando...</p>
           ) : comprasDoCartao.length === 0 ? (
@@ -603,14 +669,20 @@ export default function TabCartoes({ mes, ano }: Props) {
             <div className="space-y-2">
               {comprasDoCartao.map((p) => (
                 <div key={p.id} className="flex items-center justify-between p-3 rounded-xl hover:bg-slate-50 dark:hover:bg-zinc-800 transition-colors">
-                  <div className="flex items-center gap-3">
-                    <span className="text-xs px-2 py-0.5 rounded-full font-medium" style={{ backgroundColor: `${catCor(p.tipo)}22`, color: catCor(p.tipo) }}>
-                      {p.tipo}
+                  <div className="flex items-center gap-3 min-w-0">
+                    <span
+                      className="flex items-center justify-center w-10 h-10 rounded-xl flex-shrink-0"
+                      style={{ backgroundColor: `${catCor(p.tipo)}22`, color: catCor(p.tipo) }}
+                      title={p.tipo}
+                    >
+                      <CompraCatIcon nome={p.tipo} icone={catIcone(p.tipo)} className="w-5 h-5" />
                     </span>
-                    <div>
-                      <p className="font-medium text-slate-700 dark:text-zinc-200 text-sm">{p.descricao}</p>
+                    <div className="min-w-0">
+                      <p className="font-medium text-slate-700 dark:text-zinc-200 text-sm truncate">{p.descricao}</p>
                       {p.data && <p className="text-[11px] text-slate-400 dark:text-zinc-400 leading-tight">{new Date(p.data + 'T12:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' })}</p>}
                       <div className="flex items-center gap-1.5 mt-0.5">
+                        <span className="text-[11px] font-semibold" style={{ color: catCor(p.tipo) }}>{p.tipo}</span>
+                        <span className="text-slate-300 dark:text-zinc-500 text-[11px]">·</span>
                         <span className="text-[11px] px-1.5 py-0.5 rounded-full bg-slate-100 dark:bg-zinc-800 text-slate-500 dark:text-zinc-400 font-medium">{p.parcelaAtual}/{p.totalParcelas}</span>
                         <span className="text-slate-300 dark:text-zinc-500 text-[11px]">·</span>
                         <span className="text-[11px] text-slate-400 dark:text-zinc-400">total {fmt(p.valorTotal)}</span>
@@ -652,11 +724,12 @@ export default function TabCartoes({ mes, ano }: Props) {
                 <button
                   key={cat.id}
                   onClick={() => setFiltroCategoria(filtroCategoria === cat.nome ? null : cat.nome)}
-                  className="px-3 py-1.5 rounded-full text-xs font-medium transition-all border"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all border"
                   style={filtroCategoria === cat.nome
                     ? { backgroundColor: cat.cor, color: '#fff', borderColor: cat.cor }
                     : { borderColor: '#e2e8f0', color: '#64748b' }}
                 >
+                  <CompraCatIcon nome={cat.nome} icone={cat.icone} className="w-3.5 h-3.5" />
                   {cat.nome}
                 </button>
               ))}
@@ -675,15 +748,22 @@ export default function TabCartoes({ mes, ano }: Props) {
                 const c = cartoes.find((c) => c.id === p.cartaoId);
                 return (
                   <div key={p.id} className="flex items-center justify-between p-3 rounded-xl hover:bg-slate-50 dark:hover:bg-zinc-800 transition-colors">
-                    <div className="flex items-center gap-3">
-                      <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: c?.cor ?? '#94a3b8' }} />
-                      <span className="text-xs px-2 py-0.5 rounded-full font-medium" style={{ backgroundColor: `${catCor(p.tipo)}22`, color: catCor(p.tipo) }}>
-                        {p.tipo}
+                    <div className="flex items-center gap-3 min-w-0">
+                      <span
+                        className="relative flex items-center justify-center w-10 h-10 rounded-xl flex-shrink-0"
+                        style={{ backgroundColor: `${catCor(p.tipo)}22`, color: catCor(p.tipo) }}
+                        title={p.tipo}
+                      >
+                        <CompraCatIcon nome={p.tipo} icone={catIcone(p.tipo)} className="w-5 h-5" />
+                        {/* ponto com a cor do cartão, para identificar o cartão de relance */}
+                        <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full ring-2 ring-white dark:ring-zinc-900" style={{ backgroundColor: c?.cor ?? '#94a3b8' }} />
                       </span>
-                      <div>
-                        <p className="font-medium text-slate-700 dark:text-zinc-200 text-sm">{p.descricao}</p>
+                      <div className="min-w-0">
+                        <p className="font-medium text-slate-700 dark:text-zinc-200 text-sm truncate">{p.descricao}</p>
                         {p.data && <p className="text-[11px] text-slate-400 dark:text-zinc-400 leading-tight">{new Date(p.data + 'T12:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' })}</p>}
                         <div className="flex items-center gap-1.5 mt-0.5">
+                          <span className="text-[11px] font-semibold" style={{ color: catCor(p.tipo) }}>{p.tipo}</span>
+                          <span className="text-slate-300 dark:text-zinc-500 text-[11px]">·</span>
                           <span className="text-[11px] font-semibold" style={{ color: c?.cor ?? '#94a3b8' }}>{c?.nome}</span>
                           <span className="text-slate-300 dark:text-zinc-500 text-[11px]">·</span>
                           <span className="text-[11px] px-1.5 py-0.5 rounded-full bg-slate-100 dark:bg-zinc-800 text-slate-500 dark:text-zinc-400 font-medium">{p.parcelaAtual}/{p.totalParcelas}</span>
@@ -747,11 +827,12 @@ export default function TabCartoes({ mes, ano }: Props) {
                     key={cat.id}
                     type="button"
                     onClick={() => setFormCompra({ ...formCompra, tipo: cat.nome })}
-                    className="px-3 py-1.5 rounded-full text-xs font-medium transition-all border"
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all border"
                     style={formCompra.tipo === cat.nome
                       ? { backgroundColor: cat.cor, color: '#fff', borderColor: cat.cor }
                       : { borderColor: '#e2e8f0', color: '#64748b' }}
                   >
+                    <CompraCatIcon nome={cat.nome} icone={cat.icone} className="w-3.5 h-3.5" />
                     {cat.nome}
                   </button>
                 ))}
@@ -914,32 +995,62 @@ export default function TabCartoes({ mes, ano }: Props) {
             <div className="space-y-3">
               {categorias.map((cat) => (
                 <div key={cat.id} className="flex items-center gap-3 p-3 rounded-xl border border-slate-100 dark:border-zinc-800 hover:bg-slate-50 dark:hover:bg-zinc-800">
-                  <span className="w-5 h-5 rounded-full flex-shrink-0" style={{ backgroundColor: cat.cor }} />
+                  <span className="flex items-center justify-center w-9 h-9 rounded-xl flex-shrink-0" style={{ backgroundColor: `${cat.cor}22`, color: cat.cor }}>
+                    <CompraCatIcon nome={cat.nome} icone={cat.icone} className="w-5 h-5" />
+                  </span>
                   <p className="flex-1 text-sm font-medium text-slate-700 dark:text-zinc-200">{cat.nome}</p>
+                  <button onClick={() => abrirEditCategoria(cat)} className="p-1.5 rounded-lg hover:bg-indigo-50 dark:hover:bg-purple-500/10 text-slate-300 dark:text-zinc-500 hover:text-indigo-400 dark:hover:text-purple-400 transition-colors"><Pencil /></button>
                   <button onClick={() => handleDeleteCategoria(cat.id!)} className="p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-500/10 text-slate-300 dark:text-zinc-500 hover:text-red-400 transition-colors"><Trash /></button>
                 </div>
               ))}
 
-              {!showCatForm ? (
-                <button onClick={() => setShowCatForm(true)} className="w-full py-2.5 border-2 border-dashed border-slate-200 dark:border-zinc-800 rounded-xl text-sm text-slate-400 dark:text-zinc-400 hover:border-indigo-300 hover:text-indigo-500 dark:hover:text-purple-400 transition-colors flex items-center justify-center gap-2">
-                  <Plus /> Nova Categoria
-                </button>
-              ) : (
+              {!showCatForm && (
+                <div className="flex flex-col sm:flex-row gap-2">
+                  <button onClick={abrirNovaCategoria} className="flex-1 py-2.5 border-2 border-dashed border-slate-200 dark:border-zinc-800 rounded-xl text-sm text-slate-400 dark:text-zinc-400 hover:border-indigo-300 hover:text-indigo-500 dark:hover:text-purple-400 transition-colors flex items-center justify-center gap-2">
+                    <Plus /> Nova Categoria
+                  </button>
+                  <button onClick={handleAddSugeridas} className="flex-1 py-2.5 border border-indigo-200 dark:border-purple-500/40 rounded-xl text-sm text-indigo-600 dark:text-purple-300 hover:bg-indigo-50 dark:hover:bg-purple-500/10 transition-colors flex items-center justify-center gap-2 font-medium">
+                    <Plus /> Adicionar sugeridas
+                  </button>
+                </div>
+              )}
+
+              {showCatForm && (
                 <form onSubmit={handleSaveCategoria} className="border border-slate-200 dark:border-zinc-800 rounded-xl p-4 space-y-3 bg-slate-50 dark:bg-zinc-950">
-                  <p className="text-sm font-semibold text-slate-700 dark:text-zinc-200">Nova Categoria</p>
+                  <p className="text-sm font-semibold text-slate-700 dark:text-zinc-200">{editCatId ? 'Editar Categoria' : 'Nova Categoria'}</p>
                   <input required value={formCat.nome} onChange={(e) => setFormCat({ ...formCat, nome: e.target.value })} className={INPUT} placeholder="Ex: Carro, Roupas..." />
+                  <div>
+                    <label className="block text-xs text-slate-500 dark:text-zinc-400 mb-1">Ícone</label>
+                    <div className="grid grid-cols-7 gap-1.5">
+                      {COMPRA_CAT_ICONS.map((ic) => (
+                        <button
+                          key={ic.key}
+                          type="button"
+                          title={ic.label}
+                          onClick={() => setFormCat({ ...formCat, icone: ic.key })}
+                          className="flex items-center justify-center aspect-square rounded-lg border transition-all"
+                          style={formCat.icone === ic.key
+                            ? { backgroundColor: `${formCat.cor}22`, color: formCat.cor, borderColor: formCat.cor }
+                            : { borderColor: '#e2e8f0', color: '#64748b' }}
+                        >
+                          <CompraCatIcon icone={ic.key} className="w-5 h-5" />
+                        </button>
+                      ))}
+                    </div>
+                  </div>
                   <div>
                     <label className="block text-xs text-slate-500 dark:text-zinc-400 mb-1">Cor</label>
                     <div className="flex items-center gap-2">
                       <input type="color" value={formCat.cor} onChange={(e) => setFormCat({ ...formCat, cor: e.target.value })} className="w-10 h-9 rounded-lg border border-slate-200 dark:border-zinc-800 cursor-pointer p-0.5 bg-white dark:bg-zinc-900" />
                       <span className="text-xs text-slate-500 dark:text-zinc-400 font-mono">{formCat.cor}</span>
-                      <span className="px-3 py-1 rounded-full text-xs font-medium ml-2" style={{ backgroundColor: `${formCat.cor}22`, color: formCat.cor }}>
+                      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium ml-2" style={{ backgroundColor: `${formCat.cor}22`, color: formCat.cor }}>
+                        <CompraCatIcon icone={formCat.icone} nome={formCat.nome} className="w-3.5 h-3.5" />
                         {formCat.nome || 'Exemplo'}
                       </span>
                     </div>
                   </div>
                   <div className="flex gap-2">
-                    <button type="button" onClick={() => { setShowCatForm(false); setFormCat(CAT_EMPTY); }} className="flex-1 py-2 border border-slate-200 dark:border-zinc-800 rounded-xl text-xs text-slate-600 dark:text-zinc-300 hover:bg-white dark:hover:bg-zinc-800">Cancelar</button>
+                    <button type="button" onClick={() => { setShowCatForm(false); setEditCatId(null); setFormCat(CAT_EMPTY); }} className="flex-1 py-2 border border-slate-200 dark:border-zinc-800 rounded-xl text-xs text-slate-600 dark:text-zinc-300 hover:bg-white dark:hover:bg-zinc-800">Cancelar</button>
                     <button type="submit" className="flex-1 py-2 bg-indigo-600 dark:bg-purple-600 text-white rounded-xl text-xs font-medium hover:bg-indigo-700 dark:hover:bg-purple-700">Salvar</button>
                   </div>
                 </form>
