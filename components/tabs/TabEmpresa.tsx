@@ -17,7 +17,7 @@ import type { CustoEmpresa, CategoriaEmpresa } from '@/lib/types';
 
 const VChart = dynamic(
   () => import('@visactor/react-vchart').then((m) => m.VChart),
-  { ssr: false, loading: () => <div className="animate-pulse bg-violet-50 rounded-xl h-full w-full" /> },
+  { ssr: false, loading: () => <div className="animate-pulse bg-teal-50 rounded-xl h-full w-full" /> },
 );
 
 function GearIcon() {
@@ -37,7 +37,7 @@ function PinIcon({ filled }: { filled?: boolean }) {
   );
 }
 
-const INPUT = 'w-full border border-slate-200 dark:border-zinc-800 rounded-xl px-3 py-2 text-sm text-slate-900 dark:text-zinc-50 bg-white dark:bg-zinc-900 focus:outline-none focus:ring-2 focus:ring-violet-300';
+const INPUT = 'w-full border border-slate-200 dark:border-zinc-800 rounded-xl px-3 py-2 text-sm text-slate-900 dark:text-zinc-50 bg-white dark:bg-zinc-900 focus:outline-none focus:ring-2 focus:ring-teal-300';
 const fmt   = (v: number) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 
 interface Props { mes: number; ano: number; }
@@ -315,13 +315,13 @@ export default function TabEmpresa({ mes, ano }: Props) {
         <div className="flex gap-2">
           <button
             onClick={() => setShowConfigModal(true)}
-            className="inline-flex items-center gap-1.5 px-3 py-2 border border-violet-200 text-violet-500 rounded-xl text-sm font-medium hover:bg-violet-50 hover:text-violet-700 transition-colors"
+            className="inline-flex items-center gap-1.5 px-3 py-2 border border-teal-200 text-teal-500 rounded-xl text-sm font-medium hover:bg-teal-50 hover:text-teal-700 transition-colors"
           >
             <GearIcon /><span className="hidden sm:inline">Configurações</span>
           </button>
           <button
             onClick={() => abrirNovoCusto()}
-            className="inline-flex items-center gap-1.5 px-3 py-2 bg-violet-600 text-white rounded-xl text-sm font-medium hover:bg-violet-700 transition-colors shadow-sm shadow-violet-200 dark:shadow-violet-500/20"
+            className="inline-flex items-center gap-1.5 px-3 py-2 bg-teal-600 text-white rounded-xl text-sm font-medium hover:bg-teal-700 transition-colors shadow-sm shadow-teal-200 dark:shadow-teal-500/20"
           >
             <Plus /><span className="hidden sm:inline">Novo Custo</span>
           </button>
@@ -329,10 +329,10 @@ export default function TabEmpresa({ mes, ano }: Props) {
       </div>
 
       {/* ── Card total ── */}
-      <div className="bg-gradient-to-br from-indigo-600 dark:from-purple-600 to-violet-700 rounded-2xl px-4 py-3 text-white shadow-lg shadow-indigo-200 dark:shadow-purple-500/20">
-        <p className="text-indigo-100 dark:text-purple-100 text-xs font-medium uppercase tracking-wide">Total do Mês — Empresa</p>
+      <div className="bg-gradient-to-br from-emerald-600 dark:from-emerald-600 to-teal-700 rounded-2xl px-4 py-3 text-white shadow-lg shadow-emerald-200 dark:shadow-emerald-500/20">
+        <p className="text-emerald-100 dark:text-emerald-100 text-xs font-medium uppercase tracking-wide">Total do Mês — Empresa</p>
         <p className="text-2xl font-bold mt-0.5 tabular-nums">{fmt(totalGeral)}</p>
-        <p className="text-indigo-100 dark:text-purple-100 text-[11px] mt-1">{custos.length} custo(s) em {categorias.length} categoria(s)</p>
+        <p className="text-emerald-100 dark:text-emerald-100 text-[11px] mt-1">{custos.length} custo(s) em {categorias.length} categoria(s)</p>
       </div>
 
       {/* ── Gráficos ── */}
@@ -357,7 +357,7 @@ export default function TabEmpresa({ mes, ano }: Props) {
       <div className="flex flex-wrap gap-2">
         <button
           onClick={() => setCatFiltro(null)}
-          className={`px-3 py-1.5 rounded-full text-sm font-medium transition-all border ${!catFiltro ? 'bg-violet-600 text-white border-violet-600' : 'border-slate-200 dark:border-zinc-800 text-slate-500 dark:text-zinc-400 hover:border-violet-300 hover:text-violet-600'}`}
+          className={`px-3 py-1.5 rounded-full text-sm font-medium transition-all border ${!catFiltro ? 'bg-teal-600 text-white border-teal-600' : 'border-slate-200 dark:border-zinc-800 text-slate-500 dark:text-zinc-400 hover:border-teal-300 hover:text-teal-600'}`}
         >
           Todos
         </button>
@@ -384,7 +384,7 @@ export default function TabEmpresa({ mes, ano }: Props) {
           {catAtiva && (
             <button
               onClick={() => abrirNovoCusto(catAtiva.id)}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-violet-600 text-white rounded-lg text-xs font-medium hover:bg-violet-700 transition-colors"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-teal-600 text-white rounded-lg text-xs font-medium hover:bg-teal-700 transition-colors"
             >
               <Plus /> Adicionar
             </button>
@@ -403,7 +403,7 @@ export default function TabEmpresa({ mes, ano }: Props) {
             {custosFiltrados.map((c) => {
               const cat = catPorId(c.categoriaId);
               return (
-                <div key={c.id} className="group flex items-center gap-3 p-3 rounded-xl hover:bg-violet-50/50 transition-colors">
+                <div key={c.id} className="group flex items-center gap-3 p-3 rounded-xl hover:bg-teal-50/50 transition-colors">
                   <div className="flex items-center gap-3 flex-1 min-w-0">
                     <span className="w-1 h-10 rounded-full flex-shrink-0" style={{ backgroundColor: cat?.cor ?? '#8b5cf6' }} />
                     <span
@@ -425,7 +425,7 @@ export default function TabEmpresa({ mes, ano }: Props) {
                     </div>
                   </div>
                   <div className="flex items-center gap-2 flex-shrink-0">
-                    <span className="font-semibold text-sm text-violet-600 tabular-nums">{fmt(c.valorParcela)}</span>
+                    <span className="font-semibold text-sm text-teal-600 tabular-nums">{fmt(c.valorParcela)}</span>
                     <div className="w-[5.5rem] flex items-center gap-0.5">
                       {c.totalParcelas <= 1 && (
                         <button onClick={() => handleToggleFixaCusto(c)} title={c.fixa ? 'Remover recorrência' : 'Marcar como fixo'}
@@ -433,7 +433,7 @@ export default function TabEmpresa({ mes, ano }: Props) {
                           <PinIcon filled={c.fixa} />
                         </button>
                       )}
-                      <button onClick={() => abrirEditCusto(c)} className="p-1.5 rounded-lg opacity-100 sm:opacity-0 sm:group-hover:opacity-100 hover:bg-violet-100 text-slate-300 dark:text-zinc-500 hover:text-violet-500 transition-all"><Pencil /></button>
+                      <button onClick={() => abrirEditCusto(c)} className="p-1.5 rounded-lg opacity-100 sm:opacity-0 sm:group-hover:opacity-100 hover:bg-teal-100 text-slate-300 dark:text-zinc-500 hover:text-teal-500 transition-all"><Pencil /></button>
                       <button onClick={() => iniciarDeleteCusto(c)} className="p-1.5 rounded-lg opacity-100 sm:opacity-0 sm:group-hover:opacity-100 hover:bg-red-50 dark:hover:bg-red-500/10 text-slate-300 dark:text-zinc-500 hover:text-red-400 transition-all"><Trash /></button>
                     </div>
                   </div>
@@ -492,7 +492,7 @@ export default function TabEmpresa({ mes, ano }: Props) {
             </div>
 
             {formCusto.valor && parseInt(formCusto.totalParcelas) > 1 && (
-              <p className="text-xs text-slate-500 dark:text-zinc-400 bg-violet-50 rounded-lg p-2">
+              <p className="text-xs text-slate-500 dark:text-zinc-400 bg-teal-50 rounded-lg p-2">
                 Valor por parcela: <strong>{fmt(parseCurrencyInput(formCusto.valor) / parseInt(formCusto.totalParcelas) || 0)}</strong>
               </p>
             )}
@@ -512,7 +512,7 @@ export default function TabEmpresa({ mes, ano }: Props) {
 
             <div className="flex gap-3 pt-2">
               <button type="button" onClick={() => { setShowCustoModal(false); setEditCustoId(null); }} className="flex-1 py-2.5 border border-slate-200 dark:border-zinc-800 rounded-xl text-sm text-slate-600 dark:text-zinc-300 hover:bg-slate-50 dark:hover:bg-zinc-800">Cancelar</button>
-              <button type="submit" className="flex-1 py-2.5 bg-violet-600 text-white rounded-xl text-sm font-medium hover:bg-violet-700">Salvar</button>
+              <button type="submit" className="flex-1 py-2.5 bg-teal-600 text-white rounded-xl text-sm font-medium hover:bg-teal-700">Salvar</button>
             </div>
           </form>
         </Modal>
@@ -524,7 +524,7 @@ export default function TabEmpresa({ mes, ano }: Props) {
           <div className="space-y-3">
             <p className="text-xs font-semibold text-slate-500 dark:text-zinc-400 uppercase tracking-wide">Categorias</p>
             {categorias.map((cat) => (
-              <div key={cat.id} className="flex items-center gap-3 p-3 rounded-xl border border-violet-100 hover:bg-violet-50/50">
+              <div key={cat.id} className="flex items-center gap-3 p-3 rounded-xl border border-teal-100 hover:bg-teal-50/50">
                 <span className="w-5 h-5 rounded-full flex-shrink-0 shadow-sm" style={{ backgroundColor: cat.cor }} />
                 <p className="flex-1 text-sm font-medium text-slate-700 dark:text-zinc-200">{cat.nome}</p>
                 <button onClick={() => handleDeleteCategoria(cat.id!)} className="p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-500/10 text-slate-300 dark:text-zinc-500 hover:text-red-400 transition-colors"><Trash /></button>
@@ -532,11 +532,11 @@ export default function TabEmpresa({ mes, ano }: Props) {
             ))}
 
             {!showCatForm ? (
-              <button onClick={() => setShowCatForm(true)} className="w-full py-2.5 border-2 border-dashed border-violet-200 rounded-xl text-sm text-slate-400 dark:text-zinc-400 hover:border-violet-400 hover:text-violet-500 transition-colors flex items-center justify-center gap-2">
+              <button onClick={() => setShowCatForm(true)} className="w-full py-2.5 border-2 border-dashed border-teal-200 rounded-xl text-sm text-slate-400 dark:text-zinc-400 hover:border-teal-400 hover:text-teal-500 transition-colors flex items-center justify-center gap-2">
                 <Plus /> Nova Categoria
               </button>
             ) : (
-              <form onSubmit={handleSaveCategoria} className="border border-violet-200 rounded-xl p-4 space-y-3 bg-violet-50/30">
+              <form onSubmit={handleSaveCategoria} className="border border-teal-200 rounded-xl p-4 space-y-3 bg-teal-50/30">
                 <p className="text-sm font-semibold text-slate-700 dark:text-zinc-200">Nova Categoria</p>
                 <input required value={formCat.nome} onChange={(e) => setFormCat({ ...formCat, nome: e.target.value })} className={INPUT} placeholder="Ex: Alvará, ISS..." />
                 <div>
@@ -551,7 +551,7 @@ export default function TabEmpresa({ mes, ano }: Props) {
                 </div>
                 <div className="flex gap-2">
                   <button type="button" onClick={() => { setShowCatForm(false); setFormCat(CAT_EMPTY); }} className="flex-1 py-2 border border-slate-200 dark:border-zinc-800 rounded-xl text-xs text-slate-600 dark:text-zinc-300 hover:bg-white dark:hover:bg-zinc-800">Cancelar</button>
-                  <button type="submit" className="flex-1 py-2 bg-violet-600 text-white rounded-xl text-xs font-medium hover:bg-violet-700">Salvar</button>
+                  <button type="submit" className="flex-1 py-2 bg-teal-600 text-white rounded-xl text-xs font-medium hover:bg-teal-700">Salvar</button>
                 </div>
               </form>
             )}
@@ -595,7 +595,7 @@ export default function TabEmpresa({ mes, ano }: Props) {
             </p>
             <div className="space-y-2 pt-1">
               <button onClick={() => confirmarEditCusto('future')}
-                className="w-full py-2.5 rounded-xl text-sm font-semibold bg-violet-600 text-white hover:bg-violet-700 transition-colors">
+                className="w-full py-2.5 rounded-xl text-sm font-semibold bg-teal-600 text-white hover:bg-teal-700 transition-colors">
                 Este e os seguintes
               </button>
               <button onClick={() => confirmarEditCusto('this')}

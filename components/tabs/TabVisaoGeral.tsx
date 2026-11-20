@@ -339,8 +339,8 @@ export default function TabVisaoGeral({ mes, ano, onNavigate }: Props) {
     <div className="space-y-5">
       {/* ── Cards do mês atual ── */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        <button type="button" onClick={() => onNavigate('entradas')} className="bg-gradient-to-br from-indigo-600 dark:from-purple-600 to-violet-700 rounded-2xl px-4 py-3 text-white shadow-lg shadow-indigo-200 dark:shadow-purple-500/20 text-left cursor-pointer hover:brightness-110 transition-all">
-          <p className="text-indigo-100 dark:text-purple-100 text-xs">Ganhos do mês</p>
+        <button type="button" onClick={() => onNavigate('entradas')} className="bg-gradient-to-br from-emerald-600 dark:from-emerald-600 to-teal-700 rounded-2xl px-4 py-3 text-white shadow-lg shadow-emerald-200 dark:shadow-emerald-500/20 text-left cursor-pointer hover:brightness-110 transition-all">
+          <p className="text-emerald-100 dark:text-emerald-100 text-xs">Ganhos do mês</p>
           <p className="text-xl font-bold mt-0.5 tabular-nums">{fmt(atual?.ganhos ?? 0)}</p>
         </button>
         <button type="button" onClick={() => onNavigate('contas')} className="bg-gradient-to-br from-rose-500 to-rose-600 rounded-2xl px-4 py-3 text-white shadow-lg shadow-rose-200 dark:shadow-rose-500/20 text-left cursor-pointer hover:brightness-110 transition-all">
@@ -456,9 +456,9 @@ export default function TabVisaoGeral({ mes, ano, onNavigate }: Props) {
             <p className="font-semibold text-slate-700 dark:text-zinc-200 text-sm">Investimentos por categoria</p>
             <p className="text-xs text-slate-400 dark:text-zinc-400">Com base na distribuição configurada · Últimos 12 meses</p>
           </div>
-          <div className="bg-violet-50 dark:bg-violet-500/15 rounded-xl px-3 py-2 text-right flex-shrink-0">
-            <p className="text-[11px] text-violet-400 dark:text-violet-300">Total guardado</p>
-            <p className="font-bold text-violet-600 dark:text-violet-300 text-sm tabular-nums">{fmt(totalAcumulado)}</p>
+          <div className="bg-teal-50 dark:bg-teal-500/15 rounded-xl px-3 py-2 text-right flex-shrink-0">
+            <p className="text-[11px] text-teal-400 dark:text-teal-300">Total guardado</p>
+            <p className="font-bold text-teal-600 dark:text-teal-300 text-sm tabular-nums">{fmt(totalAcumulado)}</p>
           </div>
         </div>
 
@@ -476,7 +476,7 @@ export default function TabVisaoGeral({ mes, ano, onNavigate }: Props) {
               <div className="mt-4 grid grid-cols-2 sm:grid-cols-4 gap-3 pt-4 border-t border-slate-50 dark:border-zinc-800">
                 {[
                   { label: 'Férias', catKey: 'ferias', valor: atual?.ferias ?? 0, color: '#22d3ee', bg: 'bg-cyan-50 dark:bg-cyan-500/10' },
-                  { label: 'Investimento', catKey: 'investimento', valor: atual?.investimento ?? 0, color: '#a78bfa', bg: 'bg-violet-50 dark:bg-violet-500/10' },
+                  { label: 'Investimento', catKey: 'investimento', valor: atual?.investimento ?? 0, color: '#a78bfa', bg: 'bg-teal-50 dark:bg-teal-500/10' },
                   { label: 'Planos Futuros', catKey: 'planosFuturos', valor: atual?.planosFuturos ?? 0, color: '#34d399', bg: 'bg-emerald-50 dark:bg-emerald-500/10' },
                   { label: 'Estudos', catKey: 'estudos', valor: atual?.estudos ?? 0, color: '#f59e0b', bg: 'bg-amber-50 dark:bg-amber-500/10' },
                 ].map((item) => (
