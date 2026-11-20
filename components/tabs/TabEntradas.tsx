@@ -62,7 +62,7 @@ const DIST_LABELS: { key: DistKey; label: string }[] = [
 const LS_COLORS_KEY = 'thidohouse-dist-colors';
 
 const fmt = (v: number) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-const INPUT = 'w-full border border-slate-200 dark:border-zinc-800 rounded-xl px-3 py-2 text-sm text-slate-900 dark:text-zinc-50 bg-white dark:bg-zinc-900 focus:outline-none focus:ring-2 focus:ring-indigo-300 dark:focus:ring-purple-500';
+const INPUT = 'w-full border border-slate-200 dark:border-zinc-800 rounded-xl px-3 py-2 text-sm text-slate-900 dark:text-zinc-50 bg-white dark:bg-zinc-900 focus:outline-none focus:ring-2 focus:ring-lime-300 dark:focus:ring-lime-500';
 
 interface Props { mes: number; ano: number; }
 
@@ -523,16 +523,16 @@ export default function TabEntradas({ mes, ano }: Props) {
           <p className="text-xs text-slate-400 dark:text-zinc-400">{entradas.length} entrada(s) · {fmt(totalMes)}</p>
         </div>
         <button onClick={() => { setEditId(null); setForm({ descricao: '', valor: '', data: '' }); setShowModal(true); }}
-          className="inline-flex items-center gap-1.5 px-3 py-2 bg-indigo-600 dark:bg-purple-600 text-white rounded-xl text-sm font-medium hover:bg-indigo-700 dark:hover:bg-purple-700 transition-colors shadow-sm">
+          className="inline-flex items-center gap-1.5 px-3 py-2 bg-lime-600 dark:bg-lime-600 text-white rounded-xl text-sm font-medium hover:bg-lime-700 dark:hover:bg-lime-700 transition-colors shadow-sm">
           <Plus /><span className="hidden sm:inline">Nova Entrada</span>
         </button>
       </div>
 
       {/* ── Card resumo ── */}
-      <div className="bg-gradient-to-br from-indigo-600 dark:from-purple-600 to-violet-700 rounded-2xl px-4 py-3 text-white shadow-lg shadow-indigo-200 dark:shadow-purple-500/20">
-        <p className="text-indigo-100 dark:text-purple-100 text-xs font-medium uppercase tracking-wide">Total do Mês</p>
+      <div className="bg-gradient-to-br from-lime-600 dark:from-lime-600 to-green-700 rounded-2xl px-4 py-3 text-white shadow-lg shadow-lime-200 dark:shadow-lime-500/20">
+        <p className="text-lime-100 dark:text-lime-100 text-xs font-medium uppercase tracking-wide">Total do Mês</p>
         <p className="text-2xl font-bold mt-0.5 tabular-nums">{fmt(totalMes)}</p>
-        <p className="text-indigo-100 dark:text-purple-100 text-[11px] mt-1">{entradas.length} entrada(s)</p>
+        <p className="text-lime-100 dark:text-lime-100 text-[11px] mt-1">{entradas.length} entrada(s)</p>
       </div>
 
       {/* ── Gráficos ── */}
@@ -601,7 +601,7 @@ export default function TabEntradas({ mes, ano }: Props) {
         </div>
         {loading ? (
           <div className="py-12 flex flex-col items-center gap-2 text-slate-400 dark:text-zinc-400">
-            <div className="w-5 h-5 border-2 border-slate-200 dark:border-zinc-800 border-t-indigo-500 rounded-full animate-spin" />
+            <div className="w-5 h-5 border-2 border-slate-200 dark:border-zinc-800 border-t-lime-500 rounded-full animate-spin" />
             <p className="text-sm">Carregando...</p>
           </div>
         ) : entradas.length === 0 ? (
@@ -614,7 +614,7 @@ export default function TabEntradas({ mes, ano }: Props) {
             {entradas.map((e) => (
               <div key={e.id} className="group flex items-center justify-between px-4 py-3.5 hover:bg-slate-50/80 dark:hover:bg-zinc-800/80 transition-colors">
                 <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 bg-indigo-100 dark:bg-purple-500/20 rounded-xl flex items-center justify-center flex-shrink-0">
+                  <div className="w-8 h-8 bg-lime-100 dark:bg-lime-500/20 rounded-xl flex items-center justify-center flex-shrink-0">
                     <TrendingUp />
                   </div>
                   <div>
@@ -625,9 +625,9 @@ export default function TabEntradas({ mes, ano }: Props) {
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="font-bold text-indigo-600 dark:text-purple-400 tabular-nums">{fmt(e.valor)}</span>
+                  <span className="font-bold text-lime-600 dark:text-lime-400 tabular-nums">{fmt(e.valor)}</span>
                   <button onClick={() => handleEdit(e)}
-                    className="p-1.5 rounded-lg text-slate-300 dark:text-zinc-500 hover:text-indigo-500 dark:hover:text-purple-400 hover:bg-indigo-50 dark:hover:bg-purple-500/10 transition-colors opacity-100 sm:opacity-0 sm:group-hover:opacity-100">
+                    className="p-1.5 rounded-lg text-slate-300 dark:text-zinc-500 hover:text-lime-500 dark:hover:text-lime-400 hover:bg-lime-50 dark:hover:bg-lime-500/10 transition-colors opacity-100 sm:opacity-0 sm:group-hover:opacity-100">
                     <Pencil />
                   </button>
                   <button onClick={() => handleDelete(e.id!)}
@@ -657,7 +657,7 @@ export default function TabEntradas({ mes, ano }: Props) {
               className="inline-flex items-center gap-1 px-2.5 py-1.5 border border-slate-200 dark:border-zinc-800 rounded-lg text-xs font-medium text-slate-500 dark:text-zinc-400 hover:bg-slate-50 dark:hover:bg-zinc-800 hover:text-slate-700 dark:hover:text-zinc-200 transition-colors">
               <span className="font-bold leading-none">−</span> Saque
             </button>
-            <div className="h-9 w-9 rounded-xl bg-indigo-100 dark:bg-purple-500/20 flex items-center justify-center text-indigo-600 dark:text-purple-400 flex-shrink-0">
+            <div className="h-9 w-9 rounded-xl bg-lime-100 dark:bg-lime-500/20 flex items-center justify-center text-lime-600 dark:text-lime-400 flex-shrink-0">
               <TrendingUp />
             </div>
           </div>
@@ -816,7 +816,7 @@ export default function TabEntradas({ mes, ano }: Props) {
                         {RESERVA_LABELS.find((r) => r.key === principal.categoria)?.label}{principal.descricao ? ` · ${principal.descricao}` : ''}
                       </span>
                       {principal.destino === 'contas' && (
-                        <span className="flex-shrink-0 inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-indigo-50 dark:bg-purple-500/15 text-indigo-600 dark:text-purple-300">
+                        <span className="flex-shrink-0 inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-lime-50 dark:bg-lime-500/15 text-lime-600 dark:text-lime-300">
                           ⇄ Contas
                         </span>
                       )}
@@ -834,7 +834,7 @@ export default function TabEntradas({ mes, ano }: Props) {
                     <div className="flex items-center gap-1.5 flex-shrink-0">
                       <span className="text-xs font-semibold text-red-500 dark:text-red-400 tabular-nums">-{fmt(principal.valor)}</span>
                       <button onClick={() => handleEditSaque(principal)}
-                        className="p-1 rounded-lg text-slate-300 dark:text-zinc-500 hover:text-indigo-500 dark:hover:text-purple-400 hover:bg-indigo-50 dark:hover:bg-purple-500/10 transition-colors opacity-100 sm:opacity-0 sm:group-hover:opacity-100">
+                        className="p-1 rounded-lg text-slate-300 dark:text-zinc-500 hover:text-lime-500 dark:hover:text-lime-400 hover:bg-lime-50 dark:hover:bg-lime-500/10 transition-colors opacity-100 sm:opacity-0 sm:group-hover:opacity-100">
                         <Pencil />
                       </button>
                       <button onClick={() => handleDeleteSaque(principal)}
@@ -880,7 +880,7 @@ export default function TabEntradas({ mes, ano }: Props) {
             </div>
             <div className="flex gap-3 pt-1">
               <button type="button" onClick={() => { setShowModal(false); setEditId(null); }} className="flex-1 py-2.5 border border-slate-200 dark:border-zinc-800 rounded-xl text-sm text-slate-600 dark:text-zinc-300 hover:bg-slate-50 dark:hover:bg-zinc-800">Cancelar</button>
-              <button type="submit" className="flex-1 py-2.5 bg-indigo-600 dark:bg-purple-600 text-white rounded-xl text-sm font-semibold hover:bg-indigo-700 dark:hover:bg-purple-700 shadow-sm">Salvar</button>
+              <button type="submit" className="flex-1 py-2.5 bg-lime-600 dark:bg-lime-600 text-white rounded-xl text-sm font-semibold hover:bg-lime-700 dark:hover:bg-lime-700 shadow-sm">Salvar</button>
             </div>
           </form>
         </Modal>
@@ -929,7 +929,7 @@ export default function TabEntradas({ mes, ano }: Props) {
                         type="number" min={0} max={100}
                         value={distForm[key]}
                         onChange={(e) => setDistForm({ ...distForm, [key]: e.target.value })}
-                        className="w-14 text-right border border-slate-200 dark:border-zinc-800 rounded-lg px-2 py-1 text-sm tabular-nums text-slate-900 dark:text-zinc-50 bg-white dark:bg-zinc-900 focus:outline-none focus:ring-2 focus:ring-indigo-300 dark:focus:ring-purple-500"
+                        className="w-14 text-right border border-slate-200 dark:border-zinc-800 rounded-lg px-2 py-1 text-sm tabular-nums text-slate-900 dark:text-zinc-50 bg-white dark:bg-zinc-900 focus:outline-none focus:ring-2 focus:ring-lime-300 dark:focus:ring-lime-500"
                       />
                       <span className="text-xs text-slate-400 dark:text-zinc-500">%</span>
                     </div>
@@ -981,7 +981,7 @@ export default function TabEntradas({ mes, ano }: Props) {
 
             <div className="flex gap-3 pt-1">
               <button type="button" onClick={() => setShowDistModal(false)} className="flex-1 py-2.5 border border-slate-200 dark:border-zinc-800 rounded-xl text-sm text-slate-600 dark:text-zinc-300 hover:bg-slate-50 dark:hover:bg-zinc-800">Cancelar</button>
-              <button type="submit" disabled={!ok} className="flex-1 py-2.5 bg-indigo-600 dark:bg-purple-600 text-white rounded-xl text-sm font-semibold hover:bg-indigo-700 dark:hover:bg-purple-700 shadow-sm disabled:opacity-40 disabled:cursor-not-allowed">Salvar</button>
+              <button type="submit" disabled={!ok} className="flex-1 py-2.5 bg-lime-600 dark:bg-lime-600 text-white rounded-xl text-sm font-semibold hover:bg-lime-700 dark:hover:bg-lime-700 shadow-sm disabled:opacity-40 disabled:cursor-not-allowed">Salvar</button>
             </div>
           </form>
         </Modal>
@@ -1094,7 +1094,7 @@ export default function TabEntradas({ mes, ano }: Props) {
             </div>
             <div className="flex gap-3 pt-1">
               <button type="button" onClick={() => setShowSaqueModal(false)} className="flex-1 py-2.5 border border-slate-200 dark:border-zinc-800 rounded-xl text-sm text-slate-600 dark:text-zinc-300 hover:bg-slate-50 dark:hover:bg-zinc-800">Cancelar</button>
-              <button type="submit" className={`flex-1 py-2.5 text-white rounded-xl text-sm font-semibold shadow-sm ${isTransfer ? 'bg-indigo-600 dark:bg-purple-600 hover:bg-indigo-700 dark:hover:bg-purple-700' : 'bg-red-500 hover:bg-red-600'}`}>
+              <button type="submit" className={`flex-1 py-2.5 text-white rounded-xl text-sm font-semibold shadow-sm ${isTransfer ? 'bg-lime-600 dark:bg-lime-600 hover:bg-lime-700 dark:hover:bg-lime-700' : 'bg-red-500 hover:bg-red-600'}`}>
                 {editandoSaque ? 'Salvar' : (isTransfer ? 'Transferir' : 'Registrar Saque')}
               </button>
             </div>
@@ -1141,7 +1141,7 @@ export default function TabEntradas({ mes, ano }: Props) {
                 <button type="button" onClick={handleRemoveMeta} className="py-2.5 px-3 border border-slate-200 dark:border-zinc-800 rounded-xl text-sm text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10">Remover</button>
               )}
               <button type="button" onClick={() => setMetaModalKey(null)} className="flex-1 py-2.5 border border-slate-200 dark:border-zinc-800 rounded-xl text-sm text-slate-600 dark:text-zinc-300 hover:bg-slate-50 dark:hover:bg-zinc-800">Cancelar</button>
-              <button type="submit" className="flex-1 py-2.5 bg-indigo-600 dark:bg-purple-600 text-white rounded-xl text-sm font-semibold hover:bg-indigo-700 dark:hover:bg-purple-700 shadow-sm">Salvar</button>
+              <button type="submit" className="flex-1 py-2.5 bg-lime-600 dark:bg-lime-600 text-white rounded-xl text-sm font-semibold hover:bg-lime-700 dark:hover:bg-lime-700 shadow-sm">Salvar</button>
             </div>
           </form>
         </Modal>

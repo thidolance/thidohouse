@@ -66,10 +66,10 @@ export default function Home() {
         <div className="max-w-5xl mx-auto px-4">
           <div className="flex flex-wrap sm:flex-nowrap items-center justify-between gap-y-2 py-2.5 sm:h-14 sm:py-0">
             <div className="flex items-center gap-2">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-600 dark:bg-purple-600 text-white">
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-lime-600 dark:bg-lime-600 text-white">
                 <FamilyIcon className="h-4 w-4" />
               </div>
-              <span className="text-indigo-600 dark:text-purple-400 font-bold text-lg tracking-tight">ThidoHouse</span>
+              <span className="text-lime-600 dark:text-lime-400 font-bold text-lg tracking-tight">ThidoHouse</span>
               <span className="text-slate-400 dark:text-zinc-400 text-sm hidden sm:block">· Controle Financeiro</span>
             </div>
             <div className="order-3 w-full flex items-center justify-center gap-2 sm:order-none sm:w-auto sm:justify-start">
@@ -95,7 +95,7 @@ export default function Home() {
                 onClick={() => setTab(t.id)}
                 className={`flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
                   tab === t.id
-                    ? 'border-indigo-600 dark:border-purple-600 text-indigo-600 dark:text-purple-400'
+                    ? 'border-lime-600 dark:border-lime-600 text-lime-600 dark:text-lime-400'
                     : 'border-transparent text-slate-500 dark:text-zinc-400 hover:text-slate-700 dark:hover:text-zinc-200 hover:border-slate-300 dark:hover:border-zinc-600'
                 }`}
               >

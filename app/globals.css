@@ -9,29 +9,29 @@
   --foreground: #171717;
   --card: #ffffff;
   --card-foreground: #171717;
-  --primary: #4f46e5;          /* indigo-600 */
+  --primary: #65a30d;          /* lime-600 */
   --primary-foreground: #ffffff;
   --muted: #f8fafc;
   --muted-foreground: #64748b;
   --border: #e2e8f0;
   --input: #e2e8f0;
-  --ring: #6366f1;
+  --ring: #84cc16;             /* lime-500 */
   --radius: 0.75rem;
 }
 
-/* ── Tema escuro (preto + roxo) ── */
+/* ── Tema escuro (grafite + lime) ── */
 .dark {
-  --background: #09090b;        /* zinc-950 */
+  --background: #101012;        /* grafite */
   --foreground: #f4f4f5;        /* zinc-100 */
-  --card: #18181b;             /* zinc-900 */
+  --card: #1a1a1d;             /* grafite claro */
   --card-foreground: #f4f4f5;
-  --primary: #a855f7;           /* purple-500 */
-  --primary-foreground: #ffffff;
-  --muted: #18181b;
+  --primary: #84cc16;           /* lime-500 */
+  --primary-foreground: #0a0a0a;
+  --muted: #1a1a1d;
   --muted-foreground: #a1a1aa;  /* zinc-400 */
   --border: #27272a;            /* zinc-800 */
   --input: #27272a;
-  --ring: #a855f7;              /* purple-500 */
+  --ring: #a3e635;              /* lime-400 */
 }
 
 @theme inline {
@@ -66,7 +66,7 @@ body {
 /* Brilho aurora sutil no fundo, apenas no tema escuro */
 .dark body {
   background-image:
-    radial-gradient(60rem 40rem at 50% -20%, rgba(168, 85, 247, 0.10), transparent 70%);
+    radial-gradient(60rem 40rem at 50% -20%, rgba(132, 204, 22, 0.12), transparent 70%);
   background-attachment: fixed;
 }
 
