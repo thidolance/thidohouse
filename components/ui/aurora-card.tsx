@@ -23,10 +23,10 @@ export function AuroraCard({
     <div
       className={cn(
         'relative w-full rounded-2xl p-px transition-colors duration-300',
-        // Borda aurora sempre presente (índigo → roxo → rosa).
-        'bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400',
-        'dark:from-indigo-500 dark:via-purple-500 dark:to-pink-500',
-        'shadow-[0_0_22px_-14px_rgba(168,85,247,0.5)] dark:shadow-[0_0_24px_-10px_rgba(192,132,252,0.55)]',
+        // Borda aurora sempre presente (âmbar → laranja → rosa).
+        'bg-gradient-to-r from-amber-500 via-orange-400 to-rose-400',
+        'dark:from-amber-500 dark:via-orange-400 dark:to-rose-400',
+        'shadow-[0_0_22px_-14px_rgba(245,158,11,0.5)] dark:shadow-[0_0_24px_-10px_rgba(251,146,60,0.55)]',
         className,
       )}
       {...props}

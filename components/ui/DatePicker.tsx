@@ -98,7 +98,7 @@ export default function DatePicker({ value, onChange, required, className = '', 
         <span className={value ? 'text-slate-900 dark:text-zinc-50' : 'text-slate-400 dark:text-zinc-500'}>
           {value ? displayDate(value) : placeholder}
         </span>
-        <CalendarIcon className="h-4 w-4 text-slate-400 dark:text-purple-400 flex-shrink-0" />
+        <CalendarIcon className="h-4 w-4 text-slate-400 dark:text-amber-400 flex-shrink-0" />
       </button>
       {/* Campo oculto para validação nativa (required) */}
       {required && (
@@ -113,7 +113,7 @@ export default function DatePicker({ value, onChange, required, className = '', 
       )}
 
       {aberto && (
-        <div className="mt-2 w-full overflow-hidden rounded-2xl p-px bg-slate-200/80 dark:bg-gradient-to-r dark:from-indigo-500 dark:via-purple-500 dark:to-pink-500 dark:shadow-[0_0_24px_-10px_rgba(192,132,252,0.55)] animate-in fade-in slide-in-from-top-1 duration-150">
+        <div className="mt-2 w-full overflow-hidden rounded-2xl p-px bg-slate-200/80 dark:bg-gradient-to-r dark:from-amber-500 dark:via-amber-500 dark:to-pink-500 dark:shadow-[0_0_24px_-10px_rgba(192,132,252,0.55)] animate-in fade-in slide-in-from-top-1 duration-150">
           <div className="rounded-[15px] bg-white dark:bg-zinc-950 p-3 shadow-lg">
             {/* Cabeçalho mês/ano */}
             <div className="mb-2 flex items-center justify-between">
@@ -149,13 +149,13 @@ export default function DatePicker({ value, onChange, required, className = '', 
                     onClick={() => escolher(d)}
                     className={`relative h-8 rounded-lg text-sm font-medium transition-colors ${
                       selecionado
-                        ? 'bg-indigo-600 text-white dark:bg-purple-600'
+                        ? 'bg-amber-600 text-white dark:bg-amber-600'
                         : 'text-slate-600 hover:bg-slate-100 dark:text-zinc-300 dark:hover:bg-zinc-800'
                     }`}
                   >
                     {d}
                     {ehHoje && !selecionado && (
-                      <span className="absolute bottom-1 left-1/2 h-1 w-1 -translate-x-1/2 rounded-full bg-indigo-500 dark:bg-purple-400" />
+                      <span className="absolute bottom-1 left-1/2 h-1 w-1 -translate-x-1/2 rounded-full bg-amber-500 dark:bg-amber-400" />
                     )}
                   </button>
                 );
