@@ -91,7 +91,7 @@ export default function MonthPicker({ mes, ano, onChange }: Props) {
       </button>
 
       {aberto && (
-        <div className="absolute left-1/2 top-full z-50 mt-2 w-72 -translate-x-1/2 overflow-hidden rounded-2xl p-px bg-slate-200/80 dark:bg-gradient-to-r dark:from-cyan-500 dark:via-cyan-500 dark:to-pink-500 dark:shadow-[0_0_24px_-10px_rgba(192,132,252,0.55)] animate-in fade-in slide-in-from-top-1 duration-150">
+        <div className="absolute left-1/2 top-full z-50 mt-2 w-72 -translate-x-1/2 overflow-hidden rounded-2xl p-px bg-slate-200/80 dark:bg-gradient-to-r dark:from-cyan-500 dark:via-cyan-500 dark:to-pink-500 dark:shadow-[0_0_24px_-10px_rgba(34,211,238,0.55)] animate-in fade-in slide-in-from-top-1 duration-150">
           <div className="rounded-[15px] bg-white dark:bg-zinc-950 p-3 shadow-lg">
             {/* Navegação de ano */}
             <div className="mb-3 flex items-center justify-between">

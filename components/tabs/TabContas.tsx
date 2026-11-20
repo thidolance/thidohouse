@@ -121,7 +121,7 @@ const fmt   = (v: number) => v.toLocaleString('pt-BR', { style: 'currency', curr
 // Cores por tipo de conta (mesmas do gráfico "Gastos por Tipo de Conta"),
 // usadas na barrinha lateral de cada linha da tabela
 const COR_FIXA     = '#f59e0b';
-const COR_ROTATIVA = '#6366f1';
+const COR_ROTATIVA = '#0ea5e9';
 const COR_CARTOES  = '#ec4899';
 
 type OrdenacaoKey = 'vencimento-asc' | 'vencimento-desc' | 'valor-asc' | 'valor-desc' | 'nome-az' | 'nome-za' | 'status' | 'categoria';
