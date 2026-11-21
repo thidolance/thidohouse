@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import dynamic from 'next/dynamic';
 import Modal from '../ui/Modal';
 import Card from '../ui/Card';
 import { Plus, Trash, Pencil } from '../ui/Icons';
@@ -14,11 +13,6 @@ import {
   getCategoriasEmpresa, addCategoriaEmpresa, deleteCategoriaEmpresa,
 } from '@/lib/firestore';
 import type { CustoEmpresa, CategoriaEmpresa } from '@/lib/types';
-
-const VChart = dynamic(
-  () => import('@visactor/react-vchart').then((m) => m.VChart),
-  { ssr: false, loading: () => <div className="animate-pulse bg-sky-50 rounded-xl h-full w-full" /> },
-);
 
 function GearIcon() {
   return (
@@ -49,7 +43,7 @@ type FormCusto = {
 const CUSTO_EMPTY: FormCusto = { categoriaId: '', descricao: '', valor: '', totalParcelas: '1', parcelaAtual: '1', fixa: false };
 
 type FormCat = { nome: string; cor: string };
-const CAT_EMPTY: FormCat = { nome: '', cor: '#8b5cf6' };
+const CAT_EMPTY: FormCat = { nome: '', cor: '#06b6d4' };
 
 export default function TabEmpresa({ mes, ano }: Props) {
   const [custos, setCustos]         = useState<CustoEmpresa[]>([]);
@@ -235,74 +229,15 @@ export default function TabEmpresa({ mes, ano }: Props) {
   const custosFiltrados = catFiltro ? custos.filter((c) => c.categoriaId === catFiltro) : custos;
   const catAtiva        = categorias.find((c) => c.id === catFiltro);
 
-  // ── specs VChart ──────────────────────────────────────────────────────────
-  const barSpec = useMemo(() => ({
-    type: 'bar',
-    autoFit: true,
-    background: 'transparent',
-    data: [{ id: 'bar', values: totalPorCategoria.filter((c) => c.total > 0) }],
-    xField: 'nome',
-    yField: 'total',
-    bar: {
-      style: {
-        cornerRadius: [8, 8, 0, 0],
-        fill: (d: Record<string, unknown>) => String(d['fill']),
-      },
-    },
-    axes: [
-      { orient: 'bottom', domainLine: { visible: false }, tick: { visible: false }, label: { style: { fontSize: 12, fill: '#7c3aed' } } },
-      {
-        orient: 'left',
-        grid: { style: { stroke: '#f5f3ff', lineDash: [3, 3] } },
-        domainLine: { visible: false },
-        tick: { visible: false },
-        label: {
-          style: { fontSize: 11, fill: '#a78bfa' },
-          formatMethod: (v: number) => v === 0 ? 'R$0' : `R$${(v / 1000).toFixed(0)}k`,
-        },
-      },
-    ],
-    tooltip: {
-      mark: {
-        title: { visible: false },
-        content: [{ key: (d: Record<string, unknown>) => String(d['nome']), value: (d: Record<string, unknown>) => fmt(Number(d['total'])) }],
-      },
-    },
-  }), [totalPorCategoria]);
-
-  const donutSpec = useMemo(() => {
-    const vals = totalPorCategoria.filter((c) => c.total > 0);
-    return {
-      type: 'pie',
-      autoFit: true,
-      background: 'transparent',
-      data: [{ id: 'pie', values: vals }],
-      valueField: 'total',
-      categoryField: 'nome',
-      outerRadius: 0.75,
-      innerRadius: 0.52,
-      padAngle: 0.8,
-      color: vals.map((d) => d.fill),
-      pie: { style: { cornerRadius: 4 } },
-      label: { visible: false },
-      legends: [{
-        visible: true,
-        orient: 'bottom',
-        padding: { top: 8 },
-        maxRow: 3,
-        item: {
-          label: { style: { fontSize: 11, fill: '#6d28d9' } },
-          value: { visible: false },
-        },
-      }],
-      tooltip: {
-        mark: {
-          title: { visible: false },
-          content: [{ key: (d: Record<string, unknown>) => String(d['nome']), value: (d: Record<string, unknown>) => fmt(Number(d['total'])) }],
-        },
-      },
-    };
-  }, [totalPorCategoria]);
+  // Ranking "Custo por Categoria" (mesmo formato dos outros gráficos).
+  const rankingEmpresa = useMemo(
+    () => totalPorCategoria
+      .filter((c) => c.total > 0)
+      .map((c) => ({ name: c.nome, value: c.total, fill: c.fill }))
+      .sort((a, b) => b.value - a.value),
+    [totalPorCategoria],
+  );
+  const totalEmpCat = useMemo(() => rankingEmpresa.reduce((s, v) => s + v.value, 0), [rankingEmpresa]);
 
   return (
     <div className="space-y-5">
@@ -335,22 +270,42 @@ export default function TabEmpresa({ mes, ano }: Props) {
         <p className="text-cyan-100 dark:text-cyan-100 text-[11px] mt-1">{custos.length} custo(s) em {categorias.length} categoria(s)</p>
       </div>
 
-      {/* ── Gráficos ── */}
-      {totalGeral > 0 && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          <Card>
-            <p className="font-semibold text-slate-700 dark:text-zinc-200 text-sm mb-3">Custo por Categoria</p>
-            <div style={{ height: 220 }}>
-              <VChart key={`emp-bar-${totalGeral.toFixed(0)}`} spec={barSpec as any} />
-            </div>
-          </Card>
-          <Card>
-            <p className="font-semibold text-slate-700 dark:text-zinc-200 text-sm mb-3">Distribuição</p>
-            <div style={{ height: 220 }}>
-              <VChart key={`emp-donut-${totalGeral.toFixed(0)}`} spec={donutSpec as any} />
-            </div>
-          </Card>
-        </div>
+      {/* ── Gráfico (ranking) ── */}
+      {rankingEmpresa.length > 0 && (
+        <Card>
+          <div className="flex items-center justify-between mb-3 gap-2">
+            <p className="font-semibold text-slate-700 dark:text-zinc-200 text-sm">Custo por Categoria</p>
+            <span className="text-[11px] text-slate-400 dark:text-zinc-400 flex-shrink-0">{rankingEmpresa.length} categoria(s)</span>
+          </div>
+          <div className="max-h-[320px] overflow-y-auto pr-1 space-y-3">
+            {rankingEmpresa.map((it, idx) => {
+              const pctTotal = totalEmpCat > 0 ? (it.value / totalEmpCat) * 100 : 0;
+              const pctBar   = (it.value / rankingEmpresa[0].value) * 100;
+              return (
+                <div key={it.name} className="flex items-center gap-3">
+                  <span className="w-3.5 h-3.5 rounded-md flex-shrink-0" style={{ backgroundColor: it.fill }} />
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-baseline justify-between gap-2">
+                      <span className="text-sm font-medium text-slate-700 dark:text-zinc-200 truncate flex items-center gap-1.5">
+                        {it.name}
+                        {idx === 0 && rankingEmpresa.length > 1 && (
+                          <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-400 font-semibold whitespace-nowrap">maior</span>
+                        )}
+                      </span>
+                      <span className="text-sm font-bold text-slate-800 dark:text-zinc-100 tabular-nums flex-shrink-0">{fmt(it.value)}</span>
+                    </div>
+                    <div className="flex items-center gap-2 mt-1">
+                      <div className="flex-1 h-2 rounded-full bg-slate-100 dark:bg-zinc-800 overflow-hidden">
+                        <div className="h-full rounded-full transition-all duration-500" style={{ width: `${pctBar}%`, backgroundColor: it.fill }} />
+                      </div>
+                      <span className="text-[11px] text-slate-400 dark:text-zinc-400 tabular-nums w-9 text-right flex-shrink-0">{pctTotal.toFixed(0)}%</span>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </Card>
       )}
 
       {/* ── Filtros de categoria ── */}
@@ -405,10 +360,10 @@ export default function TabEmpresa({ mes, ano }: Props) {
               return (
                 <div key={c.id} className="group flex items-center gap-3 p-3 rounded-xl hover:bg-sky-50/50 transition-colors">
                   <div className="flex items-center gap-3 flex-1 min-w-0">
-                    <span className="w-1 h-10 rounded-full flex-shrink-0" style={{ backgroundColor: cat?.cor ?? '#8b5cf6' }} />
+                    <span className="w-1 h-10 rounded-full flex-shrink-0" style={{ backgroundColor: cat?.cor ?? '#06b6d4' }} />
                     <span
                       className="text-xs px-2 py-0.5 rounded-full font-medium flex-shrink-0"
-                      style={{ backgroundColor: `${cat?.cor ?? '#8b5cf6'}22`, color: cat?.cor ?? '#8b5cf6' }}
+                      style={{ backgroundColor: `${cat?.cor ?? '#06b6d4'}22`, color: cat?.cor ?? '#06b6d4' }}
                     >
                       {cat?.nome ?? '—'}
                     </span>
