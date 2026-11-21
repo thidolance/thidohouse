@@ -80,6 +80,8 @@ export default function TabMetas({ ano }: Props) {
   const totalGeral     = metas.reduce((s, m) => s + m.valor, 0);
   const totalConcluido = metas.filter((m) => m.concluida).reduce((s, m) => s + m.valor, 0);
   const totalFaltante  = totalGeral - totalConcluido;
+  const qtdConcluidas  = metas.filter((m) => m.concluida).length;
+  const pctConcluido   = totalGeral > 0 ? (totalConcluido / totalGeral) * 100 : 0;
 
   const metasOrdenadas = [...metas].sort((a, b) => {
     if (a.concluida !== b.concluida) return a.concluida ? 1 : -1;
@@ -92,7 +94,7 @@ export default function TabMetas({ ano }: Props) {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-lg font-bold text-slate-800 dark:text-zinc-100">Metas de {ano}</h2>
-          <p className="text-xs text-slate-400 dark:text-zinc-400">{metas.length} meta(s) · {fmt(totalGeral)}</p>
+          <p className="text-xs text-slate-400 dark:text-zinc-400">{qtdConcluidas}/{metas.length} concluída(s) · {fmt(totalGeral)}</p>
         </div>
         <button onClick={abrirNova}
           className="inline-flex items-center gap-1.5 px-3 py-2 bg-cyan-600 dark:bg-cyan-600 text-white rounded-xl text-sm font-medium hover:bg-cyan-700 dark:hover:bg-cyan-700 transition-colors shadow-sm">
@@ -150,7 +152,14 @@ export default function TabMetas({ ano }: Props) {
 
       {/* ── Projeção ── */}
       <Card>
-        <p className="font-semibold text-slate-700 dark:text-zinc-200 text-sm mb-3">Projeção</p>
+        <div className="flex items-center justify-between mb-3">
+          <p className="font-semibold text-slate-700 dark:text-zinc-200 text-sm">Projeção</p>
+          <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 tabular-nums">{pctConcluido.toFixed(0)}% conquistado</span>
+        </div>
+        {/* Barra de progresso (valor conquistado / total das metas) */}
+        <div className="h-2.5 bg-slate-100 dark:bg-zinc-800 rounded-full overflow-hidden mb-4">
+          <div className="h-full rounded-full bg-gradient-to-r from-emerald-400 to-emerald-600 transition-all duration-700" style={{ width: `${pctConcluido}%` }} />
+        </div>
         <div className="grid grid-cols-3 gap-3 text-center">
           <div>
             <p className="text-xs text-slate-400 dark:text-zinc-400">Total das metas</p>
