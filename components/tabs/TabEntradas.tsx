@@ -67,7 +67,6 @@ const INPUT = 'w-full border border-slate-200 dark:border-zinc-800 rounded-xl px
 // Gráfico de área (linha + gradiente) do histórico mensal — SVG nativo, moderno.
 function HistoricoArea({ data }: { data: { mes: string; total: number }[] }) {
   const n = data.length;
-  const max = Math.max(...data.map((d) => d.total), 1);
 
   const ultimo = data.at(-1);
   const penultimo = n >= 2 ? data[n - 2] : undefined;
@@ -100,24 +99,45 @@ function HistoricoArea({ data }: { data: { mes: string; total: number }[] }) {
           ) : null}
         </div>
       )}
-      {/* Barras por mês — altura proporcional ao valor; último mês em destaque */}
-      <div className="flex items-end gap-1.5" style={{ height: 150 }}>
-        {data.map((d, i) => {
-          const last = i === n - 1;
-          const h = Math.max(6, (d.total / max) * 100);
-          return (
-            <div key={i} className="flex-1 h-full flex items-end min-w-0" title={`${d.mes}: ${fmt(d.total)}`}>
-              <div
-                className={`w-full rounded-t-md transition-[height] duration-500 ${last ? 'bg-gradient-to-t from-cyan-600 to-cyan-400 shadow-sm shadow-cyan-500/30' : 'bg-cyan-500/35 dark:bg-cyan-500/25 hover:bg-cyan-500/55 dark:hover:bg-cyan-500/40'}`}
-                style={{ height: `${h}%` }}
-              />
-            </div>
-          );
-        })}
-      </div>
-      <div className="flex gap-1.5 mt-1.5">
+      {/* Área + linha (escala min–máx: realça variação). Valor de cada mês em k em cima. */}
+      {(() => {
+        const totals = data.map((d) => d.total);
+        const mn = Math.min(...totals);
+        const mx = Math.max(...totals);
+        const range = mx - mn;
+        const px = (i: number) => (n <= 1 ? 50 : (i / (n - 1)) * 100);
+        const py = (v: number) => (range === 0 ? 50 : 84 - ((v - mn) / range) * 68);
+        const pts = data.map((d, i) => [px(i), py(d.total)] as const);
+        const linePath = pts.map(([x, y], i) => `${i === 0 ? 'M' : 'L'}${x.toFixed(2)} ${y.toFixed(2)}`).join(' ');
+        const areaPath = `${linePath} L${px(n - 1).toFixed(2)} 100 L${px(0).toFixed(2)} 100 Z`;
+        const kfmt = (v: number) => (v >= 1000 ? `${(v / 1000).toFixed(v % 1000 === 0 ? 0 : 1)}k` : String(Math.round(v)));
+        return (
+          <div className="relative" style={{ height: 160 }}>
+            <svg className="absolute inset-0 w-full h-full overflow-visible" viewBox="0 0 100 100" preserveAspectRatio="none">
+              <defs>
+                <linearGradient id="histGrad" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#06b6d4" stopOpacity="0.35" />
+                  <stop offset="100%" stopColor="#06b6d4" stopOpacity="0" />
+                </linearGradient>
+              </defs>
+              <path d={areaPath} fill="url(#histGrad)" />
+              <path d={linePath} fill="none" stroke="#06b6d4" strokeWidth="2.5" vectorEffect="non-scaling-stroke" strokeLinejoin="round" strokeLinecap="round" />
+            </svg>
+            {pts.map(([x, y], i) => {
+              const last = i === n - 1;
+              return (
+                <div key={i} className="absolute flex flex-col items-center" style={{ left: `${x}%`, top: `${y}%`, transform: 'translate(-50%,-50%)' }}>
+                  <span className={`absolute bottom-3 whitespace-nowrap text-[8px] font-semibold ${last ? 'text-cyan-600 dark:text-cyan-300' : 'text-slate-400 dark:text-zinc-500'}`} title={fmt(data[i].total)}>{kfmt(data[i].total)}</span>
+                  <span className={`rounded-full ring-2 ring-white dark:ring-zinc-950 ${last ? 'w-3 h-3 bg-cyan-500' : 'w-2 h-2 bg-cyan-400/80'}`} />
+                </div>
+              );
+            })}
+          </div>
+        );
+      })()}
+      <div className="flex justify-between mt-2 gap-0.5">
         {data.map((d, i) => (
-          <span key={i} className={`flex-1 text-[9px] text-center truncate ${i === n - 1 ? 'text-cyan-600 dark:text-cyan-400 font-semibold' : 'text-slate-400 dark:text-zinc-500'}`}>{d.mes}</span>
+          <span key={i} className={`text-[9px] flex-1 text-center truncate ${i === n - 1 ? 'text-cyan-600 dark:text-cyan-400 font-semibold' : 'text-slate-400 dark:text-zinc-500'}`}>{d.mes}</span>
         ))}
       </div>
     </div>
