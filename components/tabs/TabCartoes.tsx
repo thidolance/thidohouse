@@ -675,7 +675,7 @@ export default function TabCartoes({ mes, ano }: Props) {
       </div>
 
       {/* Cards visuais dos cartões (seletor) */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-4 gap-2 sm:gap-3">
         {cartoes.map((c) => {
           const dado     = totalPorCartao.find((t) => t.id === c.id)!;
           const isSelected = cartaoSelecionado === c.id;
@@ -683,11 +683,11 @@ export default function TabCartoes({ mes, ano }: Props) {
             <button
               key={c.id}
               onClick={() => setCartaoSelecionado(isSelected ? null : c.id!)}
-              className={`group relative overflow-hidden rounded-2xl p-5 text-left transition-all duration-300 text-white shadow-lg hover:scale-105 flex flex-col justify-between ${isSelected ? 'scale-105' : ''}`}
+              className={`group relative overflow-hidden rounded-xl p-3 text-left transition-all duration-300 text-white shadow-lg hover:scale-105 flex flex-col justify-between ${isSelected ? 'scale-105' : ''}`}
               style={{
                 backgroundColor: c.cor,
-                minHeight: 120,
-                boxShadow: isSelected ? `0 0 34px -4px ${c.cor}` : undefined,
+                minHeight: 92,
+                boxShadow: isSelected ? `0 0 28px -6px ${c.cor}` : undefined,
               }}
             >
               <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-black/25 pointer-events-none" />
@@ -710,25 +710,24 @@ export default function TabCartoes({ mes, ano }: Props) {
                   opacity: isSelected ? 1 : 0.7,
                 }}
               />
-              <div className="relative flex items-start justify-between">
-                <span className="flex items-center gap-1.5 text-sm font-bold tracking-wide">
-                  <ContaIcon nome="cartao" className="w-4 h-4 flex-shrink-0" /> {c.nome}
+              <div className="relative flex items-start justify-between gap-1">
+                <span className="flex items-center gap-1 text-[11px] font-bold tracking-wide min-w-0">
+                  <ContaIcon nome="cartao" className="w-3.5 h-3.5 flex-shrink-0" /> <span className="truncate">{c.nome}</span>
                 </span>
-                {c.bandeira === 'Visa' && <VisaLogo />}
-                {c.bandeira === 'Mastercard' && <MastercardLogo />}
+                <span className="flex-shrink-0 hidden sm:block">
+                  {c.bandeira === 'Visa' && <VisaLogo />}
+                  {c.bandeira === 'Mastercard' && <MastercardLogo />}
+                </span>
               </div>
-              <div className="relative flex items-end justify-between mt-4">
-                <div>
-                  <p className="text-white/80 text-xs font-medium">Mês atual</p>
-                  <p className="text-xl font-extrabold tabular-nums leading-tight [text-shadow:0_1px_3px_rgba(0,0,0,0.5)]">{fmt(dado?.total ?? 0)}</p>
-                </div>
-                <p className="text-white/80 text-xs font-medium">{dado?.count ?? 0} compra(s)</p>
+              <div className="relative mt-2">
+                <p className="text-base font-extrabold tabular-nums leading-tight truncate [text-shadow:0_1px_3px_rgba(0,0,0,0.5)]">{fmt(dado?.total ?? 0)}</p>
+                <p className="text-white/80 text-[10px] font-medium">{dado?.count ?? 0} compra(s)</p>
               </div>
               {!!c.limite && c.limite > 0 && (() => {
                 const pctUso = Math.min(100, ((dado?.usado ?? 0) / c.limite!) * 100);
                 return (
-                  <div className="relative mt-3">
-                    <div className="w-full bg-white/20 rounded-full h-1.5 overflow-hidden relative">
+                  <div className="relative mt-2">
+                    <div className="w-full bg-white/20 rounded-full h-1 overflow-hidden relative">
                       <div className="absolute inset-y-0 left-0 rounded-full overflow-hidden transition-all duration-700" style={{ width: `${pctUso}%` }}>
                         {/* Gradiente verde→vermelho revelado conforme o limite é consumido */}
                         <div
@@ -740,7 +739,7 @@ export default function TabCartoes({ mes, ano }: Props) {
                         />
                       </div>
                     </div>
-                    <p className="text-white/80 text-[11px] mt-1 font-medium [text-shadow:0_1px_2px_rgba(0,0,0,0.4)]">{fmt(dado?.usado ?? 0)} de {fmt(c.limite)}</p>
+                    <p className="text-white/80 text-[9px] mt-1 font-medium truncate [text-shadow:0_1px_2px_rgba(0,0,0,0.4)]">{fmt(dado?.usado ?? 0)} de {fmt(c.limite)}</p>
                   </div>
                 );
               })()}
