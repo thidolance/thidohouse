@@ -121,7 +121,7 @@ export default function TabMetas({ ano }: Props) {
         ) : (
           <div className="divide-y divide-slate-50 dark:divide-zinc-800">
             {metasOrdenadas.map((m) => (
-              <div key={m.id} className={`group flex items-center gap-3 px-4 py-3.5 transition-all ${m.concluida ? 'border-l-2 border-emerald-400 dark:border-emerald-500 bg-gradient-to-r from-emerald-100 via-emerald-50 to-transparent dark:from-emerald-500/20 dark:via-emerald-500/5 dark:to-transparent' : 'hover:bg-slate-50/80 dark:hover:bg-zinc-800/80'}`}>
+              <div key={m.id} className={`group flex items-center gap-3 px-4 py-3.5 transition-all ${m.concluida ? 'border-l-2 border-blue-400 dark:border-blue-500 bg-gradient-to-r from-blue-100 via-blue-50 to-transparent dark:from-blue-500/20 dark:via-blue-500/5 dark:to-transparent' : 'hover:bg-slate-50/80 dark:hover:bg-zinc-800/80'}`}>
                 <button
                   onClick={() => handleToggle(m)}
                   className={`w-7 h-7 rounded-full border-2 flex items-center justify-center transition-all flex-shrink-0 shadow-sm ${
@@ -140,7 +140,7 @@ export default function TabMetas({ ano }: Props) {
                   )}
                 </div>
                 <div className="flex items-center gap-2 flex-shrink-0">
-                  <span className={`font-bold text-sm tabular-nums ${m.concluida ? 'text-emerald-600 dark:text-emerald-400 line-through' : 'text-slate-800 dark:text-zinc-100'}`}>{fmt(m.valor)}</span>
+                  <span className={`font-bold text-sm tabular-nums ${m.concluida ? 'text-blue-600 dark:text-blue-400 line-through' : 'text-slate-800 dark:text-zinc-100'}`}>{fmt(m.valor)}</span>
                   <button onClick={() => abrirEditar(m)} className="p-1.5 rounded-lg text-slate-400 dark:text-zinc-400 hover:text-cyan-500 dark:hover:text-cyan-400 hover:bg-cyan-50 dark:hover:bg-cyan-500/10 transition-colors opacity-100 sm:opacity-0 sm:group-hover:opacity-100"><Pencil /></button>
                   <button onClick={() => handleDelete(m.id!)} className="p-1.5 rounded-lg text-slate-400 dark:text-zinc-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors opacity-100 sm:opacity-0 sm:group-hover:opacity-100"><Trash /></button>
                 </div>
