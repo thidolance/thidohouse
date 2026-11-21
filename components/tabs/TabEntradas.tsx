@@ -67,9 +67,14 @@ const INPUT = 'w-full border border-slate-200 dark:border-zinc-800 rounded-xl px
 // Gráfico de área (linha + gradiente) do histórico mensal — SVG nativo, moderno.
 function HistoricoArea({ data }: { data: { mes: string; total: number }[] }) {
   const n = data.length;
-  const max = Math.max(...data.map((d) => d.total), 1);
+  const totals = data.map((d) => d.total);
+  const max = Math.max(...totals);
+  const min = Math.min(...totals);
+  const range = max - min;
   const px = (i: number) => (n <= 1 ? 50 : (i / (n - 1)) * 100);
-  const py = (v: number) => 92 - (v / max) * 84; // 0 embaixo; topo com folga
+  // Escala no intervalo min–máx (não no zero): realça a variação entre os meses.
+  // Quando todos os meses são iguais (range 0), a linha fica centralizada.
+  const py = (v: number) => (range === 0 ? 50 : 84 - ((v - min) / range) * 68); // 16..84
   const pts = data.map((d, i) => [px(i), py(d.total)] as const);
   const linePath = pts.map(([x, y], i) => `${i === 0 ? 'M' : 'L'}${x.toFixed(2)} ${y.toFixed(2)}`).join(' ');
   const areaPath = `${linePath} L${px(n - 1).toFixed(2)} 100 L${px(0).toFixed(2)} 100 Z`;
