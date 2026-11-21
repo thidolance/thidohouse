@@ -67,23 +67,11 @@ const INPUT = 'w-full border border-slate-200 dark:border-zinc-800 rounded-xl px
 // Gráfico de área (linha + gradiente) do histórico mensal — SVG nativo, moderno.
 function HistoricoArea({ data }: { data: { mes: string; total: number }[] }) {
   const n = data.length;
-  const totals = data.map((d) => d.total);
-  const max = Math.max(...totals);
-  const min = Math.min(...totals);
-  const range = max - min;
-  const px = (i: number) => (n <= 1 ? 50 : (i / (n - 1)) * 100);
-  // Escala no intervalo min–máx (não no zero): realça a variação entre os meses.
-  // Quando todos os meses são iguais (range 0), a linha fica centralizada.
-  const py = (v: number) => (range === 0 ? 50 : 84 - ((v - min) / range) * 68); // 16..84
-  const pts = data.map((d, i) => [px(i), py(d.total)] as const);
-  const linePath = pts.map(([x, y], i) => `${i === 0 ? 'M' : 'L'}${x.toFixed(2)} ${y.toFixed(2)}`).join(' ');
-  const areaPath = `${linePath} L${px(n - 1).toFixed(2)} 100 L${px(0).toFixed(2)} 100 Z`;
+  const max = Math.max(...data.map((d) => d.total), 1);
 
   const ultimo = data.at(-1);
   const penultimo = n >= 2 ? data[n - 2] : undefined;
-  // Variação do último mês vs o anterior. Sempre mostra quando há 2+ meses:
-  // se o anterior foi 0, trata como "novo"; senão calcula o percentual (pode ser
-  // positivo ou negativo — mês passado maior => variação negativa).
+  // Variação do último mês vs o anterior (positiva ou negativa).
   let deltaPct: number | null = null;
   let deltaNovo = false;
   if (ultimo && penultimo) {
@@ -95,7 +83,7 @@ function HistoricoArea({ data }: { data: { mes: string; total: number }[] }) {
   return (
     <div>
       {ultimo && (
-        <div className="flex items-end justify-between gap-2 mb-2">
+        <div className="flex items-end justify-between gap-2 mb-3">
           <div className="min-w-0">
             <p className="text-[11px] text-slate-400 dark:text-zinc-400">Último mês · <span className="uppercase">{ultimo.mes}</span></p>
             <p className="text-xl font-extrabold text-slate-800 dark:text-zinc-100 tabular-nums leading-tight">{fmt(ultimo.total)}</p>
@@ -112,40 +100,26 @@ function HistoricoArea({ data }: { data: { mes: string; total: number }[] }) {
           ) : null}
         </div>
       )}
-      {n >= 2 ? (
-        <>
-          <div className="relative" style={{ height: 150 }}>
-            <svg className="absolute inset-0 w-full h-full overflow-visible" viewBox="0 0 100 100" preserveAspectRatio="none">
-              <defs>
-                <linearGradient id="histGrad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#06b6d4" stopOpacity="0.35" />
-                  <stop offset="100%" stopColor="#06b6d4" stopOpacity="0" />
-                </linearGradient>
-              </defs>
-              <path d={areaPath} fill="url(#histGrad)" />
-              <path d={linePath} fill="none" stroke="#06b6d4" strokeWidth="2.5" vectorEffect="non-scaling-stroke" strokeLinejoin="round" strokeLinecap="round" />
-            </svg>
-            {pts.map(([x, y], i) => {
-              const last = i === n - 1;
-              return (
-                <span
-                  key={i}
-                  title={`${data[i].mes}: ${fmt(data[i].total)}`}
-                  className={`absolute -translate-x-1/2 -translate-y-1/2 rounded-full ring-2 ring-white dark:ring-zinc-950 transition-transform hover:scale-150 ${last ? 'w-3 h-3 bg-cyan-500' : 'w-2 h-2 bg-cyan-400/80'}`}
-                  style={{ left: `${x}%`, top: `${y}%` }}
-                />
-              );
-            })}
-          </div>
-          <div className="flex justify-between mt-2 gap-0.5">
-            {data.map((d, i) => (
-              <span key={i} className="text-[9px] text-slate-400 dark:text-zinc-500 flex-1 text-center truncate">{d.mes}</span>
-            ))}
-          </div>
-        </>
-      ) : (
-        <p className="text-[11px] text-slate-400 dark:text-zinc-500 mt-1">Sem meses anteriores para comparar ainda.</p>
-      )}
+      {/* Barras por mês — altura proporcional ao valor; último mês em destaque */}
+      <div className="flex items-end gap-1.5" style={{ height: 150 }}>
+        {data.map((d, i) => {
+          const last = i === n - 1;
+          const h = Math.max(6, (d.total / max) * 100);
+          return (
+            <div key={i} className="flex-1 h-full flex items-end min-w-0" title={`${d.mes}: ${fmt(d.total)}`}>
+              <div
+                className={`w-full rounded-t-md transition-[height] duration-500 ${last ? 'bg-gradient-to-t from-cyan-600 to-cyan-400 shadow-sm shadow-cyan-500/30' : 'bg-cyan-500/35 dark:bg-cyan-500/25 hover:bg-cyan-500/55 dark:hover:bg-cyan-500/40'}`}
+                style={{ height: `${h}%` }}
+              />
+            </div>
+          );
+        })}
+      </div>
+      <div className="flex gap-1.5 mt-1.5">
+        {data.map((d, i) => (
+          <span key={i} className={`flex-1 text-[9px] text-center truncate ${i === n - 1 ? 'text-cyan-600 dark:text-cyan-400 font-semibold' : 'text-slate-400 dark:text-zinc-500'}`}>{d.mes}</span>
+        ))}
+      </div>
     </div>
   );
 }
