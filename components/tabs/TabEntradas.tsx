@@ -64,6 +64,69 @@ const LS_COLORS_KEY = 'thidohouse-dist-colors';
 const fmt = (v: number) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 const INPUT = 'w-full border border-slate-200 dark:border-zinc-800 rounded-xl px-3 py-2 text-sm text-slate-900 dark:text-zinc-50 bg-white dark:bg-zinc-900 focus:outline-none focus:ring-2 focus:ring-cyan-300 dark:focus:ring-cyan-500';
 
+// Gráfico de área (linha + gradiente) do histórico mensal — SVG nativo, moderno.
+function HistoricoArea({ data }: { data: { mes: string; total: number }[] }) {
+  const n = data.length;
+  const max = Math.max(...data.map((d) => d.total), 1);
+  const px = (i: number) => (n <= 1 ? 50 : (i / (n - 1)) * 100);
+  const py = (v: number) => 92 - (v / max) * 84; // 0 embaixo; topo com folga
+  const pts = data.map((d, i) => [px(i), py(d.total)] as const);
+  const linePath = pts.map(([x, y], i) => `${i === 0 ? 'M' : 'L'}${x.toFixed(2)} ${y.toFixed(2)}`).join(' ');
+  const areaPath = `${linePath} L${px(n - 1).toFixed(2)} 100 L${px(0).toFixed(2)} 100 Z`;
+
+  const ultimo = data.at(-1);
+  const penultimo = n >= 2 ? data[n - 2] : undefined;
+  const delta = ultimo && penultimo && penultimo.total > 0
+    ? ((ultimo.total - penultimo.total) / penultimo.total) * 100
+    : null;
+
+  return (
+    <div>
+      {ultimo && (
+        <div className="flex items-end justify-between mb-2">
+          <div>
+            <p className="text-[11px] text-slate-400 dark:text-zinc-400 uppercase tracking-wide">{ultimo.mes}</p>
+            <p className="text-xl font-extrabold text-slate-800 dark:text-zinc-100 tabular-nums leading-tight">{fmt(ultimo.total)}</p>
+          </div>
+          {delta !== null && (
+            <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${delta >= 0 ? 'text-emerald-600 bg-emerald-50 dark:text-emerald-400 dark:bg-emerald-500/10' : 'text-rose-500 bg-rose-50 dark:text-rose-400 dark:bg-rose-500/10'}`}>
+              {delta >= 0 ? '▲' : '▼'} {Math.abs(delta).toFixed(0)}% vs mês anterior
+            </span>
+          )}
+        </div>
+      )}
+      <div className="relative" style={{ height: 150 }}>
+        <svg className="absolute inset-0 w-full h-full overflow-visible" viewBox="0 0 100 100" preserveAspectRatio="none">
+          <defs>
+            <linearGradient id="histGrad" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="#06b6d4" stopOpacity="0.35" />
+              <stop offset="100%" stopColor="#06b6d4" stopOpacity="0" />
+            </linearGradient>
+          </defs>
+          <path d={areaPath} fill="url(#histGrad)" />
+          <path d={linePath} fill="none" stroke="#06b6d4" strokeWidth="2.5" vectorEffect="non-scaling-stroke" strokeLinejoin="round" strokeLinecap="round" />
+        </svg>
+        {pts.map(([x, y], i) => {
+          const last = i === n - 1;
+          return (
+            <span
+              key={i}
+              title={`${data[i].mes}: ${fmt(data[i].total)}`}
+              className={`absolute -translate-x-1/2 -translate-y-1/2 rounded-full ring-2 ring-white dark:ring-zinc-950 transition-transform hover:scale-150 ${last ? 'w-3 h-3 bg-cyan-500' : 'w-2 h-2 bg-cyan-400/80'}`}
+              style={{ left: `${x}%`, top: `${y}%` }}
+            />
+          );
+        })}
+      </div>
+      <div className="flex justify-between mt-2 gap-0.5">
+        {data.map((d, i) => (
+          <span key={i} className="text-[9px] text-slate-400 dark:text-zinc-500 flex-1 text-center truncate">{d.mes}</span>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 interface Props { mes: number; ano: number; }
 
 type ReservaKey = Exclude<DistKey, 'contas'>;
@@ -443,40 +506,6 @@ export default function TabEntradas({ mes, ano }: Props) {
 
   // ── specs VChart ──────────────────────────────────────────────────────────
 
-  const historicoSpec = useMemo(() => ({
-    type: 'bar',
-    autoFit: true,
-    background: 'transparent',
-    data: [{ id: 'hist', values: historico }],
-    xField: 'mes',
-    yField: 'total',
-    bar: {
-      style: {
-        cornerRadius: [6, 6, 0, 0],
-        fill: (d: Record<string, unknown>) => String(d['fill']),
-      },
-    },
-    axes: [
-      { orient: 'bottom', domainLine: { visible: false }, tick: { visible: false }, label: { style: { fontSize: 11, fill: '#94a3b8' } } },
-      {
-        orient: 'left',
-        grid: { style: { stroke: 'rgba(113,113,122,0.2)', lineDash: [3, 3] } },
-        domainLine: { visible: false },
-        tick: { visible: false },
-        label: {
-          style: { fontSize: 10, fill: '#94a3b8' },
-          formatMethod: (v: number) => v === 0 ? 'R$0' : `R$${(v / 1000).toFixed(0)}k`,
-        },
-      },
-    ],
-    tooltip: {
-      mark: {
-        title: { visible: false },
-        content: [{ key: (d: Record<string, unknown>) => String(d['mes']), value: (d: Record<string, unknown>) => fmt(Number(d['total'])) }],
-      },
-    },
-  }), [historico]);
-
   const distSpec = useMemo(() => ({  // eslint-disable-line react-hooks/exhaustive-deps
     type: 'pie',
     autoFit: true,
@@ -543,9 +572,7 @@ export default function TabEntradas({ mes, ano }: Props) {
             <p className="font-semibold text-slate-700 dark:text-zinc-200 text-sm">Histórico (12 meses)</p>
           </div>
           {historico.length > 0 ? (
-            <div style={{ height: 220 }}>
-              <VChart key={`hist-${historico.length}-${historico.at(-1)?.total?.toFixed(0) ?? 0}`} spec={historicoSpec as any} />
-            </div>
+            <HistoricoArea data={historico} />
           ) : (
             <div className="h-[220px] flex flex-col items-center justify-center text-slate-400 dark:text-zinc-400 gap-2">
               <span className="text-3xl">📈</span>
