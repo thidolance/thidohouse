@@ -22,7 +22,7 @@ export function AuroraCard({
   return (
     <div
       className={cn(
-        'relative w-full rounded-2xl p-px transition-colors duration-300',
+        'relative w-full rounded-2xl p-px transition-colors duration-300 flex flex-col',
         // Borda aurora sempre presente (ciano → azul → índigo).
         'bg-gradient-to-r from-cyan-500 via-sky-400 to-blue-400',
         'dark:from-cyan-500 dark:via-sky-400 dark:to-blue-400',
@@ -42,7 +42,7 @@ export function AuroraCard({
       />
       <div
         className={cn(
-          'relative z-10 rounded-[15px] bg-white shadow-sm',
+          'relative z-10 flex-1 rounded-[15px] bg-white shadow-sm',
           // Escuro: corpo preto opaco (funde com o fundo) — só a borda/glow aparece.
           'dark:bg-zinc-950 dark:shadow-none',
           contentClassName ?? 'p-6',
