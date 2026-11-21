@@ -22,11 +22,11 @@ export function AuroraCard({
   return (
     <div
       className={cn(
-        'relative w-full rounded-2xl p-px transition-colors duration-300',
-        // Borda aurora sempre presente (índigo → roxo → rosa).
-        'bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400',
-        'dark:from-indigo-500 dark:via-purple-500 dark:to-pink-500',
-        'shadow-[0_0_22px_-14px_rgba(168,85,247,0.5)] dark:shadow-[0_0_24px_-10px_rgba(192,132,252,0.55)]',
+        'relative w-full rounded-2xl p-px transition-colors duration-300 flex flex-col',
+        // Borda aurora sempre presente (ciano → azul → índigo).
+        'bg-gradient-to-r from-cyan-500 via-sky-400 to-blue-400',
+        'dark:from-cyan-500 dark:via-sky-400 dark:to-blue-400',
+        'shadow-[0_0_22px_-14px_rgba(6,182,212,0.5)] dark:shadow-[0_0_24px_-10px_rgba(34,211,238,0.55)]',
         className,
       )}
       {...props}
@@ -42,7 +42,7 @@ export function AuroraCard({
       />
       <div
         className={cn(
-          'relative z-10 rounded-[15px] bg-white shadow-sm',
+          'relative z-10 flex-1 rounded-[15px] bg-white shadow-sm',
           // Escuro: corpo preto opaco (funde com o fundo) — só a borda/glow aparece.
           'dark:bg-zinc-950 dark:shadow-none',
           contentClassName ?? 'p-6',

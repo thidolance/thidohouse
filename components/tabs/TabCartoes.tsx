@@ -82,16 +82,16 @@ function PinIcon({ filled }: { filled?: boolean }) {
   );
 }
 
-const INPUT = 'w-full border border-slate-200 dark:border-zinc-800 rounded-xl px-3 py-2 text-sm text-slate-900 dark:text-zinc-50 bg-white dark:bg-zinc-900 focus:outline-none focus:ring-2 focus:ring-indigo-300 dark:focus:ring-purple-500';
+const INPUT = 'w-full border border-slate-200 dark:border-zinc-800 rounded-xl px-3 py-2 text-sm text-slate-900 dark:text-zinc-50 bg-white dark:bg-zinc-900 focus:outline-none focus:ring-2 focus:ring-cyan-300 dark:focus:ring-cyan-500';
 
 // Badge de parcelamento: "3/12" com mini barra de progresso das parcelas pagas.
 function ParcelaBadge({ atual, total }: { atual: number; total: number }) {
   const pct = Math.min(100, Math.max(0, (atual / total) * 100));
   return (
-    <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold px-2 py-0.5 rounded-md bg-indigo-50 dark:bg-purple-500/15 text-indigo-600 dark:text-purple-300">
+    <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold px-2 py-0.5 rounded-md bg-cyan-50 dark:bg-cyan-500/15 text-cyan-600 dark:text-cyan-300">
       <span className="tabular-nums">{atual}/{total}</span>
-      <span className="w-6 h-1.5 rounded-full bg-indigo-200/70 dark:bg-purple-500/25 overflow-hidden">
-        <span className="block h-full rounded-full bg-indigo-500 dark:bg-purple-400" style={{ width: `${pct}%` }} />
+      <span className="w-6 h-1.5 rounded-full bg-cyan-200/70 dark:bg-cyan-500/25 overflow-hidden">
+        <span className="block h-full rounded-full bg-cyan-500 dark:bg-cyan-400" style={{ width: `${pct}%` }} />
       </span>
     </span>
   );
@@ -519,7 +519,7 @@ export default function TabCartoes({ mes, ano }: Props) {
             className={`p-1.5 rounded-lg transition-colors ${p.fixa ? 'text-amber-500 bg-amber-50 dark:bg-amber-500/10' : 'text-slate-300 dark:text-zinc-500 hover:text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-500/10'}`}>
             <PinIcon filled={p.fixa} />
           </button>
-          <button onClick={() => abrirEditCompra(p)} className="p-1.5 rounded-lg hover:bg-indigo-50 dark:hover:bg-purple-500/10 text-slate-300 dark:text-zinc-500 hover:text-indigo-400 dark:hover:text-purple-400 transition-colors"><Pencil /></button>
+          <button onClick={() => abrirEditCompra(p)} className="p-1.5 rounded-lg hover:bg-cyan-50 dark:hover:bg-cyan-500/10 text-slate-300 dark:text-zinc-500 hover:text-cyan-400 dark:hover:text-cyan-400 transition-colors"><Pencil /></button>
           <button onClick={() => iniciarDeleteCompra(p)} className="p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-500/10 text-slate-300 dark:text-zinc-500 hover:text-red-400 transition-colors"><Trash /></button>
         </div>
       </div>
@@ -562,7 +562,7 @@ export default function TabCartoes({ mes, ano }: Props) {
             className={`p-1.5 rounded-lg transition-colors ${p.fixa ? 'text-amber-500 bg-amber-50 dark:bg-amber-500/10' : 'text-slate-300 dark:text-zinc-500 hover:text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-500/10'}`}>
             <PinIcon filled={p.fixa} />
           </button>
-          <button onClick={() => abrirEditCompra(p)} className="p-1.5 rounded-lg hover:bg-indigo-50 dark:hover:bg-purple-500/10 text-slate-300 dark:text-zinc-500 hover:text-indigo-400 dark:hover:text-purple-400 transition-colors"><Pencil /></button>
+          <button onClick={() => abrirEditCompra(p)} className="p-1.5 rounded-lg hover:bg-cyan-50 dark:hover:bg-cyan-500/10 text-slate-300 dark:text-zinc-500 hover:text-cyan-400 dark:hover:text-cyan-400 transition-colors"><Pencil /></button>
           <button onClick={() => iniciarDeleteCompra(p)} className="p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-500/10 text-slate-300 dark:text-zinc-500 hover:text-red-400 transition-colors"><Trash /></button>
         </div>
       </div>
@@ -586,7 +586,7 @@ export default function TabCartoes({ mes, ano }: Props) {
           </button>
           <button
             onClick={() => abrirNovaCompra()}
-            className="inline-flex items-center gap-1.5 px-3 py-2 bg-indigo-600 dark:bg-purple-600 text-white rounded-xl text-sm font-medium hover:bg-indigo-700 dark:hover:bg-purple-700 transition-colors shadow-sm"
+            className="inline-flex items-center gap-1.5 px-3 py-2 bg-cyan-600 dark:bg-cyan-600 text-white rounded-xl text-sm font-medium hover:bg-cyan-700 dark:hover:bg-cyan-700 transition-colors shadow-sm"
           >
             <Plus /><span className="hidden sm:inline">Nova Compra</span>
           </button>
@@ -597,14 +597,14 @@ export default function TabCartoes({ mes, ano }: Props) {
       <button
         type="button"
         onClick={() => setCartaoSelecionado(null)}
-        className={`block w-full text-left bg-gradient-to-br from-indigo-600 dark:from-purple-600 to-violet-700 rounded-2xl px-4 py-3 text-white shadow-lg shadow-indigo-200 dark:shadow-purple-500/20 transition-all ${cartaoSelecionado ? 'ring-2 ring-white/60 hover:brightness-110 cursor-pointer' : 'cursor-default'}`}
+        className={`block w-full text-left bg-gradient-to-br from-cyan-600 dark:from-cyan-600 to-sky-700 rounded-2xl px-4 py-3 text-white shadow-lg shadow-cyan-200 dark:shadow-cyan-500/20 transition-all ${cartaoSelecionado ? 'ring-2 ring-white/60 hover:brightness-110 cursor-pointer' : 'cursor-default'}`}
       >
         <div className="flex items-center justify-between">
-          <p className="text-indigo-100 dark:text-purple-100 text-xs font-medium uppercase tracking-wide">Total do Mês</p>
+          <p className="text-cyan-100 dark:text-cyan-100 text-xs font-medium uppercase tracking-wide">Total do Mês</p>
           {cartaoSelecionado && <span className="text-[11px] bg-white/20 rounded-full px-2 py-0.5 font-medium">ver total ↩</span>}
         </div>
         <p className="text-2xl font-bold mt-0.5 tabular-nums">{fmt(totalGeral)}</p>
-        <p className="text-indigo-100 dark:text-purple-100 text-[11px] mt-1">{compras.length} compra(s) em {cartoes.length} cartão(s)</p>
+        <p className="text-cyan-100 dark:text-cyan-100 text-[11px] mt-1">{compras.length} compra(s) em {cartoes.length} cartão(s)</p>
       </button>
 
       {/* ── Gráficos ── */}
@@ -675,7 +675,7 @@ export default function TabCartoes({ mes, ano }: Props) {
       </div>
 
       {/* Cards visuais dos cartões (seletor) */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-4 gap-2 sm:gap-3">
         {cartoes.map((c) => {
           const dado     = totalPorCartao.find((t) => t.id === c.id)!;
           const isSelected = cartaoSelecionado === c.id;
@@ -683,11 +683,11 @@ export default function TabCartoes({ mes, ano }: Props) {
             <button
               key={c.id}
               onClick={() => setCartaoSelecionado(isSelected ? null : c.id!)}
-              className={`group relative overflow-hidden rounded-2xl p-5 text-left transition-all duration-300 text-white shadow-lg hover:scale-105 flex flex-col justify-between ${isSelected ? 'scale-105' : ''}`}
+              className={`group relative overflow-hidden rounded-xl p-3 text-left transition-all duration-300 text-white shadow-lg hover:scale-105 flex flex-col justify-between ${isSelected ? 'scale-105' : ''}`}
               style={{
                 backgroundColor: c.cor,
-                minHeight: 120,
-                boxShadow: isSelected ? `0 0 34px -4px ${c.cor}` : undefined,
+                minHeight: 92,
+                boxShadow: isSelected ? `0 0 28px -6px ${c.cor}` : undefined,
               }}
             >
               <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-black/25 pointer-events-none" />
@@ -710,25 +710,24 @@ export default function TabCartoes({ mes, ano }: Props) {
                   opacity: isSelected ? 1 : 0.7,
                 }}
               />
-              <div className="relative flex items-start justify-between">
-                <span className="flex items-center gap-1.5 text-sm font-bold tracking-wide">
-                  <ContaIcon nome="cartao" className="w-4 h-4 flex-shrink-0" /> {c.nome}
+              <div className="relative flex items-start justify-between gap-1">
+                <span className="flex items-center gap-1 text-[11px] font-bold tracking-wide min-w-0">
+                  <ContaIcon nome="cartao" className="w-3.5 h-3.5 flex-shrink-0" /> <span className="truncate">{c.nome}</span>
                 </span>
-                {c.bandeira === 'Visa' && <VisaLogo />}
-                {c.bandeira === 'Mastercard' && <MastercardLogo />}
+                <span className="flex-shrink-0 hidden sm:block">
+                  {c.bandeira === 'Visa' && <VisaLogo />}
+                  {c.bandeira === 'Mastercard' && <MastercardLogo />}
+                </span>
               </div>
-              <div className="relative flex items-end justify-between mt-4">
-                <div>
-                  <p className="text-white/80 text-xs font-medium">Mês atual</p>
-                  <p className="text-xl font-extrabold tabular-nums leading-tight [text-shadow:0_1px_3px_rgba(0,0,0,0.5)]">{fmt(dado?.total ?? 0)}</p>
-                </div>
-                <p className="text-white/80 text-xs font-medium">{dado?.count ?? 0} compra(s)</p>
+              <div className="relative mt-2">
+                <p className="text-base font-extrabold tabular-nums leading-tight truncate [text-shadow:0_1px_3px_rgba(0,0,0,0.5)]">{fmt(dado?.total ?? 0)}</p>
+                <p className="text-white/80 text-[10px] font-medium">{dado?.count ?? 0} compra(s)</p>
               </div>
               {!!c.limite && c.limite > 0 && (() => {
                 const pctUso = Math.min(100, ((dado?.usado ?? 0) / c.limite!) * 100);
                 return (
-                  <div className="relative mt-3">
-                    <div className="w-full bg-white/20 rounded-full h-1.5 overflow-hidden relative">
+                  <div className="relative mt-2">
+                    <div className="w-full bg-white/20 rounded-full h-1 overflow-hidden relative">
                       <div className="absolute inset-y-0 left-0 rounded-full overflow-hidden transition-all duration-700" style={{ width: `${pctUso}%` }}>
                         {/* Gradiente verde→vermelho revelado conforme o limite é consumido */}
                         <div
@@ -740,7 +739,7 @@ export default function TabCartoes({ mes, ano }: Props) {
                         />
                       </div>
                     </div>
-                    <p className="text-white/80 text-[11px] mt-1 font-medium [text-shadow:0_1px_2px_rgba(0,0,0,0.4)]">{fmt(dado?.usado ?? 0)} de {fmt(c.limite)}</p>
+                    <p className="text-white/80 text-[9px] mt-1 font-medium truncate [text-shadow:0_1px_2px_rgba(0,0,0,0.4)]">{fmt(dado?.usado ?? 0)} de {fmt(c.limite)}</p>
                   </div>
                 );
               })()}
@@ -775,7 +774,7 @@ export default function TabCartoes({ mes, ano }: Props) {
             </div>
             <button
               onClick={() => abrirNovaCompra(cartaoAtivo.id)}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600 dark:bg-purple-600 text-white rounded-lg text-xs font-medium hover:bg-indigo-700 dark:hover:bg-purple-700 transition-colors"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-cyan-600 dark:bg-cyan-600 text-white rounded-lg text-xs font-medium hover:bg-cyan-700 dark:hover:bg-cyan-700 transition-colors"
             >
               <Plus /> Adicionar
             </button>
@@ -788,7 +787,7 @@ export default function TabCartoes({ mes, ano }: Props) {
                 <button
                   key={key}
                   onClick={() => setOrdemLista(key)}
-                  className={`px-2.5 py-1 rounded-md font-medium transition-all ${ordemLista === key ? 'bg-white text-slate-800 shadow-sm dark:bg-purple-600 dark:text-white' : 'text-slate-500 dark:text-zinc-400 hover:text-slate-700 dark:hover:text-zinc-200'}`}
+                  className={`px-2.5 py-1 rounded-md font-medium transition-all ${ordemLista === key ? 'bg-white text-slate-800 shadow-sm dark:bg-cyan-600 dark:text-white' : 'text-slate-500 dark:text-zinc-400 hover:text-slate-700 dark:hover:text-zinc-200'}`}
                 >
                   {label}
                 </button>
@@ -840,7 +839,7 @@ export default function TabCartoes({ mes, ano }: Props) {
                 <button
                   key={key}
                   onClick={() => setOrdemLista(key)}
-                  className={`px-2.5 py-1 rounded-md font-medium transition-all ${ordemLista === key ? 'bg-white text-slate-800 shadow-sm dark:bg-purple-600 dark:text-white' : 'text-slate-500 dark:text-zinc-400 hover:text-slate-700 dark:hover:text-zinc-200'}`}
+                  className={`px-2.5 py-1 rounded-md font-medium transition-all ${ordemLista === key ? 'bg-white text-slate-800 shadow-sm dark:bg-cyan-600 dark:text-white' : 'text-slate-500 dark:text-zinc-400 hover:text-slate-700 dark:hover:text-zinc-200'}`}
                 >
                   {label}
                 </button>
@@ -853,7 +852,7 @@ export default function TabCartoes({ mes, ano }: Props) {
             <div className="flex flex-wrap gap-2 mb-4">
               <button
                 onClick={() => setFiltroCategoria(null)}
-                className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all border ${!filtroCategoria ? 'bg-indigo-600 dark:bg-purple-600 text-white border-indigo-600 dark:border-purple-600' : 'border-slate-200 dark:border-zinc-800 text-slate-500 dark:text-zinc-400 hover:border-indigo-300 hover:text-indigo-600 dark:hover:text-purple-400'}`}
+                className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all border ${!filtroCategoria ? 'bg-cyan-600 dark:bg-cyan-600 text-white border-cyan-600 dark:border-cyan-600' : 'border-slate-200 dark:border-zinc-800 text-slate-500 dark:text-zinc-400 hover:border-cyan-300 hover:text-cyan-600 dark:hover:text-cyan-400'}`}
               >
                 Todas
               </button>
@@ -961,7 +960,7 @@ export default function TabCartoes({ mes, ano }: Props) {
                     type="button"
                     onClick={handleAddSugeridas}
                     title={`Adicionar: ${sugeridasFaltantes.map((c) => c.nome).join(', ')}`}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border border-dashed border-indigo-300 dark:border-purple-500/50 text-indigo-600 dark:text-purple-300 hover:bg-indigo-50 dark:hover:bg-purple-500/10 transition-colors"
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border border-dashed border-cyan-300 dark:border-cyan-500/50 text-cyan-600 dark:text-cyan-300 hover:bg-cyan-50 dark:hover:bg-cyan-500/10 transition-colors"
                   >
                     <Plus /> Sugeridas
                   </button>
@@ -1011,7 +1010,7 @@ export default function TabCartoes({ mes, ano }: Props) {
 
             <div className="flex gap-3 pt-2">
               <button type="button" onClick={() => { setShowCompraModal(false); setEditCompraId(null); }} className="flex-1 py-2.5 border border-slate-200 dark:border-zinc-800 rounded-xl text-sm text-slate-600 dark:text-zinc-300 hover:bg-slate-50 dark:hover:bg-zinc-800">Cancelar</button>
-              <button type="submit" className="flex-1 py-2.5 bg-indigo-600 dark:bg-purple-600 text-white rounded-xl text-sm font-medium hover:bg-indigo-700 dark:hover:bg-purple-700">Salvar</button>
+              <button type="submit" className="flex-1 py-2.5 bg-cyan-600 dark:bg-cyan-600 text-white rounded-xl text-sm font-medium hover:bg-cyan-700 dark:hover:bg-cyan-700">Salvar</button>
             </div>
           </form>
         </Modal>
@@ -1026,7 +1025,7 @@ export default function TabCartoes({ mes, ano }: Props) {
               <button
                 key={tab}
                 onClick={() => setConfigTab(tab)}
-                className={`flex-1 py-2 rounded-lg text-sm font-medium transition-all ${configTab === tab ? 'bg-white text-slate-800 shadow dark:bg-purple-600 dark:text-white' : 'text-slate-500 dark:text-zinc-400 hover:text-slate-700 dark:hover:text-zinc-200'}`}
+                className={`flex-1 py-2 rounded-lg text-sm font-medium transition-all ${configTab === tab ? 'bg-white text-slate-800 shadow dark:bg-cyan-600 dark:text-white' : 'text-slate-500 dark:text-zinc-400 hover:text-slate-700 dark:hover:text-zinc-200'}`}
               >
                 {tab === 'cartoes' ? 'Cartões' : 'Categorias'}
               </button>
@@ -1043,13 +1042,13 @@ export default function TabCartoes({ mes, ano }: Props) {
                     <p className="text-sm font-medium text-slate-700 dark:text-zinc-200">{c.nome}</p>
                     <p className="text-xs text-slate-400 dark:text-zinc-400">{c.bandeira ?? '—'}</p>
                   </div>
-                  <button onClick={() => abrirEditCartao(c)} className="p-1.5 rounded-lg hover:bg-indigo-50 dark:hover:bg-purple-500/10 text-slate-300 dark:text-zinc-500 hover:text-indigo-400 dark:hover:text-purple-400 transition-colors"><Pencil /></button>
+                  <button onClick={() => abrirEditCartao(c)} className="p-1.5 rounded-lg hover:bg-cyan-50 dark:hover:bg-cyan-500/10 text-slate-300 dark:text-zinc-500 hover:text-cyan-400 dark:hover:text-cyan-400 transition-colors"><Pencil /></button>
                   <button onClick={() => handleDeleteCartao(c.id!)} className="p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-500/10 text-slate-300 dark:text-zinc-500 hover:text-red-400 transition-colors"><Trash /></button>
                 </div>
               ))}
 
               {!showCartaoForm ? (
-                <button onClick={abrirNovoCartao} className="w-full py-2.5 border-2 border-dashed border-slate-200 dark:border-zinc-800 rounded-xl text-sm text-slate-400 dark:text-zinc-400 hover:border-indigo-300 hover:text-indigo-500 dark:hover:text-purple-400 transition-colors flex items-center justify-center gap-2">
+                <button onClick={abrirNovoCartao} className="w-full py-2.5 border-2 border-dashed border-slate-200 dark:border-zinc-800 rounded-xl text-sm text-slate-400 dark:text-zinc-400 hover:border-cyan-300 hover:text-cyan-500 dark:hover:text-cyan-400 transition-colors flex items-center justify-center gap-2">
                   <Plus /> Novo Cartão
                 </button>
               ) : (
@@ -1076,7 +1075,7 @@ export default function TabCartoes({ mes, ano }: Props) {
                           <button
                             key={b} type="button"
                             onClick={() => setFormCartao({ ...formCartao, bandeira: b })}
-                            className={`flex-1 py-1.5 rounded-lg text-xs font-medium border transition-all ${formCartao.bandeira === b ? 'bg-indigo-600 dark:bg-purple-600 text-white border-indigo-600 dark:border-purple-600' : 'border-slate-200 dark:border-zinc-800 text-slate-500 dark:text-zinc-400'}`}
+                            className={`flex-1 py-1.5 rounded-lg text-xs font-medium border transition-all ${formCartao.bandeira === b ? 'bg-cyan-600 dark:bg-cyan-600 text-white border-cyan-600 dark:border-cyan-600' : 'border-slate-200 dark:border-zinc-800 text-slate-500 dark:text-zinc-400'}`}
                           >
                             {b}
                           </button>
@@ -1113,7 +1112,7 @@ export default function TabCartoes({ mes, ano }: Props) {
                   </div>
                   <div className="flex gap-2">
                     <button type="button" onClick={() => { setShowCartaoForm(false); setEditCartaoId(null); setFormCartao(CARTAO_EMPTY); }} className="flex-1 py-2 border border-slate-200 dark:border-zinc-800 rounded-xl text-xs text-slate-600 dark:text-zinc-300 hover:bg-white dark:hover:bg-zinc-800">Cancelar</button>
-                    <button type="submit" className="flex-1 py-2 bg-indigo-600 dark:bg-purple-600 text-white rounded-xl text-xs font-medium hover:bg-indigo-700 dark:hover:bg-purple-700">Salvar</button>
+                    <button type="submit" className="flex-1 py-2 bg-cyan-600 dark:bg-cyan-600 text-white rounded-xl text-xs font-medium hover:bg-cyan-700 dark:hover:bg-cyan-700">Salvar</button>
                   </div>
                 </form>
               )}
@@ -1129,17 +1128,17 @@ export default function TabCartoes({ mes, ano }: Props) {
                     <CompraCatIcon nome={cat.nome} icone={cat.icone} className="w-5 h-5 dark:text-white" />
                   </span>
                   <p className="flex-1 text-sm font-medium text-slate-700 dark:text-zinc-200">{cat.nome}</p>
-                  <button onClick={() => abrirEditCategoria(cat)} className="p-1.5 rounded-lg hover:bg-indigo-50 dark:hover:bg-purple-500/10 text-slate-300 dark:text-zinc-500 hover:text-indigo-400 dark:hover:text-purple-400 transition-colors"><Pencil /></button>
+                  <button onClick={() => abrirEditCategoria(cat)} className="p-1.5 rounded-lg hover:bg-cyan-50 dark:hover:bg-cyan-500/10 text-slate-300 dark:text-zinc-500 hover:text-cyan-400 dark:hover:text-cyan-400 transition-colors"><Pencil /></button>
                   <button onClick={() => handleDeleteCategoria(cat.id!)} className="p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-500/10 text-slate-300 dark:text-zinc-500 hover:text-red-400 transition-colors"><Trash /></button>
                 </div>
               ))}
 
               {!showCatForm && (
                 <div className="flex flex-col sm:flex-row gap-2">
-                  <button onClick={abrirNovaCategoria} className="flex-1 py-2.5 border-2 border-dashed border-slate-200 dark:border-zinc-800 rounded-xl text-sm text-slate-400 dark:text-zinc-400 hover:border-indigo-300 hover:text-indigo-500 dark:hover:text-purple-400 transition-colors flex items-center justify-center gap-2">
+                  <button onClick={abrirNovaCategoria} className="flex-1 py-2.5 border-2 border-dashed border-slate-200 dark:border-zinc-800 rounded-xl text-sm text-slate-400 dark:text-zinc-400 hover:border-cyan-300 hover:text-cyan-500 dark:hover:text-cyan-400 transition-colors flex items-center justify-center gap-2">
                     <Plus /> Nova Categoria
                   </button>
-                  <button onClick={handleAddSugeridas} className="flex-1 py-2.5 border border-indigo-200 dark:border-purple-500/40 rounded-xl text-sm text-indigo-600 dark:text-purple-300 hover:bg-indigo-50 dark:hover:bg-purple-500/10 transition-colors flex items-center justify-center gap-2 font-medium">
+                  <button onClick={handleAddSugeridas} className="flex-1 py-2.5 border border-cyan-200 dark:border-cyan-500/40 rounded-xl text-sm text-cyan-600 dark:text-cyan-300 hover:bg-cyan-50 dark:hover:bg-cyan-500/10 transition-colors flex items-center justify-center gap-2 font-medium">
                     <Plus /> Adicionar sugeridas
                   </button>
                 </div>
@@ -1181,7 +1180,7 @@ export default function TabCartoes({ mes, ano }: Props) {
                   </div>
                   <div className="flex gap-2">
                     <button type="button" onClick={() => { setShowCatForm(false); setEditCatId(null); setFormCat(CAT_EMPTY); }} className="flex-1 py-2 border border-slate-200 dark:border-zinc-800 rounded-xl text-xs text-slate-600 dark:text-zinc-300 hover:bg-white dark:hover:bg-zinc-800">Cancelar</button>
-                    <button type="submit" className="flex-1 py-2 bg-indigo-600 dark:bg-purple-600 text-white rounded-xl text-xs font-medium hover:bg-indigo-700 dark:hover:bg-purple-700">Salvar</button>
+                    <button type="submit" className="flex-1 py-2 bg-cyan-600 dark:bg-cyan-600 text-white rounded-xl text-xs font-medium hover:bg-cyan-700 dark:hover:bg-cyan-700">Salvar</button>
                   </div>
                 </form>
               )}
@@ -1226,7 +1225,7 @@ export default function TabCartoes({ mes, ano }: Props) {
             </p>
             <div className="space-y-2 pt-1">
               <button onClick={() => confirmarEditCompra('future')}
-                className="w-full py-2.5 rounded-xl text-sm font-semibold bg-indigo-600 dark:bg-purple-600 text-white hover:bg-indigo-700 dark:hover:bg-purple-700 transition-colors">
+                className="w-full py-2.5 rounded-xl text-sm font-semibold bg-cyan-600 dark:bg-cyan-600 text-white hover:bg-cyan-700 dark:hover:bg-cyan-700 transition-colors">
                 Este e os seguintes
               </button>
               <button onClick={() => confirmarEditCompra('this')}

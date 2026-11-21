@@ -10,7 +10,7 @@ import { formatCurrencyInput, parseCurrencyInput, formatCurrencyBRL } from '@/li
 import type { Meta } from '@/lib/types';
 
 const fmt = (v: number) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-const INPUT = 'w-full border border-slate-200 dark:border-zinc-800 rounded-xl px-3 py-2 text-sm text-slate-900 dark:text-zinc-50 bg-white dark:bg-zinc-900 focus:outline-none focus:ring-2 focus:ring-indigo-300 dark:focus:ring-purple-500';
+const INPUT = 'w-full border border-slate-200 dark:border-zinc-800 rounded-xl px-3 py-2 text-sm text-slate-900 dark:text-zinc-50 bg-white dark:bg-zinc-900 focus:outline-none focus:ring-2 focus:ring-cyan-300 dark:focus:ring-cyan-500';
 
 interface Props { mes: number; ano: number; }
 
@@ -80,6 +80,8 @@ export default function TabMetas({ ano }: Props) {
   const totalGeral     = metas.reduce((s, m) => s + m.valor, 0);
   const totalConcluido = metas.filter((m) => m.concluida).reduce((s, m) => s + m.valor, 0);
   const totalFaltante  = totalGeral - totalConcluido;
+  const qtdConcluidas  = metas.filter((m) => m.concluida).length;
+  const pctConcluido   = totalGeral > 0 ? (totalConcluido / totalGeral) * 100 : 0;
 
   const metasOrdenadas = [...metas].sort((a, b) => {
     if (a.concluida !== b.concluida) return a.concluida ? 1 : -1;
@@ -92,10 +94,10 @@ export default function TabMetas({ ano }: Props) {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-lg font-bold text-slate-800 dark:text-zinc-100">Metas de {ano}</h2>
-          <p className="text-xs text-slate-400 dark:text-zinc-400">{metas.length} meta(s) · {fmt(totalGeral)}</p>
+          <p className="text-xs text-slate-400 dark:text-zinc-400">{qtdConcluidas}/{metas.length} concluída(s) · {fmt(totalGeral)}</p>
         </div>
         <button onClick={abrirNova}
-          className="inline-flex items-center gap-1.5 px-3 py-2 bg-indigo-600 dark:bg-purple-600 text-white rounded-xl text-sm font-medium hover:bg-indigo-700 dark:hover:bg-purple-700 transition-colors shadow-sm">
+          className="inline-flex items-center gap-1.5 px-3 py-2 bg-cyan-600 dark:bg-cyan-600 text-white rounded-xl text-sm font-medium hover:bg-cyan-700 dark:hover:bg-cyan-700 transition-colors shadow-sm">
           <Plus /><span className="hidden sm:inline">Nova Meta</span>
         </button>
       </div>
@@ -108,7 +110,7 @@ export default function TabMetas({ ano }: Props) {
         </div>
         {loading ? (
           <div className="py-12 flex flex-col items-center gap-2 text-slate-400 dark:text-zinc-400">
-            <div className="w-5 h-5 border-2 border-slate-200 dark:border-zinc-800 border-t-indigo-500 rounded-full animate-spin" />
+            <div className="w-5 h-5 border-2 border-slate-200 dark:border-zinc-800 border-t-cyan-500 rounded-full animate-spin" />
             <p className="text-sm">Carregando...</p>
           </div>
         ) : metas.length === 0 ? (
@@ -119,7 +121,7 @@ export default function TabMetas({ ano }: Props) {
         ) : (
           <div className="divide-y divide-slate-50 dark:divide-zinc-800">
             {metasOrdenadas.map((m) => (
-              <div key={m.id} className={`group flex items-center gap-3 px-4 py-3.5 transition-all ${m.concluida ? 'border-l-2 border-emerald-400 dark:border-emerald-500 bg-gradient-to-r from-emerald-100 via-emerald-50 to-transparent dark:from-emerald-500/20 dark:via-emerald-500/5 dark:to-transparent' : 'hover:bg-slate-50/80 dark:hover:bg-zinc-800/80'}`}>
+              <div key={m.id} className={`group flex items-center gap-3 px-4 py-3.5 transition-all ${m.concluida ? 'border-l-2 border-blue-400 dark:border-blue-500 bg-gradient-to-r from-blue-100 via-blue-50 to-transparent dark:from-blue-500/20 dark:via-blue-500/5 dark:to-transparent' : 'hover:bg-slate-50/80 dark:hover:bg-zinc-800/80'}`}>
                 <button
                   onClick={() => handleToggle(m)}
                   className={`w-7 h-7 rounded-full border-2 flex items-center justify-center transition-all flex-shrink-0 shadow-sm ${
@@ -132,14 +134,14 @@ export default function TabMetas({ ano }: Props) {
                   <p className={`font-semibold text-sm leading-tight ${m.concluida ? 'line-through text-slate-400 dark:text-zinc-400' : 'text-slate-800 dark:text-zinc-100'}`}>{m.nome}</p>
                   {m.link && (
                     <a href={m.link} target="_blank" rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1 text-[11px] text-indigo-500 dark:text-purple-400 hover:text-indigo-700 dark:hover:text-purple-300 mt-0.5">
+                      className="inline-flex items-center gap-1 text-[11px] text-cyan-500 dark:text-cyan-400 hover:text-cyan-700 dark:hover:text-cyan-300 mt-0.5">
                       <LinkIcon /> Ver item
                     </a>
                   )}
                 </div>
                 <div className="flex items-center gap-2 flex-shrink-0">
-                  <span className={`font-bold text-sm tabular-nums ${m.concluida ? 'text-emerald-600 dark:text-emerald-400 line-through' : 'text-slate-800 dark:text-zinc-100'}`}>{fmt(m.valor)}</span>
-                  <button onClick={() => abrirEditar(m)} className="p-1.5 rounded-lg text-slate-400 dark:text-zinc-400 hover:text-indigo-500 dark:hover:text-purple-400 hover:bg-indigo-50 dark:hover:bg-purple-500/10 transition-colors opacity-100 sm:opacity-0 sm:group-hover:opacity-100"><Pencil /></button>
+                  <span className={`font-bold text-sm tabular-nums ${m.concluida ? 'text-blue-600 dark:text-blue-400 line-through' : 'text-slate-800 dark:text-zinc-100'}`}>{fmt(m.valor)}</span>
+                  <button onClick={() => abrirEditar(m)} className="p-1.5 rounded-lg text-slate-400 dark:text-zinc-400 hover:text-cyan-500 dark:hover:text-cyan-400 hover:bg-cyan-50 dark:hover:bg-cyan-500/10 transition-colors opacity-100 sm:opacity-0 sm:group-hover:opacity-100"><Pencil /></button>
                   <button onClick={() => handleDelete(m.id!)} className="p-1.5 rounded-lg text-slate-400 dark:text-zinc-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors opacity-100 sm:opacity-0 sm:group-hover:opacity-100"><Trash /></button>
                 </div>
               </div>
@@ -150,7 +152,14 @@ export default function TabMetas({ ano }: Props) {
 
       {/* ── Projeção ── */}
       <Card>
-        <p className="font-semibold text-slate-700 dark:text-zinc-200 text-sm mb-3">Projeção</p>
+        <div className="flex items-center justify-between mb-3">
+          <p className="font-semibold text-slate-700 dark:text-zinc-200 text-sm">Projeção</p>
+          <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 tabular-nums">{pctConcluido.toFixed(0)}% conquistado</span>
+        </div>
+        {/* Barra de progresso (valor conquistado / total das metas) */}
+        <div className="h-2.5 bg-slate-100 dark:bg-zinc-800 rounded-full overflow-hidden mb-4">
+          <div className="h-full rounded-full bg-gradient-to-r from-emerald-400 to-emerald-600 transition-all duration-700" style={{ width: `${pctConcluido}%` }} />
+        </div>
         <div className="grid grid-cols-3 gap-3 text-center">
           <div>
             <p className="text-xs text-slate-400 dark:text-zinc-400">Total das metas</p>
@@ -162,7 +171,7 @@ export default function TabMetas({ ano }: Props) {
           </div>
           <div>
             <p className="text-xs text-slate-400 dark:text-zinc-400">Falta para realizar tudo</p>
-            <p className="text-lg font-bold text-indigo-600 dark:text-purple-400 mt-1">{fmt(totalFaltante)}</p>
+            <p className="text-lg font-bold text-cyan-600 dark:text-cyan-400 mt-1">{fmt(totalFaltante)}</p>
           </div>
         </div>
       </Card>
@@ -185,7 +194,7 @@ export default function TabMetas({ ano }: Props) {
             </div>
             <div className="flex gap-3 pt-1">
               <button type="button" onClick={fecharModal} className="flex-1 py-2.5 border border-slate-200 dark:border-zinc-800 rounded-xl text-sm text-slate-600 dark:text-zinc-300 hover:bg-slate-50 dark:hover:bg-zinc-800">Cancelar</button>
-              <button type="submit" className="flex-1 py-2.5 bg-indigo-600 dark:bg-purple-600 text-white rounded-xl text-sm font-semibold hover:bg-indigo-700 dark:hover:bg-purple-700 shadow-sm">Salvar</button>
+              <button type="submit" className="flex-1 py-2.5 bg-cyan-600 dark:bg-cyan-600 text-white rounded-xl text-sm font-semibold hover:bg-cyan-700 dark:hover:bg-cyan-700 shadow-sm">Salvar</button>
             </div>
           </form>
         </Modal>

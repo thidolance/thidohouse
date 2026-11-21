@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import dynamic from 'next/dynamic';
 import Modal from '../ui/Modal';
 import Card from '../ui/Card';
 import { Plus, Trash, Check, Pencil, ChevronRight, CONTA_ICONS, ContaIcon, CompraCatIcon, COMPRA_CAT_ICONS, compraCatIconKey } from '../ui/Icons';
@@ -18,12 +17,6 @@ import {
 } from '@/lib/firestore';
 import type { Conta, CategoriaContaConfig, Recebedor } from '@/lib/types';
 import { buildPixPayload } from '@/lib/pix';
-
-// ── VChart (SSR-safe) ────────────────────────────────────────────────────────
-const VChart = dynamic(
-  () => import('@visactor/react-vchart').then((m) => m.VChart),
-  { ssr: false, loading: () => <div className="animate-pulse bg-slate-100 dark:bg-zinc-800 rounded-xl h-full w-full" /> },
-);
 
 // ── Ícones locais ────────────────────────────────────────────────────────────
 
@@ -98,7 +91,7 @@ function ScopeDialog({ title, desc, labelFuture, onFuture, onThisOnly, onCancel 
         <h3 className="font-bold text-slate-800 dark:text-zinc-100 text-base">{title}</h3>
         <p className="text-sm text-slate-500 dark:text-zinc-400 leading-relaxed">{desc}</p>
         <div className="space-y-2 pt-1">
-          <button onClick={onFuture} className="w-full py-2.5 rounded-xl text-sm font-semibold bg-indigo-600 dark:bg-purple-600 text-white hover:bg-indigo-700 dark:hover:bg-purple-700 transition-colors">
+          <button onClick={onFuture} className="w-full py-2.5 rounded-xl text-sm font-semibold bg-cyan-600 dark:bg-cyan-600 text-white hover:bg-cyan-700 dark:hover:bg-cyan-700 transition-colors">
             {labelFuture}
           </button>
           <button onClick={onThisOnly} className="w-full py-2.5 rounded-xl text-sm font-medium bg-slate-700 dark:bg-zinc-700 text-white hover:bg-slate-800 dark:hover:bg-zinc-700 transition-colors">
@@ -115,13 +108,13 @@ function ScopeDialog({ title, desc, labelFuture, onFuture, onThisOnly, onCancel 
 
 // ── Constantes ────────────────────────────────────────────────────────────────
 
-const INPUT = 'w-full border border-slate-200 dark:border-zinc-800 rounded-xl px-3 py-2 text-sm text-slate-900 dark:text-zinc-50 bg-white dark:bg-zinc-900 focus:outline-none focus:ring-2 focus:ring-indigo-300 dark:focus:ring-purple-500';
+const INPUT = 'w-full border border-slate-200 dark:border-zinc-800 rounded-xl px-3 py-2 text-sm text-slate-900 dark:text-zinc-50 bg-white dark:bg-zinc-900 focus:outline-none focus:ring-2 focus:ring-cyan-300 dark:focus:ring-cyan-500';
 const fmt   = (v: number) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 
 // Cores por tipo de conta (mesmas do gráfico "Gastos por Tipo de Conta"),
 // usadas na barrinha lateral de cada linha da tabela
 const COR_FIXA     = '#f59e0b';
-const COR_ROTATIVA = '#6366f1';
+const COR_ROTATIVA = '#0ea5e9';
 const COR_CARTOES  = '#ec4899';
 
 type OrdenacaoKey = 'vencimento-asc' | 'vencimento-desc' | 'valor-asc' | 'valor-desc' | 'nome-az' | 'nome-za' | 'status' | 'categoria';
@@ -385,7 +378,7 @@ export default function TabContas({ mes, ano }: Props) {
       && mes === now.getMonth() + 1 && ano === now.getFullYear(),
   );
 
-  // ── specs VChart ──────────────────────────────────────────────────────────
+  // ── rankings dos gráficos ──
 
   const pieValues = useMemo(() => {
     const contsData = cats.map((cat) => ({
@@ -411,59 +404,15 @@ export default function TabContas({ mes, ano }: Props) {
     const cartoesTotal  = itensCartao.reduce((s, c) => s + c.valor, 0);
     return [
       { name: 'Contas Fixas',   value: fixaTotal,     fill: '#f59e0b' },
-      { name: 'Conta Rotativa', value: rotativaTotal, fill: '#6366f1' },
+      { name: 'Conta Rotativa', value: rotativaTotal, fill: '#0ea5e9' },
       { name: 'Cartões',        value: cartoesTotal,  fill: '#ec4899' },
       { name: 'Empresa',        value: empresaSum,    fill: '#38bdf8' },
     ].filter((d) => d.value > 0);
   }, [contas, itensCartao, empresaSum]);
 
-  const tipoBarSpec = useMemo(() => ({
-    type: 'bar',
-    autoFit: true,
-    background: 'transparent',
-    data: [{ id: 'tipo', values: tipoValues }],
-    xField: 'name',
-    yField: 'value',
-    seriesField: 'name',
-    color: tipoValues.map((d) => d.fill),
-    bar: {
-      style: {
-        cornerRadius: [8, 8, 0, 0],
-      },
-    },
-    axes: [
-      { orient: 'bottom', domainLine: { visible: false }, tick: { visible: false }, label: { visible: false } },
-      {
-        orient: 'left',
-        grid: { style: { stroke: 'rgba(113,113,122,0.2)', lineDash: [3, 3] } },
-        domainLine: { visible: false },
-        tick: { visible: false },
-        label: {
-          style: { fontSize: 11, fill: '#94a3b8' },
-          formatMethod: (v: number) => v === 0 ? 'R$0' : `R$${(v / 1000).toFixed(0)}k`,
-        },
-      },
-    ],
-    legends: [{
-      visible: true,
-      orient: 'bottom',
-      padding: { top: 8 },
-      maxRow: 3,
-      item: {
-        label: { style: { fontSize: 11, fill: '#64748b' } },
-        value: { visible: false },
-      },
-    }],
-    tooltip: {
-      mark: {
-        title: { visible: false },
-        content: [{
-          key: (d: Record<string, unknown>) => String(d['name']),
-          value: (d: Record<string, unknown>) => fmt(Number(d['value'])),
-        }],
-      },
-    },
-  }), [tipoValues]);
+  // Ranking "Por Tipo de Conta" (mesmo formato do Por Categoria): maior primeiro.
+  const rankingTipo = useMemo(() => [...tipoValues].sort((a, b) => b.value - a.value), [tipoValues]);
+  const totalTipo   = useMemo(() => tipoValues.reduce((s, v) => s + v.value, 0), [tipoValues]);
 
   // ── acompanhamento de parcelas ──────────────────────────────────────────────
 
@@ -774,12 +723,12 @@ export default function TabContas({ mes, ano }: Props) {
     const pago = c.status === 'pago';
     const cor  = catCor(c.categoria);
     return (
-      <div className={`group flex items-center gap-3 px-4 py-3.5 transition-all ${pago ? 'border-l-2 border-emerald-400 dark:border-emerald-500 bg-gradient-to-r from-emerald-100 via-emerald-50 to-transparent dark:from-emerald-500/20 dark:via-emerald-500/5 dark:to-transparent' : 'hover:bg-slate-50/80 dark:hover:bg-zinc-800/80'}`}>
+      <div className={`group flex items-center gap-3 px-4 py-3.5 transition-all ${pago ? 'border-l-2 border-blue-400 dark:border-blue-500 bg-gradient-to-r from-blue-100 via-blue-50 to-transparent dark:from-blue-500/20 dark:via-blue-500/5 dark:to-transparent' : 'hover:bg-slate-50/80 dark:hover:bg-zinc-800/80'}`}>
         <div className="w-0.5 h-10 rounded-full flex-shrink-0 opacity-60 transition-opacity group-hover:opacity-100" style={{ backgroundColor: barColor }} />
         <button
           onClick={() => handleTogglePago(c.id!, c.status)}
           className={`w-7 h-7 rounded-full border-2 flex items-center justify-center transition-all flex-shrink-0 shadow-sm ${
-            pago ? 'bg-gradient-to-br from-emerald-400 to-emerald-600 border-emerald-500 text-white shadow-emerald-500/30' : 'border-slate-200 dark:border-zinc-800 hover:border-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-500/10'
+            pago ? 'bg-gradient-to-br from-blue-400 to-blue-600 border-blue-500 text-white shadow-blue-500/30' : 'border-slate-200 dark:border-zinc-800 hover:border-blue-400 hover:bg-blue-50 dark:hover:bg-blue-500/10'
           }`}
         >
           {pago && <Check />}
@@ -810,12 +759,12 @@ export default function TabContas({ mes, ano }: Props) {
                 />
               </div>
               <span className="text-[10px] text-slate-400 dark:text-zinc-400 tabular-nums">{c.parcelaAtual}/{c.totalParcelas}</span>
-              <span className="text-slate-300 dark:text-zinc-500 group-hover/prog:text-indigo-400 transition-colors"><ChevronRight /></span>
+              <span className="text-slate-300 dark:text-zinc-500 group-hover/prog:text-cyan-400 transition-colors"><ChevronRight /></span>
             </button>
           )}
         </div>
         <div className="flex items-center gap-2 flex-shrink-0">
-          <span className={`font-bold text-sm tabular-nums ${pago ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-800 dark:text-zinc-100'}`}>{fmt(c.valor)}</span>
+          <span className={`font-bold text-sm tabular-nums ${pago ? 'text-blue-600 dark:text-blue-400' : 'text-slate-800 dark:text-zinc-100'}`}>{fmt(c.valor)}</span>
           <div className="w-[5.5rem] flex items-center gap-0.5 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
             {!c.parcelaAtual && (
               <button onClick={() => handleToggleFixa(c)} title={c.fixa ? 'Remover recorrência' : 'Marcar como fixa'}
@@ -823,7 +772,7 @@ export default function TabContas({ mes, ano }: Props) {
                 <PinIcon filled={c.fixa} />
               </button>
             )}
-            <button onClick={() => abrirEditar(c)} className="p-1.5 rounded-lg text-slate-400 dark:text-zinc-400 hover:text-indigo-500 dark:hover:text-purple-400 hover:bg-indigo-50 dark:hover:bg-purple-500/10 transition-colors"><Pencil /></button>
+            <button onClick={() => abrirEditar(c)} className="p-1.5 rounded-lg text-slate-400 dark:text-zinc-400 hover:text-cyan-500 dark:hover:text-cyan-400 hover:bg-cyan-50 dark:hover:bg-cyan-500/10 transition-colors"><Pencil /></button>
             <button onClick={() => iniciarDelete(c)} className="p-1.5 rounded-lg text-slate-400 dark:text-zinc-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors"><Trash /></button>
           </div>
         </div>
@@ -878,7 +827,7 @@ export default function TabContas({ mes, ano }: Props) {
             <GearIcon /><span className="hidden sm:inline">Configurações</span>
           </button>
           <button onClick={abrirNova}
-            className="inline-flex items-center gap-1.5 px-3 py-2 bg-indigo-600 dark:bg-purple-600 text-white rounded-xl text-sm font-medium hover:bg-indigo-700 dark:hover:bg-purple-700 transition-colors shadow-sm">
+            className="inline-flex items-center gap-1.5 px-3 py-2 bg-cyan-600 dark:bg-cyan-600 text-white rounded-xl text-sm font-medium hover:bg-cyan-700 dark:hover:bg-cyan-700 transition-colors shadow-sm">
             <Plus /><span className="hidden sm:inline">Nova Conta</span>
           </button>
         </div>
@@ -897,7 +846,7 @@ export default function TabContas({ mes, ano }: Props) {
 
       {/* ── Cards resumo ── */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-        <div className="bg-gradient-to-br from-indigo-600 dark:from-purple-600 to-violet-700 rounded-2xl px-4 py-3 text-white shadow-lg shadow-indigo-200 dark:shadow-purple-500/20">
+        <div className="bg-gradient-to-br from-cyan-600 dark:from-cyan-600 to-sky-700 rounded-2xl px-4 py-3 text-white shadow-lg shadow-cyan-200 dark:shadow-cyan-500/20">
           <p className="text-white/90 text-xs font-medium uppercase tracking-wide">Total</p>
           <p className="text-2xl font-bold mt-0.5 tabular-nums">{fmt(total)}</p>
           <div className="mt-2 h-1.5 bg-white/25 rounded-full overflow-hidden relative">
@@ -922,7 +871,7 @@ export default function TabContas({ mes, ano }: Props) {
             <p className="text-[11px] text-white/90">{countPago} item(s)</p>
           </div>
         </div>
-        <div className="bg-gradient-to-br from-amber-500 via-orange-500 to-orange-400 rounded-2xl px-4 py-3 text-white shadow-lg shadow-amber-200/60">
+        <div className="bg-gradient-to-br from-amber-400 via-amber-500 to-orange-400 rounded-2xl px-4 py-3 text-white shadow-lg shadow-amber-200/60">
           <p className="text-white/90 text-xs font-medium uppercase tracking-wide">Pendente</p>
           <p className="text-2xl font-bold mt-0.5 tabular-nums">{fmt(totalPendente)}</p>
           <div className="flex items-center gap-1.5 mt-2">
@@ -932,7 +881,7 @@ export default function TabContas({ mes, ano }: Props) {
         </div>
       </div>
 
-      {/* ── Gráficos VChart ── */}
+      {/* ── Gráficos (rankings) ── */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <Card>
           <div className="flex items-center justify-between mb-3 gap-2">
@@ -978,10 +927,40 @@ export default function TabContas({ mes, ano }: Props) {
           )}
         </Card>
         <Card>
-          <p className="font-semibold text-slate-700 dark:text-zinc-200 text-sm mb-3">Por Tipo de Conta</p>
-          {tipoValues.length > 0 ? (
-            <div style={{ height: 240 }}>
-              <VChart key={`tipo-bar-${tipoValues.reduce((s, v) => s + v.value, 0).toFixed(0)}-${tipoValues.length}`} spec={tipoBarSpec as any} />
+          <div className="flex items-center justify-between mb-3 gap-2">
+            <p className="font-semibold text-slate-700 dark:text-zinc-200 text-sm">Por Tipo de Conta</p>
+            {rankingTipo.length > 0 && (
+              <span className="text-[11px] text-slate-400 dark:text-zinc-400 flex-shrink-0">{rankingTipo.length} tipo(s)</span>
+            )}
+          </div>
+          {rankingTipo.length > 0 ? (
+            <div className="max-h-[280px] overflow-y-auto pr-1 space-y-3">
+              {rankingTipo.map((it, idx) => {
+                const pctTotal = totalTipo > 0 ? (it.value / totalTipo) * 100 : 0;
+                const pctBar   = (it.value / rankingTipo[0].value) * 100;
+                return (
+                  <div key={it.name} className="flex items-center gap-3">
+                    <span className="w-3.5 h-3.5 rounded-md flex-shrink-0" style={{ backgroundColor: it.fill }} />
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-baseline justify-between gap-2">
+                        <span className="text-sm font-medium text-slate-700 dark:text-zinc-200 truncate flex items-center gap-1.5">
+                          {it.name}
+                          {idx === 0 && rankingTipo.length > 1 && (
+                            <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-400 font-semibold whitespace-nowrap">maior</span>
+                          )}
+                        </span>
+                        <span className="text-sm font-bold text-slate-800 dark:text-zinc-100 tabular-nums flex-shrink-0">{fmt(it.value)}</span>
+                      </div>
+                      <div className="flex items-center gap-2 mt-1">
+                        <div className="flex-1 h-2 rounded-full bg-slate-100 dark:bg-zinc-800 overflow-hidden">
+                          <div className="h-full rounded-full transition-all duration-500" style={{ width: `${pctBar}%`, backgroundColor: it.fill }} />
+                        </div>
+                        <span className="text-[11px] text-slate-400 dark:text-zinc-400 tabular-nums w-9 text-right flex-shrink-0">{pctTotal.toFixed(0)}%</span>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           ) : (
             <div className="h-[240px] flex flex-col items-center justify-center text-slate-400 dark:text-zinc-400 gap-2">
@@ -1001,12 +980,12 @@ export default function TabContas({ mes, ano }: Props) {
             <div className="relative flex-1">
               <div className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none"><SearchIcon /></div>
               <input value={busca} onChange={(e) => setBusca(e.target.value)} placeholder="Buscar por descrição..."
-                className="w-full pl-9 pr-3 py-2 text-sm border border-slate-200 dark:border-zinc-800 rounded-xl bg-white dark:bg-zinc-900 text-slate-900 dark:text-zinc-50 focus:outline-none focus:ring-2 focus:ring-indigo-300 dark:focus:ring-purple-500 placeholder:text-slate-400 dark:placeholder:text-zinc-400" />
+                className="w-full pl-9 pr-3 py-2 text-sm border border-slate-200 dark:border-zinc-800 rounded-xl bg-white dark:bg-zinc-900 text-slate-900 dark:text-zinc-50 focus:outline-none focus:ring-2 focus:ring-cyan-300 dark:focus:ring-cyan-500 placeholder:text-slate-400 dark:placeholder:text-zinc-400" />
             </div>
             <div className="relative">
               <div className="absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400 dark:text-zinc-400"><SortIcon /></div>
               <select value={ordenacao} onChange={(e) => setOrdenacao(e.target.value as OrdenacaoKey)}
-                className="pl-8 pr-7 py-2 text-sm border border-slate-200 dark:border-zinc-800 rounded-xl bg-white dark:bg-zinc-900 text-slate-700 dark:text-zinc-200 focus:outline-none focus:ring-2 focus:ring-indigo-300 dark:focus:ring-purple-500 appearance-none cursor-pointer">
+                className="pl-8 pr-7 py-2 text-sm border border-slate-200 dark:border-zinc-800 rounded-xl bg-white dark:bg-zinc-900 text-slate-700 dark:text-zinc-200 focus:outline-none focus:ring-2 focus:ring-cyan-300 dark:focus:ring-cyan-500 appearance-none cursor-pointer">
                 {ORDENACAO_OPTS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
               </select>
             </div>
@@ -1014,15 +993,15 @@ export default function TabContas({ mes, ano }: Props) {
         </div>
 
         {filtrosAtivos && totalVisiveis >= 0 && (
-          <div className="px-4 py-1.5 bg-indigo-50/60 dark:bg-purple-500/10 border-b border-indigo-100/50 dark:border-purple-500/30">
-            <p className="text-xs text-indigo-500 dark:text-purple-400 font-medium">{totalVisiveis} resultado(s){filtroCategoria && <span> — categoria <strong>{filtroCategoria}</strong></span>}</p>
+          <div className="px-4 py-1.5 bg-cyan-50/60 dark:bg-cyan-500/10 border-b border-cyan-100/50 dark:border-cyan-500/30">
+            <p className="text-xs text-cyan-500 dark:text-cyan-400 font-medium">{totalVisiveis} resultado(s){filtroCategoria && <span> — categoria <strong>{filtroCategoria}</strong></span>}</p>
           </div>
         )}
 
         {/* Lista */}
         {loading ? (
           <div className="py-16 flex flex-col items-center gap-2 text-slate-400 dark:text-zinc-400">
-            <div className="w-6 h-6 border-2 border-slate-200 dark:border-zinc-800 border-t-indigo-500 rounded-full animate-spin" />
+            <div className="w-6 h-6 border-2 border-slate-200 dark:border-zinc-800 border-t-cyan-500 rounded-full animate-spin" />
             <p className="text-sm">Carregando...</p>
           </div>
         ) : totalVisiveis === 0 && !loading ? (
@@ -1032,7 +1011,7 @@ export default function TabContas({ mes, ano }: Props) {
               {filtrosAtivos ? 'Nenhum resultado para este filtro' : 'Nenhuma conta cadastrada neste mês'}
             </p>
             {filtrosAtivos && (
-              <button onClick={limparFiltros} className="mt-2 text-xs text-indigo-500 dark:text-purple-400 hover:underline">Limpar filtros</button>
+              <button onClick={limparFiltros} className="mt-2 text-xs text-cyan-500 dark:text-cyan-400 hover:underline">Limpar filtros</button>
             )}
           </div>
         ) : (
@@ -1077,10 +1056,10 @@ export default function TabContas({ mes, ano }: Props) {
                   <SectionHeader label="Cartões" cor={COR_CARTOES} count={cartoesFiltrados.length} total={cartoesFiltrados.reduce((s, c) => s + c.valor, 0)} />
                 )}
                 {cartoesFiltrados.map((c) => (
-                  <div key={c.cartaoId} className={`group flex items-center gap-3 px-4 py-3.5 transition-all ${c.status === 'pago' ? 'border-l-2 border-emerald-400 dark:border-emerald-500 bg-gradient-to-r from-emerald-100 via-emerald-50 to-transparent dark:from-emerald-500/20 dark:via-emerald-500/5 dark:to-transparent' : 'hover:bg-slate-50/80 dark:hover:bg-zinc-800/80'}`}>
+                  <div key={c.cartaoId} className={`group flex items-center gap-3 px-4 py-3.5 transition-all ${c.status === 'pago' ? 'border-l-2 border-blue-400 dark:border-blue-500 bg-gradient-to-r from-blue-100 via-blue-50 to-transparent dark:from-blue-500/20 dark:via-blue-500/5 dark:to-transparent' : 'hover:bg-slate-50/80 dark:hover:bg-zinc-800/80'}`}>
                     <div className="w-0.5 h-10 rounded-full flex-shrink-0" style={{ backgroundColor: COR_CARTOES }} />
                     <button onClick={() => handleToggleCartao(c.cartaoId, c.status)}
-                      className={`w-7 h-7 rounded-full border-2 flex items-center justify-center transition-all flex-shrink-0 shadow-sm ${c.status === 'pago' ? 'bg-gradient-to-br from-emerald-400 to-emerald-600 border-emerald-500 text-white shadow-emerald-500/30' : 'border-slate-200 dark:border-zinc-800 hover:border-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-500/10'}`}>
+                      className={`w-7 h-7 rounded-full border-2 flex items-center justify-center transition-all flex-shrink-0 shadow-sm ${c.status === 'pago' ? 'bg-gradient-to-br from-blue-400 to-blue-600 border-blue-500 text-white shadow-blue-500/30' : 'border-slate-200 dark:border-zinc-800 hover:border-blue-400 hover:bg-blue-50 dark:hover:bg-blue-500/10'}`}>
                       {c.status === 'pago' && <Check />}
                     </button>
                     <div className="flex-1 min-w-0 cursor-pointer" onClick={() => setDetalheCartao(c)}>
@@ -1093,9 +1072,9 @@ export default function TabContas({ mes, ano }: Props) {
                       </div>
                     </div>
                     <div className="flex items-center gap-2 flex-shrink-0">
-                      <span className={`font-bold text-sm tabular-nums ${c.status === 'pago' ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-800 dark:text-zinc-100'}`}>{fmt(c.valor)}</span>
+                      <span className={`font-bold text-sm tabular-nums ${c.status === 'pago' ? 'text-blue-600 dark:text-blue-400' : 'text-slate-800 dark:text-zinc-100'}`}>{fmt(c.valor)}</span>
                       <div className="w-[5.5rem] flex items-center justify-end gap-0.5 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
-                        <button onClick={() => abrirEditFatura(c)} title="Editar valor da fatura" className="p-1.5 rounded-lg text-slate-400 dark:text-zinc-400 hover:text-indigo-500 dark:hover:text-purple-400 hover:bg-indigo-50 dark:hover:bg-purple-500/10 transition-colors"><Pencil /></button>
+                        <button onClick={() => abrirEditFatura(c)} title="Editar valor da fatura" className="p-1.5 rounded-lg text-slate-400 dark:text-zinc-400 hover:text-cyan-500 dark:hover:text-cyan-400 hover:bg-cyan-50 dark:hover:bg-cyan-500/10 transition-colors"><Pencil /></button>
                       </div>
                     </div>
                   </div>
@@ -1109,10 +1088,10 @@ export default function TabContas({ mes, ano }: Props) {
                 {filtroTipo === 'todos' && (
                   <SectionHeader label="Empresa" cor="#38bdf8" count={1} total={empresaSum} />
                 )}
-                <div className={`group flex items-center gap-3 px-4 py-3.5 transition-all ${empresaStatus === 'pago' ? 'border-l-2 border-emerald-400 dark:border-emerald-500 bg-gradient-to-r from-emerald-100 via-emerald-50 to-transparent dark:from-emerald-500/20 dark:via-emerald-500/5 dark:to-transparent' : 'hover:bg-slate-50/80 dark:hover:bg-zinc-800/80'}`}>
+                <div className={`group flex items-center gap-3 px-4 py-3.5 transition-all ${empresaStatus === 'pago' ? 'border-l-2 border-blue-400 dark:border-blue-500 bg-gradient-to-r from-blue-100 via-blue-50 to-transparent dark:from-blue-500/20 dark:via-blue-500/5 dark:to-transparent' : 'hover:bg-slate-50/80 dark:hover:bg-zinc-800/80'}`}>
                   <div className="w-0.5 h-10 rounded-full flex-shrink-0 bg-sky-400" />
                   <button onClick={handleToggleEmpresaAll}
-                    className={`w-7 h-7 rounded-full border-2 flex items-center justify-center transition-all flex-shrink-0 shadow-sm ${empresaStatus === 'pago' ? 'bg-gradient-to-br from-emerald-400 to-emerald-600 border-emerald-500 text-white shadow-emerald-500/30' : 'border-slate-200 dark:border-zinc-800 hover:border-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-500/10'}`}>
+                    className={`w-7 h-7 rounded-full border-2 flex items-center justify-center transition-all flex-shrink-0 shadow-sm ${empresaStatus === 'pago' ? 'bg-gradient-to-br from-blue-400 to-blue-600 border-blue-500 text-white shadow-blue-500/30' : 'border-slate-200 dark:border-zinc-800 hover:border-blue-400 hover:bg-blue-50 dark:hover:bg-blue-500/10'}`}>
                     {empresaStatus === 'pago' && <Check />}
                   </button>
                   <div className="flex-1 min-w-0">
@@ -1123,7 +1102,7 @@ export default function TabContas({ mes, ano }: Props) {
                     </div>
                   </div>
                   <div className="flex items-center gap-2 flex-shrink-0">
-                    <span className={`font-bold text-sm tabular-nums ${empresaStatus === 'pago' ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-800 dark:text-zinc-100'}`}>{fmt(empresaSum)}</span>
+                    <span className={`font-bold text-sm tabular-nums ${empresaStatus === 'pago' ? 'text-blue-600 dark:text-blue-400' : 'text-slate-800 dark:text-zinc-100'}`}>{fmt(empresaSum)}</span>
                     <div className="w-[5.5rem]" />
                   </div>
                 </div>
@@ -1156,7 +1135,7 @@ export default function TabContas({ mes, ano }: Props) {
                       onClick={() => setForm({ ...form, icone: sel ? '' : key })}
                       className={`w-9 h-9 rounded-lg border flex items-center justify-center transition-colors ${
                         sel
-                          ? 'border-indigo-500 dark:border-purple-500 bg-indigo-50 dark:bg-purple-500/15 text-indigo-600 dark:text-purple-300'
+                          ? 'border-cyan-500 dark:border-cyan-500 bg-cyan-50 dark:bg-cyan-500/15 text-cyan-600 dark:text-cyan-300'
                           : 'border-slate-200 dark:border-zinc-800 text-slate-400 dark:text-zinc-500 hover:text-slate-600 dark:hover:text-zinc-300 hover:border-slate-300 dark:hover:border-zinc-700'
                       }`}
                     >
@@ -1214,7 +1193,7 @@ export default function TabContas({ mes, ano }: Props) {
             )}
             <div className="flex gap-3 pt-1">
               <button type="button" onClick={fecharModal} className="flex-1 py-2.5 border border-slate-200 dark:border-zinc-800 rounded-xl text-sm text-slate-600 dark:text-zinc-300 hover:bg-slate-50 dark:hover:bg-zinc-800">Cancelar</button>
-              <button type="submit" className="flex-1 py-2.5 bg-indigo-600 dark:bg-purple-600 text-white rounded-xl text-sm font-semibold hover:bg-indigo-700 dark:hover:bg-purple-700 shadow-sm">Salvar</button>
+              <button type="submit" className="flex-1 py-2.5 bg-cyan-600 dark:bg-cyan-600 text-white rounded-xl text-sm font-semibold hover:bg-cyan-700 dark:hover:bg-cyan-700 shadow-sm">Salvar</button>
             </div>
           </form>
         </Modal>
@@ -1243,7 +1222,7 @@ export default function TabContas({ mes, ano }: Props) {
               {editFatura.valor !== editFatura.valorCalculado && (
                 <button type="button" onClick={handleResetFaturaValor} className="flex-1 py-2.5 border border-slate-200 dark:border-zinc-800 rounded-xl text-sm text-slate-600 dark:text-zinc-300 hover:bg-slate-50 dark:hover:bg-zinc-800">Usar soma</button>
               )}
-              <button type="submit" className="flex-1 py-2.5 bg-indigo-600 dark:bg-purple-600 text-white rounded-xl text-sm font-semibold hover:bg-indigo-700 dark:hover:bg-purple-700 shadow-sm">Salvar</button>
+              <button type="submit" className="flex-1 py-2.5 bg-cyan-600 dark:bg-cyan-600 text-white rounded-xl text-sm font-semibold hover:bg-cyan-700 dark:hover:bg-cyan-700 shadow-sm">Salvar</button>
             </div>
           </form>
         </Modal>
@@ -1284,18 +1263,18 @@ export default function TabContas({ mes, ano }: Props) {
                   <CompraCatIcon nome={cat.nome} icone={cat.icone} className="w-5 h-5 dark:text-white" />
                 </span>
                 <p className="flex-1 text-sm font-medium text-slate-700 dark:text-zinc-200">{cat.nome}</p>
-                <button onClick={() => abrirEditCat(cat)} className="p-1.5 rounded-lg hover:bg-indigo-50 dark:hover:bg-purple-500/10 text-slate-300 dark:text-zinc-500 hover:text-indigo-400 dark:hover:text-purple-400 transition-colors"><Pencil /></button>
+                <button onClick={() => abrirEditCat(cat)} className="p-1.5 rounded-lg hover:bg-cyan-50 dark:hover:bg-cyan-500/10 text-slate-300 dark:text-zinc-500 hover:text-cyan-400 dark:hover:text-cyan-400 transition-colors"><Pencil /></button>
                 <button onClick={() => handleDeleteCat(cat.id!)} className="p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-500/10 text-slate-300 dark:text-zinc-500 hover:text-red-400 transition-colors"><Trash /></button>
               </div>
             ))}
             {!showCatForm ? (
               <div className="flex flex-col sm:flex-row gap-2">
                 <button onClick={abrirNovaCat}
-                  className="flex-1 py-2.5 border-2 border-dashed border-slate-200 dark:border-zinc-800 rounded-xl text-sm text-slate-400 dark:text-zinc-400 hover:border-indigo-300 hover:text-indigo-500 dark:hover:text-purple-400 flex items-center justify-center gap-2">
+                  className="flex-1 py-2.5 border-2 border-dashed border-slate-200 dark:border-zinc-800 rounded-xl text-sm text-slate-400 dark:text-zinc-400 hover:border-cyan-300 hover:text-cyan-500 dark:hover:text-cyan-400 flex items-center justify-center gap-2">
                   <Plus /> Nova Categoria
                 </button>
                 <button onClick={handleAddCatsSugeridas}
-                  className="flex-1 py-2.5 border border-indigo-200 dark:border-purple-500/40 rounded-xl text-sm text-indigo-600 dark:text-purple-300 hover:bg-indigo-50 dark:hover:bg-purple-500/10 transition-colors flex items-center justify-center gap-2 font-medium">
+                  className="flex-1 py-2.5 border border-cyan-200 dark:border-cyan-500/40 rounded-xl text-sm text-cyan-600 dark:text-cyan-300 hover:bg-cyan-50 dark:hover:bg-cyan-500/10 transition-colors flex items-center justify-center gap-2 font-medium">
                   <Plus /> Adicionar sugeridas
                 </button>
               </div>
@@ -1335,7 +1314,7 @@ export default function TabContas({ mes, ano }: Props) {
                 </div>
                 <div className="flex gap-2">
                   <button type="button" onClick={() => { setShowCatForm(false); setEditCatId(null); setFormCat({ nome: '', cor: '#6366f1', icone: 'outro' }); }} className="flex-1 py-2 border border-slate-200 dark:border-zinc-800 rounded-xl text-xs text-slate-600 dark:text-zinc-300 hover:bg-white dark:hover:bg-zinc-800">Cancelar</button>
-                  <button type="submit" className="flex-1 py-2 bg-indigo-600 dark:bg-purple-600 text-white rounded-xl text-xs font-semibold hover:bg-indigo-700 dark:hover:bg-purple-700">Salvar</button>
+                  <button type="submit" className="flex-1 py-2 bg-cyan-600 dark:bg-cyan-600 text-white rounded-xl text-xs font-semibold hover:bg-cyan-700 dark:hover:bg-cyan-700">Salvar</button>
                 </div>
               </form>
             )}
@@ -1348,13 +1327,13 @@ export default function TabContas({ mes, ano }: Props) {
                   <p className="text-sm font-medium text-slate-700 dark:text-zinc-200 truncate">{r.apelido}</p>
                   <p className="text-[11px] text-slate-400 dark:text-zinc-400 truncate">{r.chave}</p>
                 </div>
-                <button onClick={() => abrirEditarRec(r)} className="p-1.5 rounded-lg text-slate-400 dark:text-zinc-400 hover:text-indigo-500 dark:hover:text-purple-400 hover:bg-indigo-50 dark:hover:bg-purple-500/10 transition-colors"><Pencil /></button>
+                <button onClick={() => abrirEditarRec(r)} className="p-1.5 rounded-lg text-slate-400 dark:text-zinc-400 hover:text-cyan-500 dark:hover:text-cyan-400 hover:bg-cyan-50 dark:hover:bg-cyan-500/10 transition-colors"><Pencil /></button>
                 <button onClick={() => handleDeleteRec(r.id!)} className="p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-500/10 text-slate-300 dark:text-zinc-500 hover:text-red-400 transition-colors"><Trash /></button>
               </div>
             ))}
             {!showRecForm ? (
               <button onClick={() => { setEditRecId(null); setShowRecForm(true); }}
-                className="w-full py-2.5 border-2 border-dashed border-slate-200 dark:border-zinc-800 rounded-xl text-sm text-slate-400 dark:text-zinc-400 hover:border-indigo-300 hover:text-indigo-500 dark:hover:text-purple-400 flex items-center justify-center gap-2">
+                className="w-full py-2.5 border-2 border-dashed border-slate-200 dark:border-zinc-800 rounded-xl text-sm text-slate-400 dark:text-zinc-400 hover:border-cyan-300 hover:text-cyan-500 dark:hover:text-cyan-400 flex items-center justify-center gap-2">
                 <Plus /> Novo Recebedor
               </button>
             ) : (
@@ -1380,7 +1359,7 @@ export default function TabContas({ mes, ano }: Props) {
                 </div>
                 <div className="flex gap-2">
                   <button type="button" onClick={fecharRecForm} className="flex-1 py-2 border border-slate-200 dark:border-zinc-800 rounded-xl text-xs text-slate-600 dark:text-zinc-300 hover:bg-white dark:hover:bg-zinc-800">Cancelar</button>
-                  <button type="submit" className="flex-1 py-2 bg-indigo-600 dark:bg-purple-600 text-white rounded-xl text-xs font-semibold hover:bg-indigo-700 dark:hover:bg-purple-700">Salvar</button>
+                  <button type="submit" className="flex-1 py-2 bg-cyan-600 dark:bg-cyan-600 text-white rounded-xl text-xs font-semibold hover:bg-cyan-700 dark:hover:bg-cyan-700">Salvar</button>
                 </div>
               </form>
             )}
@@ -1436,15 +1415,15 @@ export default function TabContas({ mes, ano }: Props) {
 
                   {/* Já pago vs restante */}
                   <div className="grid grid-cols-2 gap-3">
-                    <div className="bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-100 rounded-2xl p-3.5">
-                      <p className="text-emerald-600 dark:text-emerald-400 text-[11px] font-semibold uppercase tracking-wide">Já pago</p>
-                      <p className="text-lg font-bold text-emerald-700 dark:text-emerald-300 mt-1 tabular-nums">{fmt(acompanhamentoStats.valorPago)}</p>
-                      <p className="text-[11px] text-emerald-500 mt-0.5">{acompanhamentoStats.countPago} parcela(s)</p>
+                    <div className="bg-blue-50 dark:bg-blue-500/10 border border-blue-100 rounded-2xl p-3.5">
+                      <p className="text-blue-600 dark:text-blue-400 text-[11px] font-semibold uppercase tracking-wide">Já pago</p>
+                      <p className="text-lg font-bold text-blue-700 dark:text-blue-300 mt-1 tabular-nums">{fmt(acompanhamentoStats.valorPago)}</p>
+                      <p className="text-[11px] text-blue-500 mt-0.5">{acompanhamentoStats.countPago} parcela(s)</p>
                     </div>
-                    <div className="bg-indigo-50 dark:bg-purple-500/10 border border-indigo-100 dark:border-purple-500/30 rounded-2xl p-3.5">
-                      <p className="text-indigo-600 dark:text-purple-400 text-[11px] font-semibold uppercase tracking-wide">Para quitar</p>
-                      <p className="text-lg font-bold text-indigo-700 dark:text-purple-300 mt-1 tabular-nums">{fmt(acompanhamentoStats.valorRestante)}</p>
-                      <p className="text-[11px] text-indigo-500 dark:text-purple-400 mt-0.5">{acompanhamentoStats.countRestante} parcela(s)</p>
+                    <div className="bg-cyan-50 dark:bg-cyan-500/10 border border-cyan-100 dark:border-cyan-500/30 rounded-2xl p-3.5">
+                      <p className="text-cyan-600 dark:text-cyan-400 text-[11px] font-semibold uppercase tracking-wide">Para quitar</p>
+                      <p className="text-lg font-bold text-cyan-700 dark:text-cyan-300 mt-1 tabular-nums">{fmt(acompanhamentoStats.valorRestante)}</p>
+                      <p className="text-[11px] text-cyan-500 dark:text-cyan-400 mt-0.5">{acompanhamentoStats.countRestante} parcela(s)</p>
                     </div>
                   </div>
 
@@ -1461,7 +1440,7 @@ export default function TabContas({ mes, ano }: Props) {
                           <div
                             key={num}
                             title={`Parcela ${num}/${acompanhamentoStats.totalParcelas}${doc ? ` · ${MESES_CURTOS[doc.mes - 1]}/${String(doc.ano).slice(2)}` : ''} · ${paga ? 'paga' : 'pendente'}`}
-                            className={`h-6 flex-1 min-w-[16px] rounded-md transition-colors ${paga ? 'bg-emerald-400' : 'bg-slate-100 dark:bg-zinc-800'} ${atual ? 'ring-2 ring-indigo-500 dark:ring-purple-500 ring-offset-1' : ''}`}
+                            className={`h-6 flex-1 min-w-[16px] rounded-md transition-colors ${paga ? 'bg-blue-400' : 'bg-slate-100 dark:bg-zinc-800'} ${atual ? 'ring-2 ring-cyan-500 dark:ring-cyan-500 ring-offset-1' : ''}`}
                           />
                         );
                       })}
@@ -1532,7 +1511,7 @@ function PixBox({
           <select
             value={recebedorId ?? ''}
             onChange={(e) => onVincular(e.target.value)}
-            className="w-full px-3 py-2.5 rounded-xl border border-slate-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-sm text-slate-700 dark:text-zinc-200 focus:outline-none focus:ring-2 focus:ring-indigo-400 dark:focus:ring-purple-500"
+            className="w-full px-3 py-2.5 rounded-xl border border-slate-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-sm text-slate-700 dark:text-zinc-200 focus:outline-none focus:ring-2 focus:ring-cyan-400 dark:focus:ring-cyan-500"
           >
             <option value="">Sem recebedor</option>
             {recebedores.map((r) => <option key={r.id} value={r.id}>{r.apelido}</option>)}
@@ -1543,8 +1522,8 @@ function PixBox({
               onClick={() => onCopiar(rec)}
               className={`w-full py-3 rounded-xl text-sm font-semibold flex items-center justify-center gap-2 transition-colors ${
                 copiado
-                  ? 'bg-emerald-500 text-white'
-                  : 'bg-indigo-600 dark:bg-purple-600 text-white hover:bg-indigo-700 dark:hover:bg-purple-700'
+                  ? 'bg-blue-500 text-white'
+                  : 'bg-cyan-600 dark:bg-cyan-600 text-white hover:bg-cyan-700 dark:hover:bg-cyan-700'
               }`}
             >
               {copiado ? <><Check /> Copiado!</> : <><CopyIcon /> Copiar Pix com valor</>}
