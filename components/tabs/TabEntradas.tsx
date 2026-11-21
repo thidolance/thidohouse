@@ -291,13 +291,12 @@ export default function TabEntradas({ mes, ano }: Props) {
     const somaSel = list.reduce((s, e) => s + e.valor, 0);
     if (somaSel > 0) byMonth[kSel] = somaSel;
     else delete byMonth[kSel];
-    // O histórico "últimos 12 meses" termina SEMPRE no mês atual real (hoje) —
-    // ignora os meses futuros/placeholder (ex.: salário já lançado p/ 2027), que
-    // antes dominavam o slice(-12) e deixavam o gráfico plano.
-    const agora = new Date();
-    const hojeKeyVal = agora.getFullYear() * 12 + agora.getMonth();
+    // O histórico "últimos 12 meses" termina no mês que está sendo visualizado
+    // (o mesmo do cabeçalho). Assim, ao avançar o mês no topo, o gráfico acompanha
+    // — e os meses futuros/placeholder além do mês atual ficam de fora.
+    const fimKeyVal = ano * 12 + (mes - 1);
     const sorted = Object.entries(byMonth)
-      .filter(([k]) => parseInt(k.slice(0, 4), 10) * 12 + (parseInt(k.slice(4), 10) - 1) <= hojeKeyVal)
+      .filter(([k]) => parseInt(k.slice(0, 4), 10) * 12 + (parseInt(k.slice(4), 10) - 1) <= fimKeyVal)
       .sort(([a], [b]) => a.localeCompare(b))
       .slice(-12)
       .map(([k, total], i, arr) => ({
