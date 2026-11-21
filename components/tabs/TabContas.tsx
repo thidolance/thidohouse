@@ -774,7 +774,7 @@ export default function TabContas({ mes, ano }: Props) {
     const pago = c.status === 'pago';
     const cor  = catCor(c.categoria);
     return (
-      <div className={`group flex items-center gap-3 px-4 py-3.5 transition-all ${pago ? 'border-l-2 border-emerald-400 dark:border-emerald-500 bg-gradient-to-r from-emerald-100 via-emerald-50 to-transparent dark:from-emerald-500/20 dark:via-emerald-500/5 dark:to-transparent' : 'hover:bg-slate-50/80 dark:hover:bg-zinc-800/80'}`}>
+      <div className={`group flex items-center gap-3 px-4 py-3.5 transition-all ${pago ? 'border-l-2 border-blue-400 dark:border-blue-500 bg-gradient-to-r from-blue-100 via-blue-50 to-transparent dark:from-blue-500/20 dark:via-blue-500/5 dark:to-transparent' : 'hover:bg-slate-50/80 dark:hover:bg-zinc-800/80'}`}>
         <div className="w-0.5 h-10 rounded-full flex-shrink-0 opacity-60 transition-opacity group-hover:opacity-100" style={{ backgroundColor: barColor }} />
         <button
           onClick={() => handleTogglePago(c.id!, c.status)}
@@ -815,7 +815,7 @@ export default function TabContas({ mes, ano }: Props) {
           )}
         </div>
         <div className="flex items-center gap-2 flex-shrink-0">
-          <span className={`font-bold text-sm tabular-nums ${pago ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-800 dark:text-zinc-100'}`}>{fmt(c.valor)}</span>
+          <span className={`font-bold text-sm tabular-nums ${pago ? 'text-blue-600 dark:text-blue-400' : 'text-slate-800 dark:text-zinc-100'}`}>{fmt(c.valor)}</span>
           <div className="w-[5.5rem] flex items-center gap-0.5 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
             {!c.parcelaAtual && (
               <button onClick={() => handleToggleFixa(c)} title={c.fixa ? 'Remover recorrência' : 'Marcar como fixa'}
@@ -922,7 +922,7 @@ export default function TabContas({ mes, ano }: Props) {
             <p className="text-[11px] text-white/90">{countPago} item(s)</p>
           </div>
         </div>
-        <div className="bg-gradient-to-br from-amber-500 via-orange-500 to-orange-400 rounded-2xl px-4 py-3 text-white shadow-lg shadow-amber-200/60">
+        <div className="bg-gradient-to-br from-rose-500 via-rose-500 to-pink-400 rounded-2xl px-4 py-3 text-white shadow-lg shadow-rose-200/60">
           <p className="text-white/90 text-xs font-medium uppercase tracking-wide">Pendente</p>
           <p className="text-2xl font-bold mt-0.5 tabular-nums">{fmt(totalPendente)}</p>
           <div className="flex items-center gap-1.5 mt-2">
@@ -1077,7 +1077,7 @@ export default function TabContas({ mes, ano }: Props) {
                   <SectionHeader label="Cartões" cor={COR_CARTOES} count={cartoesFiltrados.length} total={cartoesFiltrados.reduce((s, c) => s + c.valor, 0)} />
                 )}
                 {cartoesFiltrados.map((c) => (
-                  <div key={c.cartaoId} className={`group flex items-center gap-3 px-4 py-3.5 transition-all ${c.status === 'pago' ? 'border-l-2 border-emerald-400 dark:border-emerald-500 bg-gradient-to-r from-emerald-100 via-emerald-50 to-transparent dark:from-emerald-500/20 dark:via-emerald-500/5 dark:to-transparent' : 'hover:bg-slate-50/80 dark:hover:bg-zinc-800/80'}`}>
+                  <div key={c.cartaoId} className={`group flex items-center gap-3 px-4 py-3.5 transition-all ${c.status === 'pago' ? 'border-l-2 border-blue-400 dark:border-blue-500 bg-gradient-to-r from-blue-100 via-blue-50 to-transparent dark:from-blue-500/20 dark:via-blue-500/5 dark:to-transparent' : 'hover:bg-slate-50/80 dark:hover:bg-zinc-800/80'}`}>
                     <div className="w-0.5 h-10 rounded-full flex-shrink-0" style={{ backgroundColor: COR_CARTOES }} />
                     <button onClick={() => handleToggleCartao(c.cartaoId, c.status)}
                       className={`w-7 h-7 rounded-full border-2 flex items-center justify-center transition-all flex-shrink-0 shadow-sm ${c.status === 'pago' ? 'bg-gradient-to-br from-emerald-400 to-emerald-600 border-emerald-500 text-white shadow-emerald-500/30' : 'border-slate-200 dark:border-zinc-800 hover:border-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-500/10'}`}>
@@ -1093,7 +1093,7 @@ export default function TabContas({ mes, ano }: Props) {
                       </div>
                     </div>
                     <div className="flex items-center gap-2 flex-shrink-0">
-                      <span className={`font-bold text-sm tabular-nums ${c.status === 'pago' ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-800 dark:text-zinc-100'}`}>{fmt(c.valor)}</span>
+                      <span className={`font-bold text-sm tabular-nums ${c.status === 'pago' ? 'text-blue-600 dark:text-blue-400' : 'text-slate-800 dark:text-zinc-100'}`}>{fmt(c.valor)}</span>
                       <div className="w-[5.5rem] flex items-center justify-end gap-0.5 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
                         <button onClick={() => abrirEditFatura(c)} title="Editar valor da fatura" className="p-1.5 rounded-lg text-slate-400 dark:text-zinc-400 hover:text-cyan-500 dark:hover:text-cyan-400 hover:bg-cyan-50 dark:hover:bg-cyan-500/10 transition-colors"><Pencil /></button>
                       </div>
@@ -1109,7 +1109,7 @@ export default function TabContas({ mes, ano }: Props) {
                 {filtroTipo === 'todos' && (
                   <SectionHeader label="Empresa" cor="#38bdf8" count={1} total={empresaSum} />
                 )}
-                <div className={`group flex items-center gap-3 px-4 py-3.5 transition-all ${empresaStatus === 'pago' ? 'border-l-2 border-emerald-400 dark:border-emerald-500 bg-gradient-to-r from-emerald-100 via-emerald-50 to-transparent dark:from-emerald-500/20 dark:via-emerald-500/5 dark:to-transparent' : 'hover:bg-slate-50/80 dark:hover:bg-zinc-800/80'}`}>
+                <div className={`group flex items-center gap-3 px-4 py-3.5 transition-all ${empresaStatus === 'pago' ? 'border-l-2 border-blue-400 dark:border-blue-500 bg-gradient-to-r from-blue-100 via-blue-50 to-transparent dark:from-blue-500/20 dark:via-blue-500/5 dark:to-transparent' : 'hover:bg-slate-50/80 dark:hover:bg-zinc-800/80'}`}>
                   <div className="w-0.5 h-10 rounded-full flex-shrink-0 bg-sky-400" />
                   <button onClick={handleToggleEmpresaAll}
                     className={`w-7 h-7 rounded-full border-2 flex items-center justify-center transition-all flex-shrink-0 shadow-sm ${empresaStatus === 'pago' ? 'bg-gradient-to-br from-emerald-400 to-emerald-600 border-emerald-500 text-white shadow-emerald-500/30' : 'border-slate-200 dark:border-zinc-800 hover:border-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-500/10'}`}>
@@ -1123,7 +1123,7 @@ export default function TabContas({ mes, ano }: Props) {
                     </div>
                   </div>
                   <div className="flex items-center gap-2 flex-shrink-0">
-                    <span className={`font-bold text-sm tabular-nums ${empresaStatus === 'pago' ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-800 dark:text-zinc-100'}`}>{fmt(empresaSum)}</span>
+                    <span className={`font-bold text-sm tabular-nums ${empresaStatus === 'pago' ? 'text-blue-600 dark:text-blue-400' : 'text-slate-800 dark:text-zinc-100'}`}>{fmt(empresaSum)}</span>
                     <div className="w-[5.5rem]" />
                   </div>
                 </div>
