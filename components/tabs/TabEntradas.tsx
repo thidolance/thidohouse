@@ -285,7 +285,16 @@ export default function TabEntradas({ mes, ano }: Props) {
       const key = `${String(e.ano).padStart(4,'0')}${String(e.mes).padStart(2, '0')}`;
       byMonth[key] = (byMonth[key] ?? 0) + e.valor;
     });
+    // O mês selecionado usa a soma FRESCA (getEntradas = `list`, mesma do cabeçalho),
+    // nunca o cache — garante que o ponto do mês atual bata com o total real.
+    const kSel = `${String(ano).padStart(4, '0')}${String(mes).padStart(2, '0')}`;
+    const somaSel = list.reduce((s, e) => s + e.valor, 0);
+    if (somaSel > 0) byMonth[kSel] = somaSel;
+    else delete byMonth[kSel];
+    // Não mostra meses futuros: só até o mês selecionado.
+    const selKeyVal = ano * 12 + (mes - 1);
     const sorted = Object.entries(byMonth)
+      .filter(([k]) => parseInt(k.slice(0, 4), 10) * 12 + (parseInt(k.slice(4), 10) - 1) <= selKeyVal)
       .sort(([a], [b]) => a.localeCompare(b))
       .slice(-12)
       .map(([k, total], i, arr) => ({
