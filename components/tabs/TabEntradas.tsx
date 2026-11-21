@@ -76,53 +76,71 @@ function HistoricoArea({ data }: { data: { mes: string; total: number }[] }) {
 
   const ultimo = data.at(-1);
   const penultimo = n >= 2 ? data[n - 2] : undefined;
-  const delta = ultimo && penultimo && penultimo.total > 0
-    ? ((ultimo.total - penultimo.total) / penultimo.total) * 100
-    : null;
+  // Variação do último mês vs o anterior. Sempre mostra quando há 2+ meses:
+  // se o anterior foi 0, trata como "novo"; senão calcula o percentual (pode ser
+  // positivo ou negativo — mês passado maior => variação negativa).
+  let deltaPct: number | null = null;
+  let deltaNovo = false;
+  if (ultimo && penultimo) {
+    if (penultimo.total > 0) deltaPct = ((ultimo.total - penultimo.total) / penultimo.total) * 100;
+    else if (ultimo.total > 0) deltaNovo = true;
+  }
+  const subiu = (deltaPct ?? 0) >= 0;
 
   return (
     <div>
       {ultimo && (
-        <div className="flex items-end justify-between mb-2">
-          <div>
-            <p className="text-[11px] text-slate-400 dark:text-zinc-400 uppercase tracking-wide">{ultimo.mes}</p>
+        <div className="flex items-end justify-between gap-2 mb-2">
+          <div className="min-w-0">
+            <p className="text-[11px] text-slate-400 dark:text-zinc-400">Último mês · <span className="uppercase">{ultimo.mes}</span></p>
             <p className="text-xl font-extrabold text-slate-800 dark:text-zinc-100 tabular-nums leading-tight">{fmt(ultimo.total)}</p>
+            {penultimo && (
+              <p className="text-[10px] text-slate-400 dark:text-zinc-500 mt-0.5">mês anterior: {fmt(penultimo.total)}</p>
+            )}
           </div>
-          {delta !== null && (
-            <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${delta >= 0 ? 'text-emerald-600 bg-emerald-50 dark:text-emerald-400 dark:bg-emerald-500/10' : 'text-rose-500 bg-rose-50 dark:text-rose-400 dark:bg-rose-500/10'}`}>
-              {delta >= 0 ? '▲' : '▼'} {Math.abs(delta).toFixed(0)}% vs mês anterior
+          {deltaNovo ? (
+            <span className="flex-shrink-0 text-xs font-semibold px-2 py-0.5 rounded-full text-cyan-600 bg-cyan-50 dark:text-cyan-400 dark:bg-cyan-500/10">novo</span>
+          ) : deltaPct !== null ? (
+            <span className={`flex-shrink-0 text-xs font-semibold px-2 py-0.5 rounded-full ${subiu ? 'text-emerald-600 bg-emerald-50 dark:text-emerald-400 dark:bg-emerald-500/10' : 'text-rose-500 bg-rose-50 dark:text-rose-400 dark:bg-rose-500/10'}`}>
+              {subiu ? '▲' : '▼'} {Math.abs(deltaPct).toFixed(0)}%
             </span>
-          )}
+          ) : null}
         </div>
       )}
-      <div className="relative" style={{ height: 150 }}>
-        <svg className="absolute inset-0 w-full h-full overflow-visible" viewBox="0 0 100 100" preserveAspectRatio="none">
-          <defs>
-            <linearGradient id="histGrad" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#06b6d4" stopOpacity="0.35" />
-              <stop offset="100%" stopColor="#06b6d4" stopOpacity="0" />
-            </linearGradient>
-          </defs>
-          <path d={areaPath} fill="url(#histGrad)" />
-          <path d={linePath} fill="none" stroke="#06b6d4" strokeWidth="2.5" vectorEffect="non-scaling-stroke" strokeLinejoin="round" strokeLinecap="round" />
-        </svg>
-        {pts.map(([x, y], i) => {
-          const last = i === n - 1;
-          return (
-            <span
-              key={i}
-              title={`${data[i].mes}: ${fmt(data[i].total)}`}
-              className={`absolute -translate-x-1/2 -translate-y-1/2 rounded-full ring-2 ring-white dark:ring-zinc-950 transition-transform hover:scale-150 ${last ? 'w-3 h-3 bg-cyan-500' : 'w-2 h-2 bg-cyan-400/80'}`}
-              style={{ left: `${x}%`, top: `${y}%` }}
-            />
-          );
-        })}
-      </div>
-      <div className="flex justify-between mt-2 gap-0.5">
-        {data.map((d, i) => (
-          <span key={i} className="text-[9px] text-slate-400 dark:text-zinc-500 flex-1 text-center truncate">{d.mes}</span>
-        ))}
-      </div>
+      {n >= 2 ? (
+        <>
+          <div className="relative" style={{ height: 150 }}>
+            <svg className="absolute inset-0 w-full h-full overflow-visible" viewBox="0 0 100 100" preserveAspectRatio="none">
+              <defs>
+                <linearGradient id="histGrad" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#06b6d4" stopOpacity="0.35" />
+                  <stop offset="100%" stopColor="#06b6d4" stopOpacity="0" />
+                </linearGradient>
+              </defs>
+              <path d={areaPath} fill="url(#histGrad)" />
+              <path d={linePath} fill="none" stroke="#06b6d4" strokeWidth="2.5" vectorEffect="non-scaling-stroke" strokeLinejoin="round" strokeLinecap="round" />
+            </svg>
+            {pts.map(([x, y], i) => {
+              const last = i === n - 1;
+              return (
+                <span
+                  key={i}
+                  title={`${data[i].mes}: ${fmt(data[i].total)}`}
+                  className={`absolute -translate-x-1/2 -translate-y-1/2 rounded-full ring-2 ring-white dark:ring-zinc-950 transition-transform hover:scale-150 ${last ? 'w-3 h-3 bg-cyan-500' : 'w-2 h-2 bg-cyan-400/80'}`}
+                  style={{ left: `${x}%`, top: `${y}%` }}
+                />
+              );
+            })}
+          </div>
+          <div className="flex justify-between mt-2 gap-0.5">
+            {data.map((d, i) => (
+              <span key={i} className="text-[9px] text-slate-400 dark:text-zinc-500 flex-1 text-center truncate">{d.mes}</span>
+            ))}
+          </div>
+        </>
+      ) : (
+        <p className="text-[11px] text-slate-400 dark:text-zinc-500 mt-1">Sem meses anteriores para comparar ainda.</p>
+      )}
     </div>
   );
 }
